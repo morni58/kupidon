@@ -5,6 +5,7 @@ export type Theme = 'light' | 'room18' | 'oligarch'
 interface User {
   id: string
   name: string
+  gender?: string
   tier: 'free' | 'premium' | 'kupidon'
   swipes_left: number
   superlikes_left: number

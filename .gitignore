@@ -17,3 +17,6 @@ frontend/dist/
 venv/
 .pytest_cache/
 .mypy_cache/
+
+# Local Netlify folder
+.netlify
