@@ -1,0 +1,21 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y libpq-dev gcc && rm -rf /var/lib/apt/lists/*
+
+# Install all deps (backend + bot share the same packages)
+COPY backend/requirements.txt /tmp/backend_req.txt
+COPY bot/requirements.txt /tmp/bot_req.txt
+RUN pip install --no-cache-dir -r /tmp/backend_req.txt -r /tmp/bot_req.txt
+
+# Copy backend (shared models)
+COPY backend/ /app/backend/
+
+# Copy bot
+COPY bot/ /app/bot/
+
+WORKDIR /app/bot
+ENV PYTHONPATH=/app/backend
+
+CMD ["python", "bot.py"]
