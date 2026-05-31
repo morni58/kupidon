@@ -59,8 +59,11 @@ async def upload_media(
     async with aiofiles.open(filepath, "wb") as f:
         await f.write(data)
 
-    base = PUBLIC_BASE or (settings.WEBAPP_URL.replace("netlify.app", "up.railway.app") if settings.WEBAPP_URL else "")
-    media_url = f"/media/{me.id}/{filename}"  # served by FastAPI StaticFiles
+    # Full URL if PUBLIC_MEDIA_URL is configured, else relative (served by StaticFiles)
+    if PUBLIC_BASE:
+        media_url = f"{PUBLIC_BASE.rstrip('/')}/{me.id}/{filename}"
+    else:
+        media_url = f"/media/{me.id}/{filename}"
 
     # NSFW moderation (stub returns safe score; wire a real model in services/moderation.py)
     nsfw_score = await nsfw_service.classify(filepath)
