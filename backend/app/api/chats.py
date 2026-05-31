@@ -162,6 +162,48 @@ async def approve_tg(
     return {"ok": True}
 
 
+@router.post("/chats/{match_id}/decline_tg")
+async def decline_tg(
+    match_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    me: User = Depends(get_current_user),
+):
+    """Decline a Telegram exchange request. Repeat allowed after 24h."""
+    await _check_match_access(db, match_id, me)
+    from app.ws.manager import ws_manager
+    import asyncio
+    asyncio.create_task(ws_manager.broadcast(str(match_id), {
+        "type": "tg_consent_declined",
+        "by_id": str(me.id),
+    }))
+    sys_msg = Message(
+        match_id=match_id,
+        sender_id=me.id,
+        content="Обмен Telegram отклонён",
+        msg_type=MsgTypeEnum.system,
+    )
+    db.add(sys_msg)
+    await db.commit()
+    return {"ok": True}
+
+
+@router.post("/chats/{match_id}/read")
+async def mark_read(
+    match_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    me: User = Depends(get_current_user),
+):
+    """Mark messages as read and broadcast read receipt."""
+    await _check_match_access(db, match_id, me)
+    from app.ws.manager import ws_manager
+    import asyncio
+    asyncio.create_task(ws_manager.broadcast(str(match_id), {
+        "type": "message_read",
+        "reader_id": str(me.id),
+    }))
+    return {"ok": True}
+
+
 @router.get("/icebreakers")
 async def get_icebreakers(me: User = Depends(get_current_user)):
     import random

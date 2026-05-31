@@ -21,6 +21,19 @@ PRODUCTS = {
 }
 
 
+PRODUCT_META = {
+    "force_chat": ("Force Chat", "Написать без взаимного лайка"),
+    "boost": ("Буст 2 часа", "Поднять анкету в топ на 2 часа"),
+    "superlike": ("Суперлайк", "Один суперлайк — всплывёшь первым"),
+    "vip_signal": ("VIP сигнал", "Усиленный анонимный сигнал"),
+    "premium_month": ("Premium на месяц", "200 свайпов/день, Rewind, врывы"),
+    "kupidon_month": ("Kupidon VIP на месяц", "500 свайпов, Олигарх-режим"),
+}
+
+# Subscription prices in Stars (configurable via /economy)
+SUB_STARS = {"premium_month": "199", "kupidon_month": "599"}
+
+
 @router.post("/create_invoice")
 async def create_invoice(
     product: str,
@@ -31,11 +44,13 @@ async def create_invoice(
         raise HTTPException(status_code=400, detail="Unknown product")
 
     stars_key = PRODUCTS.get(product)
-    stars = int(await get_config_value(db, stars_key, "50")) if stars_key else 0
+    if stars_key:
+        stars = int(await get_config_value(db, stars_key, "50"))
+    else:
+        stars = int(await get_config_value(db, f"{product}_stars", SUB_STARS.get(product, "199")))
 
     payload = f"{me.id}:{product}:{uuid.uuid4()}"
 
-    # Create pending payment (idempotent by payload)
     payment = Payment(
         user_id=me.id,
         invoice_payload=payload,
@@ -46,8 +61,35 @@ async def create_invoice(
     db.add(payment)
     await db.commit()
 
-    # In prod: call bot.send_invoice(chat_id=me.tg_id, ...)
-    return {"invoice_payload": payload, "stars": stars, "product": product}
+    # Create a real Telegram Stars invoice link via Bot API (currency XTR).
+    title, description = PRODUCT_META.get(product, (product, product))
+    invoice_link = None
+    try:
+        import httpx
+        from app.core.config import settings
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.post(
+                f"https://api.telegram.org/bot{settings.BOT_TOKEN}/createInvoiceLink",
+                json={
+                    "title": title,
+                    "description": description,
+                    "payload": payload,
+                    "currency": "XTR",
+                    "prices": [{"label": title, "amount": stars}],
+                },
+            )
+            data = resp.json()
+            if data.get("ok"):
+                invoice_link = data["result"]
+    except Exception:
+        invoice_link = None
+
+    return {
+        "invoice_payload": payload,
+        "stars": stars,
+        "product": product,
+        "invoice_link": invoice_link,  # frontend opens via WebApp.openInvoice
+    }
 
 
 @router.post("/webhook/successful_payment")

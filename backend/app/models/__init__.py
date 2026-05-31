@@ -7,8 +7,10 @@ from app.models.tag import AdminTag, UserTag
 from app.models.vip import VIPNotification, ProfileView
 from app.models.safety import Report, Block, ReportReasonEnum, ReportStatusEnum
 from app.models.payment import Payment, Config, PaymentStatusEnum
+from app.models.city import City
 
 __all__ = [
+    "City",
     "User", "GenderEnum", "SearchGenderEnum", "TierEnum",
     "Swipe", "ActionTypeEnum",
     "Match",

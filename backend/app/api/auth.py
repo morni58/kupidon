@@ -32,13 +32,25 @@ async def auth_telegram(body: InitDataRequest, db: AsyncSession = Depends(get_db
     is_new = user is None
 
     if not user:
+        # Anti-fraud: account without username gets a lower trust baseline.
+        username = tg_user.get("username")
+        trust = 50
+        if username:
+            trust += 15
+        if tg_user.get("is_premium"):
+            trust += 10
+        if tg_user.get("photo_url"):
+            trust += 5
+        trust = min(trust, 100)
+
         user = User(
             tg_id=tg_id,
-            username=tg_user.get("username"),
+            username=username,
             name=tg_user.get("first_name", "User"),
             birth_date=None,  # will be set during onboarding
             gender=None,
             search_gender=None,
+            trust_score=trust,
         )
         db.add(user)
         await db.flush()

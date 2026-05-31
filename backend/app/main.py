@@ -1,10 +1,12 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 
 from app.core.config import settings
 from app.core.redis import get_redis, close_redis
-from app.api import auth, profile, feed, chats, reports, verify, media, payments, views
+from app.api import auth, profile, feed, chats, reports, verify, media, payments, views, geo
 from app.ws.chat import router as ws_router
 from app.services.cron import start_scheduler
 
@@ -44,9 +46,15 @@ app.include_router(verify.router)
 app.include_router(media.router)
 app.include_router(payments.router)
 app.include_router(views.router)
+app.include_router(geo.router)
 
 # WebSocket
 app.include_router(ws_router)
+
+# Static media (Railway Volume / local dir)
+MEDIA_ROOT = os.environ.get("MEDIA_ROOT", "/app/media")
+os.makedirs(MEDIA_ROOT, exist_ok=True)
+app.mount("/media", StaticFiles(directory=MEDIA_ROOT), name="media")
 
 
 @app.get("/health")

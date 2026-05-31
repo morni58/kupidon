@@ -108,6 +108,48 @@ async def swipe(
     return SwipeResponse(is_match=result["is_match"], match_id=result.get("match_id"))
 
 
+@router.post("/rewind")
+async def rewind(
+    db: AsyncSession = Depends(get_db),
+    me: User = Depends(get_current_user),
+):
+    """Premium/Kupidon only: undo the last 'left' swipe within 24h."""
+    from fastapi import HTTPException
+    from datetime import datetime, timezone, timedelta
+    from sqlalchemy import delete as sa_delete
+    from app.models.swipe import Swipe
+
+    if me.tier.value == "free":
+        raise HTTPException(status_code=403, detail="rewind_requires_premium")
+
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+    last_r = await db.execute(
+        select(Swipe)
+        .where(
+            Swipe.actor_id == me.id,
+            Swipe.action_type == "left",
+            Swipe.created_at >= cutoff,
+        )
+        .order_by(Swipe.created_at.desc())
+        .limit(1)
+    )
+    last = last_r.scalar_one_or_none()
+    if not last:
+        raise HTTPException(status_code=404, detail="nothing_to_rewind")
+
+    target_id = last.target_id
+    await db.execute(sa_delete(Swipe).where(Swipe.id == last.id))
+    me.swipes_left += 1
+    await db.commit()
+
+    # Invalidate feed cache so the card comes back
+    redis = await get_redis()
+    await redis.delete(f"feed:{me.id}:False")
+    await redis.delete(f"feed:{me.id}:True")
+
+    return {"ok": True, "restored_target_id": str(target_id)}
+
+
 @router.get("/sympathies")
 async def sympathies(
     db: AsyncSession = Depends(get_db),

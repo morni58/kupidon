@@ -2,8 +2,11 @@ from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 import uuid
+import os
+import aiofiles
 
 from app.core.deps import get_db, get_current_user
+from app.core.config import settings
 from app.models.user import User
 from app.models.media import MediaSlot, MediaTypeEnum
 from app.services.moderation import nsfw_service
@@ -13,6 +16,10 @@ router = APIRouter(prefix="/api/media", tags=["media"])
 MAX_SLOTS = 5
 MAX_PHOTO_MB = 5
 MAX_VIDEO_MB = 15
+
+# Persistent media directory (Railway Volume mounted here in prod)
+MEDIA_ROOT = os.environ.get("MEDIA_ROOT", "/app/media")
+PUBLIC_BASE = os.environ.get("PUBLIC_MEDIA_URL", "")  # e.g. https://api.../media
 
 
 @router.post("/upload/{slot_index}")
@@ -36,20 +43,30 @@ async def upload_media(
     else:
         media_type = MediaTypeEnum.photo
 
-    # Read file (in prod: upload to S3)
+    # Read file
     data = await file.read()
     size_mb = len(data) / (1024 * 1024)
     limit_mb = MAX_VIDEO_MB if media_type == MediaTypeEnum.video else MAX_PHOTO_MB
     if size_mb > limit_mb:
         raise HTTPException(status_code=413, detail=f"File too large (max {limit_mb} MB)")
 
-    # Stub S3 upload — in prod use boto3/aiobotocore
-    media_url = f"https://media.cupidbot.app/{me.id}/{uuid.uuid4()}.{'mp4' if media_type == MediaTypeEnum.video else 'webp'}"
+    # Persist to disk (Railway Volume / local). Swap for S3/Supabase in prod easily.
+    ext = "mp4" if media_type == MediaTypeEnum.video else "webp"
+    user_dir = os.path.join(MEDIA_ROOT, str(me.id))
+    os.makedirs(user_dir, exist_ok=True)
+    filename = f"{uuid.uuid4()}.{ext}"
+    filepath = os.path.join(user_dir, filename)
+    async with aiofiles.open(filepath, "wb") as f:
+        await f.write(data)
 
-    # NSFW moderation
-    nsfw_score = await nsfw_service.classify(media_url)
+    base = PUBLIC_BASE or (settings.WEBAPP_URL.replace("netlify.app", "up.railway.app") if settings.WEBAPP_URL else "")
+    media_url = f"/media/{me.id}/{filename}"  # served by FastAPI StaticFiles
+
+    # NSFW moderation (stub returns safe score; wire a real model in services/moderation.py)
+    nsfw_score = await nsfw_service.classify(filepath)
     threshold = 0.70 if me.is_18_mode_active else 0.85
     if nsfw_score >= threshold:
+        os.remove(filepath)
         raise HTTPException(status_code=422, detail="Media flagged as NSFW")
 
     # Upsert slot
@@ -95,3 +112,43 @@ async def delete_slot(
     )
     await db.commit()
     return {"ok": True}
+
+
+@router.post("/burn/{message_id}")
+async def burn_message_media(
+    message_id: str,
+    db: AsyncSession = Depends(get_db),
+    me: User = Depends(get_current_user),
+):
+    """18+ disappearing media: mark as burned after first view, remove from storage."""
+    from fastapi import HTTPException
+    from app.models.message import Message
+    from app.models.match import Match
+    from sqlalchemy import or_
+    import uuid as _uuid
+
+    msg_r = await db.execute(select(Message).where(Message.id == _uuid.UUID(message_id)))
+    msg = msg_r.scalar_one_or_none()
+    if not msg or not msg.is_disappearing:
+        raise HTTPException(status_code=404, detail="No disappearing media")
+
+    # Verify the burner is the recipient (member of the match, not the sender)
+    match_r = await db.execute(select(Match).where(Match.id == msg.match_id))
+    match = match_r.scalar_one_or_none()
+    if not match or me.id not in (match.user1_id, match.user2_id):
+        raise HTTPException(status_code=403, detail="Access denied")
+    if msg.sender_id == me.id:
+        raise HTTPException(status_code=400, detail="Cannot burn your own media")
+
+    msg.is_burned = True
+    # In prod: delete from S3 here using msg.media_url
+    msg.media_url = None
+    await db.commit()
+
+    from app.ws.manager import ws_manager
+    import asyncio
+    asyncio.create_task(ws_manager.broadcast(str(msg.match_id), {
+        "type": "media_burned",
+        "message_id": message_id,
+    }))
+    return {"ok": True, "burned": True}

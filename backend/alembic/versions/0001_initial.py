@@ -201,6 +201,42 @@ def upgrade():
         sa.Column("value", sa.String(200), nullable=False),
     )
 
+    op.create_table(
+        "cities",
+        sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
+        sa.Column("name", sa.String(100), nullable=False),
+        sa.Column("region", sa.String(100)),
+        sa.Column("country", sa.String(2), server_default="RU"),
+        sa.Column("lat", sa.Numeric(9, 6), nullable=False),
+        sa.Column("lng", sa.Numeric(9, 6), nullable=False),
+    )
+    op.create_index("idx_cities_name", "cities", ["name"])
+
+    # Seed major RU/UA cities
+    op.execute("""
+        INSERT INTO cities (name, region, country, lat, lng) VALUES
+        ('Москва', 'Москва', 'RU', 55.755826, 37.617300),
+        ('Санкт-Петербург', 'СПб', 'RU', 59.934280, 30.335099),
+        ('Новосибирск', 'НСО', 'RU', 55.030199, 82.920430),
+        ('Екатеринбург', 'СО', 'RU', 56.838011, 60.597465),
+        ('Казань', 'РТ', 'RU', 55.796127, 49.106405),
+        ('Нижний Новгород', 'НО', 'RU', 56.296504, 43.936059),
+        ('Челябинск', 'ЧО', 'RU', 55.159897, 61.402554),
+        ('Самара', 'СО', 'RU', 53.195873, 50.100193),
+        ('Омск', 'ОО', 'RU', 54.989347, 73.368221),
+        ('Ростов-на-Дону', 'РО', 'RU', 47.222078, 39.720349),
+        ('Уфа', 'РБ', 'RU', 54.735152, 55.958736),
+        ('Краснодар', 'КК', 'RU', 45.035470, 38.975313),
+        ('Воронеж', 'ВО', 'RU', 51.660781, 39.200269),
+        ('Пермь', 'ПК', 'RU', 58.010455, 56.229443),
+        ('Волгоград', 'ВО', 'RU', 48.707073, 44.516975),
+        ('Сочи', 'КК', 'RU', 43.585472, 39.723098),
+        ('Киев', 'Київ', 'UA', 50.450100, 30.523400),
+        ('Харьков', 'ХО', 'UA', 49.993500, 36.230383),
+        ('Одесса', 'ОО', 'UA', 46.482526, 30.723309),
+        ('Минск', 'Минск', 'BY', 53.904541, 27.561523)
+    """)
+
     # Seed default tags
     op.execute("""
         INSERT INTO admin_tags (name, color_hex, emoji, is_18_only) VALUES
@@ -222,7 +258,7 @@ def upgrade():
 
 
 def downgrade():
-    for table in ["config", "payments", "blocks", "reports", "profile_views",
+    for table in ["cities", "config", "payments", "blocks", "reports", "profile_views",
                   "vip_notifications", "user_tags", "admin_tags", "media_slots",
                   "messages", "matches", "swipes", "users"]:
         op.drop_table(table)
