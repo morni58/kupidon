@@ -6,11 +6,24 @@ interface Props { reason: string; onClose: () => void }
 export function PaywallModal({ reason, onClose }: Props) {
   async function buyStars(product: string) {
     try {
-      const res = await api.post<{ invoice_payload: string; stars: number }>('/api/payments/create_invoice', { product })
-      // In real Telegram: window.Telegram.WebApp.openInvoice(...)
-      alert(`Оплата ${res.stars} Stars за ${product} (stub). payload: ${res.invoice_payload}`)
+      const res = await api.post<{ invoice_payload: string; stars: number; invoice_link?: string }>(
+        `/api/payments/create_invoice?product=${product}`
+      )
+      const tg = (window as any).Telegram?.WebApp
+      if (res.invoice_link && tg?.openInvoice) {
+        tg.openInvoice(res.invoice_link, (status: string) => {
+          if (status === 'paid') {
+            tg.HapticFeedback?.notificationOccurred?.('success')
+            alert('✅ Оплата прошла! Изменения применятся через секунду.')
+          }
+        })
+      } else if (res.invoice_link) {
+        window.open(res.invoice_link, '_blank')
+      } else {
+        alert(`Счёт на ${res.stars} ⭐ создан, но Telegram WebApp недоступен.`)
+      }
     } catch {
-      alert('Ошибка платежа')
+      alert('Ошибка создания платежа')
     }
     onClose()
   }

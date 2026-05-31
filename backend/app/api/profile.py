@@ -9,13 +9,30 @@ from app.schemas.user import OnboardingCreate, UserPublic, UserUpdate
 router = APIRouter(prefix="/api", tags=["profile"])
 
 
-def recalc_profile_score(user: User) -> int:
+async def recalc_profile_score(db: AsyncSession, user: User) -> int:
+    """Single source of truth for profile score (0..100)."""
+    from app.models.media import MediaSlot, MediaTypeEnum
+    from app.models.tag import UserTag
+
     score = 0
-    # Onboarding complete
-    if user.birth_date and user.gender and user.search_gender:
-        score += 20  # first photo counted separately
+    # Media
+    media_r = await db.execute(select(MediaSlot).where(MediaSlot.user_id == user.id))
+    media = media_r.scalars().all()
+    photos = [m for m in media if m.media_type == MediaTypeEnum.photo]
+    has_video = any(m.media_type == MediaTypeEnum.video for m in media)
+    if photos:
+        score += 20  # first photo
+        score += min(len(photos) - 1, 3) * 10  # up to 3 extra photos
+    if has_video:
+        score += 15
+    # Bio
     if user.bio:
         score += 10
+    # Tags >= 3
+    tags_r = await db.execute(select(UserTag).where(UserTag.user_id == user.id))
+    if len(tags_r.scalars().all()) >= 3:
+        score += 10
+    # Verified
     if user.is_verified:
         score += 15
     return min(score, 100)
@@ -44,7 +61,7 @@ async def onboarding(
             raise HTTPException(status_code=422, detail="Bio contains forbidden content")
         me.bio = clean
 
-    me.profile_score = recalc_profile_score(me)
+    me.profile_score = await recalc_profile_score(db, me)
     await db.commit()
     await db.refresh(me)
     return me
@@ -76,7 +93,7 @@ async def update_profile(
             raise HTTPException(status_code=403, detail="Oligarch mode required")
         setattr(me, field, value)
 
-    me.profile_score = recalc_profile_score(me)
+    me.profile_score = await recalc_profile_score(db, me)
     await db.commit()
     await db.refresh(me)
     return me
@@ -119,9 +136,7 @@ async def set_tags(
             raise HTTPException(status_code=403, detail="18+ tag requires 18+ mode")
         db.add(UserTag(user_id=me.id, tag_id=tid))
 
-    # Recalc score
-    if len(tag_ids) >= 3:
-        me.profile_score = min(me.profile_score + 10, 100)
-
+    await db.flush()
+    me.profile_score = await recalc_profile_score(db, me)
     await db.commit()
     return {"ok": True}

@@ -91,13 +91,9 @@ async def upload_media(
         )
         db.add(slot)
 
-    # Profile score: first photo = +20, each additional = +10
-    if slot_index == 1:
-        me.profile_score = min(me.profile_score + 20, 100)
-    elif media_type == MediaTypeEnum.photo:
-        me.profile_score = min(me.profile_score + 10, 100)
-    elif media_type == MediaTypeEnum.video:
-        me.profile_score = min(me.profile_score + 15, 100)
+    await db.flush()
+    from app.api.profile import recalc_profile_score
+    me.profile_score = await recalc_profile_score(db, me)
 
     await db.commit()
     return {"slot_index": slot_index, "media_url": media_url, "nsfw_score": nsfw_score}

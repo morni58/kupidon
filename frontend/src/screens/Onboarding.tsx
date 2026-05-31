@@ -3,8 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import { useStore } from '../store'
+import { MediaUploader } from '../components/MediaUploader'
 
-type Step = 'name' | 'birth' | 'gender' | 'looking' | 'tags' | 'bio' | 'done'
+type Step = 'name' | 'birth' | 'gender' | 'looking' | 'geo' | 'photo' | 'tags' | 'bio' | 'done'
 
 const GENDERS = [{ v: 'male', l: 'Парень 👨' }, { v: 'female', l: 'Девушка 👩' }]
 const LOOKING = [{ v: 'male', l: 'Парня' }, { v: 'female', l: 'Девушку' }, { v: 'any', l: 'Всех' }]
@@ -18,6 +19,11 @@ export function Onboarding() {
   const [form, setForm] = useState({ name: '', birth_date: '', gender: '', search_gender: '', bio: '', tag_ids: [] as number[] })
   const [tags, setTags] = useState<any[]>([])
   const [error, setError] = useState('')
+  const [photoCount, setPhotoCount] = useState(0)
+  const [geoStatus, setGeoStatus] = useState('')
+  const [citySearch, setCitySearch] = useState('')
+  const [cityResults, setCityResults] = useState<any[]>([])
+  const [cityName, setCityName] = useState('')
 
   function next(s: Step) { haptic(); setStep(s) }
   function nameValid(n: string) { return /^[a-zA-Zа-яА-ЯёЁ\s\-]{2,30}$/.test(n) }
@@ -25,6 +31,33 @@ export function Onboarding() {
     const bd = new Date(d); const now = new Date()
     return now.getFullYear() - bd.getFullYear() -
       ((now.getMonth() < bd.getMonth() || (now.getMonth() === bd.getMonth() && now.getDate() < bd.getDate())) ? 1 : 0)
+  }
+
+  function goGeo() { haptic(); next('geo') }
+
+  async function useGPS() {
+    setGeoStatus('Определяем...')
+    if (!navigator.geolocation) { setGeoStatus('GPS недоступен'); return }
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      try {
+        const res = await api.post<any>('/api/geo/resolve', { lat: pos.coords.latitude, lng: pos.coords.longitude })
+        setCityName(res.city_name || 'Местоположение сохранено')
+        setGeoStatus('')
+      } catch { setGeoStatus('Ошибка') }
+    }, () => setGeoStatus('Доступ к GPS запрещён'))
+  }
+
+  async function searchCity(q: string) {
+    setCitySearch(q)
+    if (q.length < 2) { setCityResults([]); return }
+    try { setCityResults(await api.get<any[]>(`/api/geo/search?q=${encodeURIComponent(q)}`)) } catch {}
+  }
+
+  async function pickCity(c: any) {
+    try {
+      await api.post(`/api/geo/set_city/${c.id}`)
+      setCityName(c.name); setCityResults([]); setCitySearch(c.name)
+    } catch {}
   }
 
   async function loadTags() {
@@ -60,7 +93,7 @@ export function Onboarding() {
       <div className="h-1 bg-gray-100">
         <motion.div className="h-full rounded-full"
           style={{ background: 'linear-gradient(135deg,#FF00FF,#FF66CC)' }}
-          animate={{ width: `${({ name: 15, birth: 30, gender: 45, looking: 60, tags: 75, bio: 90, done: 100 }[step])}%` }}
+          animate={{ width: `${({ name: 12, birth: 24, gender: 36, looking: 48, geo: 60, photo: 72, tags: 86, bio: 100, done: 100 }[step])}%` }}
           transition={{ type: 'spring' }} />
       </div>
 
@@ -118,12 +151,58 @@ export function Onboarding() {
               <h1 className="text-3xl font-black mb-6">Кого ищешь?</h1>
               <div className="space-y-3">
                 {LOOKING.map(g => (
-                  <button key={g.v} onClick={() => { setForm(f => ({ ...f, search_gender: g.v })); loadTags() }}
+                  <button key={g.v} onClick={() => { setForm(f => ({ ...f, search_gender: g.v })); goGeo() }}
                     className={`w-full py-4 rounded-2xl text-lg font-bold border-2 transition-all ${form.search_gender === g.v ? 'border-[#FF00FF] bg-fuchsia-50' : 'border-gray-200'}`}>
                     {g.l}
                   </button>
                 ))}
               </div>
+            </div>
+          )}
+
+          {step === 'geo' && (
+            <div>
+              <h1 className="text-3xl font-black mb-2">Где ты?</h1>
+              <p className="text-gray-400 mb-6">Чтобы показывать людей рядом</p>
+              <button onClick={useGPS}
+                className="w-full py-4 rounded-2xl text-white font-bold text-lg mb-4"
+                style={{ background: 'linear-gradient(135deg,#FF00FF,#FF66CC)' }}>
+                📍 Найти меня (GPS)
+              </button>
+              {geoStatus && <p className="text-center text-sm text-gray-400 mb-2">{geoStatus}</p>}
+              <div className="relative">
+                <input value={citySearch} onChange={e => searchCity(e.target.value)}
+                  placeholder="или введи город..."
+                  className="w-full border-2 border-gray-200 rounded-2xl px-4 py-3 font-semibold focus:outline-none focus:border-[#FF00FF]" />
+                {cityResults.length > 0 && (
+                  <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-2xl mt-1 shadow-lg max-h-48 overflow-y-auto">
+                    {cityResults.map(c => (
+                      <button key={c.id} onClick={() => pickCity(c)}
+                        className="w-full text-left px-4 py-2.5 hover:bg-fuchsia-50 text-sm font-medium">
+                        {c.name} <span className="text-gray-400 text-xs">{c.region}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {cityName && <p className="mt-3 text-emerald-600 font-bold text-sm">✓ {cityName}</p>}
+              <button onClick={() => next('photo')}
+                className="mt-6 w-full py-4 rounded-2xl font-bold text-lg border-2 border-gray-200 text-gray-600">
+                {cityName ? 'Далее →' : 'Пропустить'}
+              </button>
+            </div>
+          )}
+
+          {step === 'photo' && (
+            <div>
+              <h1 className="text-3xl font-black mb-2">Добавь фото</h1>
+              <p className="text-gray-400 mb-4">Первое фото обязательно. До 5 слотов.</p>
+              <MediaUploader onChange={setPhotoCount} />
+              <button disabled={photoCount < 1} onClick={() => loadTags()}
+                className="mt-6 w-full py-4 rounded-2xl text-white font-bold text-lg disabled:opacity-40"
+                style={{ background: 'linear-gradient(135deg,#FF00FF,#FF66CC)' }}>
+                {photoCount < 1 ? 'Добавь хотя бы 1 фото' : 'Далее →'}
+              </button>
             </div>
           )}
 

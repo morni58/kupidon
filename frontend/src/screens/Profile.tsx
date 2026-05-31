@@ -30,6 +30,14 @@ export function Profile() {
     } catch (e: any) { alert(e.message) }
   }
 
+  async function toggleStealth() {
+    try {
+      const updated = await api.patch<any>('/api/profile/me', { is_stealth_mode: !user?.is_stealth_mode })
+      setUser(updated)
+      setTheme(updated.is_stealth_mode ? 'oligarch' : 'light')
+    } catch (e: any) { alert(e.message) }
+  }
+
   async function doVerify() {
     setLoading(true)
     try {
@@ -143,6 +151,30 @@ export function Profile() {
           </div>
         ) : null}
       </div>
+
+      {/* Oligarch panel (Kupidon only) */}
+      {user.is_oligarch_mode && (
+        <div className="mx-4 mt-3 rounded-2xl p-5 text-white" style={{ background: '#141416', border: '1px solid rgba(255,215,0,0.3)' }}>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-xl">👑</span>
+            <span className="font-black" style={{ color: '#FFD700' }}>Режим Олигарх</span>
+          </div>
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <div className="font-bold text-sm">🕵 Стелс-режим</div>
+              <div className="text-xs text-gray-500">Невидим в общей ленте</div>
+            </div>
+            <button onClick={toggleStealth}
+              className={`w-12 h-6 rounded-full transition-all flex items-center ${user.is_stealth_mode ? 'justify-end pr-1' : 'pl-1'}`}
+              style={{ background: user.is_stealth_mode ? '#FFD700' : '#333' }}>
+              <div className="w-4 h-4 bg-white rounded-full" />
+            </button>
+          </div>
+          <div className="rounded-xl p-3 text-xs flex justify-between" style={{ background: 'rgba(255,215,0,0.08)', color: '#FFD700' }}>
+            <span>VIP-сигналов сегодня: {user.vip_signals_used} / 20</span>
+          </div>
+        </div>
+      )}
 
       {/* Upgrade CTA */}
       {user.tier === 'free' && (

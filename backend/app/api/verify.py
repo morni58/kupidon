@@ -24,7 +24,8 @@ async def verify_selfie(
     passed = await face_service.verify_liveness([])
     if passed:
         me.is_verified = True
-        me.profile_score = min(me.profile_score + 15, 100)
+        from app.api.profile import recalc_profile_score
+        me.profile_score = await recalc_profile_score(db, me)
         await db.commit()
         return {"verified": True}
 

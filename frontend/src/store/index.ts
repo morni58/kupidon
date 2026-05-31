@@ -13,6 +13,8 @@ interface User {
   is_18_mode_active: boolean
   is_oligarch_mode: boolean
   is_anti_oligarch: boolean
+  is_stealth_mode: boolean
+  vip_signals_used: number
   streak_days: number
   profile_score: number
 }

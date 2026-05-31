@@ -38,8 +38,8 @@ def upgrade():
         sa.Column("username", sa.String(64)),
         sa.Column("name", sa.String(50), nullable=False, server_default="User"),
         sa.Column("birth_date", sa.Date()),
-        sa.Column("gender", sa.Enum("male", "female", name="genderenum")),
-        sa.Column("search_gender", sa.Enum("male", "female", "any", name="searchgenderenum")),
+        sa.Column("gender", postgresql.ENUM("male", "female", name="genderenum", create_type=False)),
+        sa.Column("search_gender", postgresql.ENUM("male", "female", "any", name="searchgenderenum", create_type=False)),
         sa.Column("city_id", sa.Integer()),
         sa.Column("lat", sa.Numeric(9, 6)),
         sa.Column("lng", sa.Numeric(9, 6)),
@@ -47,7 +47,7 @@ def upgrade():
         sa.Column("profile_score", sa.SmallInteger(), server_default="0"),
         sa.Column("trust_score", sa.SmallInteger(), server_default="50"),
         sa.Column("streak_days", sa.SmallInteger(), server_default="0"),
-        sa.Column("tier", sa.Enum("free", "premium", "kupidon", name="tierenum"), server_default="free"),
+        sa.Column("tier", postgresql.ENUM("free", "premium", "kupidon", name="tierenum", create_type=False), server_default="free"),
         sa.Column("swipes_left", sa.Integer(), server_default="50"),
         sa.Column("force_chats_used", sa.Integer(), server_default="0"),
         sa.Column("superlikes_left", sa.Integer(), server_default="0"),
@@ -76,7 +76,7 @@ def upgrade():
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")),
         sa.Column("actor_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("target_id", postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column("action_type", sa.Enum("left", "right", "superlike", name="actiontypeenum"), nullable=False),
+        sa.Column("action_type", postgresql.ENUM("left", "right", "superlike", name="actiontypeenum", create_type=False), nullable=False),
         sa.Column("is_vip_like", sa.Boolean(), server_default="false"),
         sa.Column("vip_message", sa.String(100)),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()")),
@@ -110,7 +110,7 @@ def upgrade():
         sa.Column("media_url", sa.String(500)),
         sa.Column("is_disappearing", sa.Boolean(), server_default="false"),
         sa.Column("is_burned", sa.Boolean(), server_default="false"),
-        sa.Column("msg_type", sa.Enum("text", "media", "system", "consent", "icebreaker", name="msgtypeenum"), server_default="text"),
+        sa.Column("msg_type", postgresql.ENUM("text", "media", "system", "consent", "icebreaker", name="msgtypeenum", create_type=False), server_default="text"),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()")),
     )
     op.create_index("idx_msg_match", "messages", ["match_id", "created_at"])
@@ -120,7 +120,7 @@ def upgrade():
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")),
         sa.Column("user_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("media_url", sa.String(500)),
-        sa.Column("media_type", sa.Enum("photo", "video", name="mediatypeenum")),
+        sa.Column("media_type", postgresql.ENUM("photo", "video", name="mediatypeenum", create_type=False)),
         sa.Column("nsfw_score", sa.Numeric(3, 2)),
         sa.Column("slot_index", sa.SmallInteger(), nullable=False),
     )
@@ -169,8 +169,8 @@ def upgrade():
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")),
         sa.Column("reporter_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("target_id", postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column("reason", sa.Enum("fake", "spam", "abuse", "nsfw", "underage", "fraud", name="reportreasonenum"), nullable=False),
-        sa.Column("status", sa.Enum("open", "reviewed", "dismissed", name="reportstatusenum"), server_default="open"),
+        sa.Column("reason", postgresql.ENUM("fake", "spam", "abuse", "nsfw", "underage", "fraud", name="reportreasonenum", create_type=False), nullable=False),
+        sa.Column("status", postgresql.ENUM("open", "reviewed", "dismissed", name="reportstatusenum", create_type=False), server_default="open"),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()")),
     )
     op.create_index("idx_reports_target", "reports", ["target_id"])
@@ -190,7 +190,7 @@ def upgrade():
         sa.Column("invoice_payload", sa.String(200), nullable=False, unique=True),
         sa.Column("stars", sa.Integer(), nullable=False),
         sa.Column("product", sa.String(100), nullable=False),
-        sa.Column("status", sa.Enum("pending", "paid", "refunded", name="paymentstatusenum"), server_default="pending"),
+        sa.Column("status", postgresql.ENUM("pending", "paid", "refunded", name="paymentstatusenum", create_type=False), server_default="pending"),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()")),
     )
     op.create_index("idx_payments_user", "payments", ["user_id"])
