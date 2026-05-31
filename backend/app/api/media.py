@@ -99,6 +99,22 @@ async def upload_media(
     return {"slot_index": slot_index, "media_url": media_url, "nsfw_score": nsfw_score}
 
 
+@router.get("/mine")
+async def my_media(
+    db: AsyncSession = Depends(get_db),
+    me: User = Depends(get_current_user),
+):
+    """Return the current user's media slots ordered by slot index."""
+    result = await db.execute(
+        select(MediaSlot).where(MediaSlot.user_id == me.id).order_by(MediaSlot.slot_index)
+    )
+    slots = result.scalars().all()
+    return [
+        {"slot_index": s.slot_index, "media_url": s.media_url, "media_type": s.media_type.value if s.media_type else None}
+        for s in slots
+    ]
+
+
 @router.delete("/slot/{slot_index}")
 async def delete_slot(
     slot_index: int,

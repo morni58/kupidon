@@ -72,6 +72,43 @@ async def get_my_profile(me: User = Depends(get_current_user)):
     return me
 
 
+@router.get("/profile/full")
+async def get_my_profile_full(
+    db: AsyncSession = Depends(get_db),
+    me: User = Depends(get_current_user),
+):
+    """Enriched profile: base fields + media urls + tag ids + city name."""
+    from app.models.media import MediaSlot
+    from app.models.tag import UserTag
+    from app.models.city import City
+
+    media_r = await db.execute(
+        select(MediaSlot.media_url).where(MediaSlot.user_id == me.id).order_by(MediaSlot.slot_index)
+    )
+    media = [u for u in media_r.scalars().all() if u]
+
+    tags_r = await db.execute(select(UserTag.tag_id).where(UserTag.user_id == me.id))
+    tag_ids = [t[0] for t in tags_r.all()]
+
+    city_name = None
+    if me.city_id:
+        c_r = await db.execute(select(City.name).where(City.id == me.city_id))
+        city_name = c_r.scalar_one_or_none()
+
+    return {
+        "id": str(me.id), "name": me.name, "birth_date": me.birth_date.isoformat() if me.birth_date else None,
+        "gender": me.gender.value if me.gender else None,
+        "search_gender": me.search_gender.value if me.search_gender else None,
+        "bio": me.bio, "profile_score": me.profile_score, "trust_score": me.trust_score,
+        "tier": me.tier.value, "swipes_left": me.swipes_left, "superlikes_left": me.superlikes_left,
+        "force_chats_used": me.force_chats_used, "vip_signals_used": me.vip_signals_used,
+        "is_verified": me.is_verified, "is_18_mode_active": me.is_18_mode_active,
+        "is_oligarch_mode": me.is_oligarch_mode, "is_anti_oligarch": me.is_anti_oligarch,
+        "is_stealth_mode": me.is_stealth_mode, "streak_days": me.streak_days,
+        "city_name": city_name, "media": media, "tag_ids": tag_ids,
+    }
+
+
 @router.patch("/profile/me", response_model=UserPublic)
 async def update_profile(
     body: UserUpdate,

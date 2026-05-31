@@ -194,13 +194,28 @@ async def sympathies(
         if swipe.is_vip_like:
             vip_info = {"is_vip": True, "message": swipe.vip_message}
 
+        from app.models.media import MediaSlot
+        from app.models.user import GenderEnum
+        ph_r = await db.execute(
+            select(MediaSlot.media_url).where(MediaSlot.user_id == actor.id)
+            .order_by(MediaSlot.slot_index).limit(1)
+        )
+        photo = ph_r.scalar_one_or_none()
+        age = None
+        if actor.birth_date:
+            from datetime import date
+            t = date.today()
+            age = t.year - actor.birth_date.year - ((t.month, t.day) < (actor.birth_date.month, actor.birth_date.day))
+
         result.append({
             "user_id": str(actor.id),
             "name": actor.name,
+            "age": age,
             "is_verified": actor.is_verified,
             "is_vip": swipe.is_vip_like,
             "vip_info": vip_info,
-            "media": [],
+            "photo": photo,
+            "media": [photo] if photo else [],
             "liked_at": swipe.created_at.isoformat(),
         })
 
