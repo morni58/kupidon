@@ -2,6 +2,22 @@
 
 Полный стек: FastAPI + aiogram 3 + React 18 + PostgreSQL + Redis.
 
+## 🚀 LIVE (production)
+
+| Компонент | URL |
+|---|---|
+| **Mini App** (фронт) | https://cupidbot-app.netlify.app |
+| **API** | https://cupidbot-api-production.up.railway.app ([/docs](https://cupidbot-api-production.up.railway.app/docs)) |
+| **Бот** | [@Kupidonik_bot](https://t.me/Kupidonik_bot) |
+
+- Хостинг фронта: **Netlify** · Бэк/бот/БД: **Railway** (project `cupidbot`)
+- Открой [@Kupidonik_bot](https://t.me/Kupidonik_bot) → кнопка меню «💕 CupidBot» → Mini App.
+
+### Деплой новой версии
+- Фронт: `npx netlify deploy --build --prod`
+- Бэк/бот: `git push` → Railway redeploy (или через API `serviceInstanceDeploy`)
+- Миграции БД: применять отдельно (`alembic upgrade head` локально против `DATABASE_PUBLIC_URL`), т.к. Railway internal-хост в preDeploy зависает на async-подключении.
+
 ---
 
 ## Быстрый старт (Docker)
