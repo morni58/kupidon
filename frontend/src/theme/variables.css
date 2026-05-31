@@ -1,0 +1,48 @@
+/* ── Light theme (default) ── */
+:root {
+  --bg: #FAFAFC;
+  --bg-card: rgba(255,255,255,0.85);
+  --accent: #FF00FF;
+  --accent2: #FF66CC;
+  --text: #0F0F13;
+  --text-muted: #6b7280;
+  --border: rgba(255,255,255,0.5);
+  --tabbar-bg: rgba(255,255,255,0.9);
+  --card-shadow: 0 30px 60px -15px rgba(255,0,255,0.15);
+  --radius: 2rem;
+}
+
+/* ── 18+ Room theme ── */
+[data-theme="room18"] {
+  --bg: #0A0000;
+  --bg-card: rgba(74,0,0,0.5);
+  --accent: #FF3333;
+  --accent2: #FF6666;
+  --text: #fff;
+  --text-muted: #ff9999;
+  --border: rgba(255,50,50,0.3);
+  --tabbar-bg: rgba(10,0,0,0.95);
+  --card-shadow: 0 30px 60px -15px rgba(255,0,0,0.2);
+}
+
+/* ── Oligarch theme ── */
+[data-theme="oligarch"] {
+  --bg: #141416;
+  --bg-card: rgba(20,20,22,0.95);
+  --accent: #FFD700;
+  --accent2: #FFA751;
+  --text: #fff;
+  --text-muted: #aaa;
+  --border: rgba(255,215,0,0.2);
+  --tabbar-bg: rgba(10,10,12,0.95);
+  --card-shadow: 0 30px 60px -15px rgba(255,215,0,0.15);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body, #root { height: 100%; width: 100%; overflow: hidden; }
+body {
+  font-family: 'Onest', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}

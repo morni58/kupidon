@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="ru" class="scroll-smooth">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CupidBot — PRD v2.0 FINAL</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script>
+tailwind.config={theme:{extend:{fontFamily:{sans:['Onest','sans-serif']},colors:{brand:{fuchsia:'#FF00FF',pink:'#FF66CC',dark:'#0F0F13',light:'#FAFAFC'},vip:{gold:'#FFD700',dark:'#141416'}},backgroundImage:{'gradient-brand':'linear-gradient(135deg,#FF00FF 0%,#FF66CC 100%)','gradient-vip':'linear-gradient(135deg,#FFE259 0%,#FFA751 100%)'}}}}
+</script>
+<style>
+::-webkit-scrollbar{width:8px}::-webkit-scrollbar-track{background:#FAFAFC}::-webkit-scrollbar-thumb{background:#FF66CC;border-radius:4px}
+body{background-color:#FAFAFC;background-image:radial-gradient(circle,#e5e7eb 1px,transparent 1px);background-size:24px 24px}
+.glass{background:rgba(255,255,255,0.85);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.5)}
+.mockup-shadow{box-shadow:0 30px 60px -15px rgba(255,0,255,0.2)}
+.text-glow{text-shadow:0 0 20px rgba(255,0,255,0.5)}
+.badge-new{display:inline-block;background:linear-gradient(135deg,#FF00FF,#FF66CC);color:#fff;font-size:9px;font-weight:900;padding:2px 8px;border-radius:999px;letter-spacing:.1em;text-transform:uppercase;margin-left:6px;vertical-align:middle}
+.badge-rebuilt{display:inline-block;background:#FEF3C7;color:#92400E;border:1px solid #FCD34D;font-size:9px;font-weight:900;padding:2px 8px;border-radius:999px;letter-spacing:.1em;text-transform:uppercase;margin-left:6px;vertical-align:middle}
+.code-block{background:#0F0F13;color:#4ade80;padding:2rem;border-radius:1.5rem;font-family:monospace;font-size:.8rem;line-height:1.8;overflow-x:auto;border:1px solid #1f2937}
+.code-block .c{color:#6b7280}.code-block .kw{color:#60a5fa;font-weight:700}.code-block .ty{color:#c084fc}.code-block .val{color:#fbbf24}
+@keyframes shimmer{0%{left:-100%}100%{left:200%}}
+</style>
+</head>
+<body class="text-gray-800 font-sans antialiased flex">
+
+<!-- SIDEBAR -->
+<aside class="w-[270px] fixed h-screen bg-white/80 backdrop-blur-xl border-r border-gray-200/50 flex flex-col z-50 overflow-y-auto">
+  <div class="p-5 flex items-center gap-3 border-b border-gray-100">
+    <div class="w-11 h-11 rounded-2xl bg-gradient-brand flex items-center justify-center text-white text-xl shadow-lg shadow-fuchsia-500/30 shrink-0"><i class="ph-fill ph-heart"></i></div>
+    <div><div class="text-lg font-extrabold text-gray-900">CupidBot</div><span class="text-[9px] font-bold tracking-widest uppercase text-brand-fuchsia bg-fuchsia-100 px-2 py-0.5 rounded-full">PRD v2.0 FINAL</span></div>
+  </div>
+  <nav class="px-3 pb-6 space-y-0.5 mt-3">
+    <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 ml-2 mt-2">Ядро</div>
+    <a href="#design" class="nav-link flex items-center gap-2 px-3 py-2 rounded-xl text-gray-600 hover:bg-fuchsia-50 hover:text-brand-fuchsia transition-all font-semibold text-sm"><i class="ph-bold ph-palette text-base"></i>Дизайн-система</a>
+    <a href="#onboarding" class="nav-link flex items-center gap-2 px-3 py-2 rounded-xl text-gray-600 hover:bg-fuchsia-50 hover:text-brand-fuchsia transition-all font-semibold text-sm"><i class="ph-bold ph-user-circle-plus text-base"></i>Профиль &amp; Медиа</a>
+    <a href="#feed" class="nav-link flex items-center gap-2 px-3 py-2 rounded-xl text-gray-600 hover:bg-fuchsia-50 hover:text-brand-fuchsia transition-all font-semibold text-sm"><i class="ph-bold ph-cards text-base"></i>Лента &amp; Свайпы</a>
+    <a href="#sympathies" class="nav-link flex items-center gap-2 px-3 py-2 rounded-xl text-gray-600 hover:bg-fuchsia-50 hover:text-brand-fuchsia transition-all font-semibold text-sm"><i class="ph-bold ph-heart text-base"></i>Симпатии &amp; Врывы</a>
+    <a href="#chats" class="nav-link flex items-center gap-2 px-3 py-2 rounded-xl text-gray-600 hover:bg-fuchsia-50 hover:text-brand-fuchsia transition-all font-semibold text-sm"><i class="ph-bold ph-chat-circle-dots text-base"></i>Чаты &amp; Согласие</a>
+    <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 ml-2 mt-3">Спец. режимы</div>
+    <a href="#18plus" class="nav-link flex items-center gap-2 px-3 py-2 rounded-xl text-red-600 hover:bg-red-50 font-bold transition-all text-sm"><i class="ph-fill ph-fire text-base"></i>Комната 18+ <span class="badge-rebuilt">REBUILT</span></a>
+    <a href="#oligarch" class="nav-link flex items-center gap-2 px-3 py-2 rounded-xl text-amber-600 hover:bg-amber-50 font-bold transition-all text-sm"><i class="ph-fill ph-crown text-base"></i>Режим Олигарх <span class="badge-rebuilt">REBUILT</span></a>
+    <a href="#anti-oligarch" class="nav-link flex items-center gap-2 px-3 py-2 rounded-xl text-emerald-700 hover:bg-emerald-50 font-bold transition-all text-sm"><i class="ph-fill ph-shield-check text-base"></i>Анти-Олигарх <span class="badge-new">NEW</span></a>
+    <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 ml-2 mt-3">Монетизация &amp; Управление</div>
+    <a href="#tiers" class="nav-link flex items-center gap-2 px-3 py-2 rounded-xl text-gray-600 hover:bg-fuchsia-50 hover:text-brand-fuchsia transition-all font-semibold text-sm"><i class="ph-bold ph-diamond text-base"></i>Тарифы &amp; Лимиты</a>
+    <a href="#admin" class="nav-link flex items-center gap-2 px-3 py-2 rounded-xl text-gray-600 hover:bg-gray-100 font-semibold transition-all text-sm"><i class="ph-fill ph-terminal-window text-base"></i>God Mode</a>
+    <a href="#database" class="nav-link flex items-center gap-2 px-3 py-2 rounded-xl text-gray-600 hover:bg-gray-100 font-semibold transition-all text-sm"><i class="ph-bold ph-database text-base"></i>База данных</a>
+    <a href="#algo" class="nav-link flex items-center gap-2 px-3 py-2 rounded-xl text-gray-600 hover:bg-gray-100 font-semibold transition-all text-sm"><i class="ph-bold ph-code text-base"></i>Алгоритмы (SQL)</a>
+  </nav>
+</aside>
+
+<!-- MAIN -->
+<main class="ml-[270px] flex-1 p-10 lg:p-14 max-w-6xl relative">
+
+<!-- HEADER -->
+<header class="mb-20 relative">
+  <div class="absolute -top-20 -left-20 w-96 h-96 bg-fuchsia-300 rounded-full mix-blend-multiply filter blur-[128px] opacity-35 animate-pulse"></div>
+  <div class="relative z-10">
+    <div class="inline-flex items-center gap-2 bg-fuchsia-100 text-brand-fuchsia text-xs font-black uppercase tracking-widest px-4 py-2 rounded-full mb-5"><i class="ph-fill ph-lightning"></i>Полный ребилд — Идеальная архитектура</div>
+    <h1 class="text-6xl font-black text-brand-dark mb-5 leading-[1.1] tracking-tight">Tinder-Киллер<br><span class="bg-clip-text text-transparent bg-gradient-brand text-glow">Master-Plan v2.0</span></h1>
+    <p class="text-xl text-gray-500 max-w-3xl font-medium leading-relaxed">Вся механика продумана до атомов. Комната 18+ — отдельная экосистема для намерений без эротики. Олигарх — анонимная интрига вместо покупки контакта. Анти-Олигарх — бесплатная суперсила для девушек.</p>
+    <div class="flex flex-wrap gap-3 mt-6">
+      <div class="flex items-center gap-2 bg-white border border-gray-200 rounded-2xl px-4 py-2 shadow-sm text-sm font-bold text-gray-700"><i class="ph-fill ph-check-circle text-green-500"></i>Все оригинальные механики сохранены</div>
+      <div class="flex items-center gap-2 bg-red-50 border border-red-200 rounded-2xl px-4 py-2 shadow-sm text-sm font-bold text-red-700"><i class="ph-fill ph-fire text-red-500"></i>18+ — другая цель, без эротики</div>
+      <div class="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-2 shadow-sm text-sm font-bold text-amber-700"><i class="ph-fill ph-crown text-amber-500"></i>Олигарх — полный ребилд</div>
+      <div class="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-2 shadow-sm text-sm font-bold text-emerald-700"><i class="ph-fill ph-shield-check text-emerald-500"></i>Анти-Олигарх — новая фишка</div>
+    </div>
+  </div>
+</header>
+
+<!-- ═══ 1. DESIGN ═══ -->
+<section id="design" class="mb-20 scroll-mt-10 relative z-10">
+  <h2 class="text-4xl font-black mb-8 flex items-center gap-4"><i class="ph-fill ph-palette text-brand-fuchsia"></i>1. Дизайн-система и Оболочка</h2>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+    <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-100 space-y-6">
+      <div>
+        <h3 class="text-xl font-bold mb-3">Цветовая палитра</h3>
+        <div class="flex flex-wrap gap-3">
+          <div class="w-14 h-14 rounded-2xl bg-white border-2 border-gray-200 shadow-sm flex items-center justify-center text-[9px] font-bold text-gray-400">#FFF</div>
+          <div class="w-14 h-14 rounded-2xl bg-[#FAFAFC] border border-gray-200 shadow-sm flex items-center justify-center text-[9px] font-bold text-gray-400">#FAFAFC</div>
+          <div class="w-14 h-14 rounded-2xl bg-[#FF00FF] shadow-lg shadow-fuchsia-500/40 flex items-center justify-center text-[9px] font-bold text-white">#FF00FF</div>
+          <div class="w-14 h-14 rounded-2xl bg-[#FF66CC] shadow-lg shadow-pink-500/40 flex items-center justify-center text-[9px] font-bold text-white">#FF66CC</div>
+          <div class="w-14 h-14 rounded-2xl bg-[#4A0000] shadow-lg flex items-center justify-center text-[9px] font-bold text-red-300">#4A0000</div>
+          <div class="w-14 h-14 rounded-2xl bg-[#FFD700] shadow-lg shadow-yellow-400/40 flex items-center justify-center text-[9px] font-bold text-gray-800">#FFD700</div>
+        </div>
+      </div>
+      <ul class="space-y-3 text-gray-600 font-medium text-sm">
+        <li class="flex gap-2"><i class="ph-fill ph-check-circle text-brand-fuchsia text-lg shrink-0"></i><b>Стиль:</b> Glassmorphism — panel bg rgba(255,255,255,0.85) + backdrop-filter: blur(12px). Скругления rounded-[2rem].</li>
+        <li class="flex gap-2"><i class="ph-fill ph-check-circle text-brand-fuchsia text-lg shrink-0"></i><b>Шрифт:</b> Onest (Google Fonts), вес 400–900.</li>
+        <li class="flex gap-2"><i class="ph-fill ph-check-circle text-brand-fuchsia text-lg shrink-0"></i><b>Haptic:</b> HapticFeedback.impactOccurred('light'|'medium'|'heavy') при каждом свайпе, кнопке «лайк», модалке матча.</li>
+        <li class="flex gap-2"><i class="ph-fill ph-check-circle text-brand-fuchsia text-lg shrink-0"></i><b>Тема 18+:</b> React Context переключает CSS-переменные — фон уходит в #0A0000, акцент в #FF3333.</li>
+        <li class="flex gap-2"><i class="ph-fill ph-check-circle text-brand-fuchsia text-lg shrink-0"></i><b>Таб-бар:</b> 4 иконки — Лента, Симпатии, Чаты, Профиль. Red dot на Симпатиях при новых лайках.</li>
+        <li class="flex gap-2"><i class="ph-fill ph-check-circle text-brand-fuchsia text-lg shrink-0"></i><b>Анимации:</b> Framer Motion для свайпов, spring-анимации для модалок, 60fps везде.</li>
+      </ul>
+    </div>
+    <div class="flex justify-center items-center bg-gray-50 rounded-[2rem] p-8 border border-gray-200">
+      <div class="w-60 h-[430px] bg-white rounded-[2.5rem] border-[6px] border-gray-900 mockup-shadow relative overflow-hidden flex flex-col">
+        <div class="flex-1 bg-gray-50 flex flex-col items-center justify-center">
+          <i class="ph-fill ph-heart-break text-4xl text-gray-300 mb-2"></i>
+          <span class="text-gray-400 font-bold text-sm">Контент</span>
+        </div>
+        <div class="h-14 bg-white/90 backdrop-blur-md border-t border-gray-100 flex items-center justify-around px-3">
+          <div class="text-brand-fuchsia"><i class="ph-fill ph-cards text-2xl"></i></div>
+          <div class="relative text-gray-400"><i class="ph-fill ph-heart text-2xl"></i><span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span></div>
+          <div class="text-gray-400"><i class="ph-fill ph-chat-circle text-2xl"></i></div>
+          <div class="text-gray-400"><i class="ph-fill ph-user text-2xl"></i></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 2. ONBOARDING ═══ -->
+<section id="onboarding" class="mb-20 scroll-mt-10 relative z-10">
+  <h2 class="text-4xl font-black mb-8 flex items-center gap-4"><i class="ph-fill ph-user-circle-plus text-brand-fuchsia"></i>2. Онбординг &amp; Профиль</h2>
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+    <div class="bg-white rounded-[1.5rem] border border-gray-100 shadow-sm p-6">
+      <div class="w-10 h-10 rounded-xl bg-fuchsia-100 text-brand-fuchsia flex items-center justify-center text-xl font-black mb-3">1</div>
+      <h4 class="font-bold text-lg mb-2">Имя &amp; Возраст</h4>
+      <ul class="text-sm text-gray-600 font-medium space-y-2">
+        <li>• Поле имени: только буквы/пробелы, 2–30 символов, trim(). Спецсимволы и цифры блокируются в реальном времени.</li>
+        <li>• Барабан даты рождения (iOS-стиль). Возраст вычисляется на лету.</li>
+        <li>• Возраст &lt; 18 → кнопка «Далее» disabled + красная надпись «Доступ с 18 лет».</li>
+        <li>• В БД пишется birth_date (DATE) — возраст пересчитывается каждый год автоматически.</li>
+      </ul>
+    </div>
+    <div class="bg-white rounded-[1.5rem] border border-gray-100 shadow-sm p-6">
+      <div class="w-10 h-10 rounded-xl bg-fuchsia-100 text-brand-fuchsia flex items-center justify-center text-xl font-black mb-3">2</div>
+      <h4 class="font-bold text-lg mb-2">Я / Ищу</h4>
+      <ul class="text-sm text-gray-600 font-medium space-y-2">
+        <li>• «Я»: [Парень] [Девушка] — radio, обязательно.</li>
+        <li>• «Ищу»: [Парня] [Девушку] [Всех].</li>
+        <li>• Пишется в Users.gender + Users.search_gender.</li>
+        <li>• Жёсткий WHERE-фильтр в ленте.</li>
+      </ul>
+    </div>
+    <div class="bg-white rounded-[1.5rem] border border-gray-100 shadow-sm p-6">
+      <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-500 flex items-center justify-center text-xl font-black mb-3">3</div>
+      <h4 class="font-bold text-lg mb-2">Геолокация</h4>
+      <ul class="text-sm text-gray-600 font-medium space-y-2">
+        <li>• «Найти меня (GPS)» → разрешение браузера → координаты → POST /api/geo/resolve → PostGIS ищет ближайший город.</li>
+        <li>• Fallback: поиск города с автокомплитом.</li>
+        <li>• Smart Geo: анкеты кончились → автоматически расширяем радиус 50 → 100 → 200 км.</li>
+      </ul>
+    </div>
+    <div class="bg-white rounded-[1.5rem] border border-gray-100 shadow-sm p-6">
+      <div class="w-10 h-10 rounded-xl bg-green-100 text-green-600 flex items-center justify-center text-xl font-black mb-3">4</div>
+      <h4 class="font-bold text-lg mb-2">Медиа-слоты</h4>
+      <ul class="text-sm text-gray-600 font-medium space-y-2">
+        <li>• 5 слотов. Фото (до 5 МБ) = 1 слот, конвертируется в WebP. Первое фото — обязательно.</li>
+        <li>• Видео (до 10 сек, до 15 МБ) = 3 слота, UI визуально сливает квадраты.</li>
+        <li>• Видео при &lt; 3 свободных слота → ошибка «Освободите 3 слота».</li>
+        <li>• Шкала «Горячести»: 1 фото=20%, каждый следующий слот +20%, видео +40%. Биография +10%.</li>
+      </ul>
+    </div>
+    <div class="bg-white rounded-[1.5rem] border border-gray-100 shadow-sm p-6">
+      <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center text-xl font-black mb-3">5</div>
+      <h4 class="font-bold text-lg mb-2">Теги (до 5)</h4>
+      <ul class="text-sm text-gray-600 font-medium space-y-2">
+        <li>• GET /api/tags → облако кнопок с HEX-цветом обводки + эмодзи.</li>
+        <li>• Теги is_18_only показываются только в 18+ режиме.</li>
+        <li>• 5-й выбранный — остальные блокируются с анимацией «лимит».</li>
+        <li>• Сохраняется в User_Tags.</li>
+      </ul>
+    </div>
+    <div class="bg-white rounded-[1.5rem] border border-gray-100 shadow-sm p-6">
+      <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center text-xl font-black mb-3">6</div>
+      <h4 class="font-bold text-lg mb-2">О себе + Финал</h4>
+      <ul class="text-sm text-gray-600 font-medium space-y-2">
+        <li>• Textarea до 150 символов со счётчиком. Необязательно, но даёт +10% к «горячести».</li>
+        <li>• Автомодерация: стоп-слова, ссылки, регулярки на бэкенде.</li>
+        <li>• После 6 шагов → INSERT INTO users → JWT-токен → вход в ленту.</li>
+        <li>• Редактирование в любое время из раздела Профиль.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 3. ЛЕНТА & СВАЙПЫ ═══ -->
+<section id="feed" class="mb-20 scroll-mt-10 relative z-10">
+  <h2 class="text-4xl font-black mb-8 flex items-center gap-4"><i class="ph-fill ph-cards text-brand-fuchsia"></i>3. Лента &amp; Свайпы</h2>
+  <div class="grid grid-cols-1 xl:grid-cols-2 gap-10 mb-8">
+    <div class="space-y-5">
+      <div class="bg-white p-6 rounded-[1.5rem] border border-gray-100 shadow-sm">
+        <h4 class="font-bold text-xl mb-3 flex items-center gap-2"><i class="ph-fill ph-stack text-blue-500"></i>Кэш-пачка</h4>
+        <p class="text-sm text-gray-600 font-medium">GET /api/feed возвращает 15 анкет и кэширует в Redis (TTL 5 мин). Фронтенд хранит локально. Новый запрос при ≤ 3 оставшихся. Устраняет задержки при каждом свайпе.</p>
+      </div>
+      <div class="bg-white p-6 rounded-[1.5rem] border border-gray-100 shadow-sm">
+        <h4 class="font-bold text-xl mb-3 flex items-center gap-2"><i class="ph-fill ph-arrows-left-right text-green-500"></i>Свайп влево (Пропуск)</h4>
+        <ul class="text-sm text-gray-600 font-medium space-y-1.5">
+          <li>• Карточка улетает влево (Framer Motion, spring).</li>
+          <li>• POST /api/swipe {type:"left"} → INSERT INTO Swipes.</li>
+          <li>• swipes_left -= 1. При = 0 → Paywall.</li>
+        </ul>
+      </div>
+      <div class="bg-white p-6 rounded-[1.5rem] border border-gray-100 shadow-sm">
+        <h4 class="font-bold text-xl mb-3 flex items-center gap-2"><i class="ph-fill ph-heart text-brand-fuchsia"></i>Свайп вправо (Лайк)</h4>
+        <ul class="text-sm text-gray-600 font-medium space-y-1.5">
+          <li>• POST /api/swipe {type:"right"} → INSERT INTO Swipes. swipes_left -= 1.</li>
+          <li>• Проверка: SELECT * FROM Swipes WHERE actor_id=target AND target_id=me AND action_type='right'.</li>
+          <li>• Если взаимный → INSERT INTO Matches → is_match: true.</li>
+          <li>• Фронтенд: полноэкранная модалка «💕 СОВПАДЕНИЕ!» с аватарками + кнопка «Написать».</li>
+        </ul>
+      </div>
+      <div class="bg-white p-6 rounded-[1.5rem] border border-gray-100 shadow-sm">
+        <h4 class="font-bold text-xl mb-3 flex items-center gap-2"><i class="ph-fill ph-star text-purple-500"></i>Суперлайк ⭐</h4>
+        <ul class="text-sm text-gray-600 font-medium space-y-1.5">
+          <li>• Свайп вверх или кнопка ⭐.</li>
+          <li>• Free: 0 бесплатных, купить за Stars. Premium/Kupidon: 5/сут бесплатно.</li>
+          <li>• Цель получает push «⭐ Кто-то поставил тебе суперлайк!» — карточка всплывает первой в Симпатиях.</li>
+        </ul>
+      </div>
+      <div class="bg-white p-6 rounded-[1.5rem] border border-gray-100 shadow-sm">
+        <h4 class="font-bold text-xl mb-3 flex items-center gap-2"><i class="ph-fill ph-rewind text-amber-500"></i>Rewind ⏪</h4>
+        <ul class="text-sm text-gray-600 font-medium space-y-1.5">
+          <li>• Только Premium/Kupidon. POST /api/rewind.</li>
+          <li>• Free → HTTP 403 → Paywall «Случайно упустил судьбу? Верни с Premium!».</li>
+          <li>• Premium/Kupidon: удаляем последний action_type='left' за 24ч, swipes_left += 1, карточка возвращается анимацией.</li>
+        </ul>
+      </div>
+      <div class="bg-white p-6 rounded-[1.5rem] border border-gray-100 shadow-sm">
+        <h4 class="font-bold text-xl mb-3 flex items-center gap-2"><i class="ph-fill ph-timer text-brand-fuchsia"></i>Paywall</h4>
+        <ul class="text-sm text-gray-600 font-medium space-y-1.5">
+          <li>• swipes_left = 0 → компонент блокируется, backdrop-blur.</li>
+          <li>• Таймер до 00:00 МСК. Кнопка «Стать Купидоном 👑» с переливающейся анимацией.</li>
+          <li>• После покупки → swipes_left обновляется мгновенно через WebSocket-событие.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="flex justify-center items-start pt-4">
+      <div class="w-[290px] h-[520px] bg-white rounded-[3rem] border-[8px] border-gray-900 shadow-2xl relative overflow-hidden flex flex-col mockup-shadow">
+        <div class="h-11 w-full absolute top-0 z-20 flex justify-center items-start pt-2"><div class="w-1/3 h-5 bg-black rounded-b-2xl"></div></div>
+        <div class="flex-1 bg-cover bg-center relative" style="background-image:url('https://placehold.co/400x600/e2e8f0/94a3b8?text=[Фото]')">
+          <div class="absolute bottom-0 w-full h-1/2 bg-gradient-to-t from-black/90 to-transparent"></div>
+          <div class="absolute bottom-20 left-4 text-white pr-8">
+            <h2 class="text-2xl font-bold flex items-center gap-2">Аня, 22 <i class="ph-fill ph-check-circle text-blue-400 text-lg"></i></h2>
+            <p class="text-xs text-gray-300 mt-1 flex items-center gap-1"><i class="ph-fill ph-map-pin"></i>Москва · 2 км</p>
+            <div class="flex gap-2 mt-2"><span class="px-2 py-0.5 bg-white/20 backdrop-blur-md rounded-full text-[10px] font-bold border border-white/30">💀 Неформалка</span></div>
+          </div>
+        </div>
+        <div class="h-20 bg-white/10 backdrop-blur-xl absolute bottom-0 w-full flex items-center justify-center gap-3 px-4 pb-4">
+          <button class="w-11 h-11 rounded-full bg-white shadow-lg flex items-center justify-center text-amber-500"><i class="ph-bold ph-rewind text-xl"></i></button>
+          <button class="w-14 h-14 rounded-full bg-white shadow-lg flex items-center justify-center text-gray-800"><i class="ph-bold ph-x text-3xl"></i></button>
+          <button class="w-14 h-14 rounded-full bg-gradient-brand shadow-lg shadow-fuchsia-500/50 flex items-center justify-center text-white"><i class="ph-fill ph-heart text-3xl"></i></button>
+          <button class="w-11 h-11 rounded-full bg-white shadow-lg flex items-center justify-center text-purple-600 relative"><i class="ph-fill ph-star text-xl"></i><span class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[8px] text-white flex items-center justify-center font-bold">5</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 4. СИМПАТИИ ═══ -->
+<section id="sympathies" class="mb-20 scroll-mt-10 relative z-10">
+  <h2 class="text-4xl font-black mb-8 flex items-center gap-4"><i class="ph-fill ph-heart text-brand-fuchsia"></i>4. Симпатии &amp; Врывы (Force Chat)</h2>
+  <div class="glass rounded-[2rem] p-8 shadow-sm">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+      <div>
+        <p class="text-gray-600 mb-5 font-medium text-lg">GET /api/sympathies → юзеры, поставившие action_type='right' на меня, без существующего Match. <b>Фото открыты у всех тарифов</b> — никакого блюра принципиально.</p>
+        <div class="space-y-4">
+          <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+            <h4 class="font-bold text-gray-800 mb-2">Free</h4>
+            <p class="text-sm text-gray-500 font-medium">Видит анкеты. Кликает → поп-ап «Начать чат за 50 ⭐ прямо сейчас или жди в ленте». Кнопка [Оплатить 50 Stars].</p>
+          </div>
+          <div class="bg-fuchsia-50 p-5 rounded-2xl border border-fuchsia-100 shadow-sm">
+            <h4 class="font-bold text-brand-fuchsia mb-2">Premium — 3 врыва/сут</h4>
+            <p class="text-sm text-fuchsia-900/80 font-medium">Кликает → алерт «Осталось {X} врывов. Войти прямо сейчас?» → POST /api/force_chat: force_chats_used+1, Match с is_force_chat=true → редирект на чат.</p>
+          </div>
+          <div class="bg-amber-50 p-5 rounded-2xl border border-amber-100 shadow-sm">
+            <h4 class="font-bold text-amber-700 mb-2">Kupidon — 15 врывов/сут</h4>
+            <p class="text-sm text-amber-900/80 font-medium">То же, 15 врывов. Лимит исчерпан → докупить врывы за Stars (100 ⭐ = 3 врыва).</p>
+          </div>
+        </div>
+      </div>
+      <div class="flex items-center justify-center bg-gray-50 rounded-3xl p-6 border border-gray-200">
+        <div class="w-56 bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
+          <div class="h-56 bg-cover bg-center" style="background-image:url('https://placehold.co/400x400/e2e8f0/94a3b8?text=[Открытое фото]')"></div>
+          <div class="p-4 text-center">
+            <h4 class="font-bold text-lg">Марина, 21</h4>
+            <p class="text-xs text-gray-400 mb-3 font-medium">Лайкнула час назад · Москва</p>
+            <button class="w-full bg-gradient-brand text-white font-bold py-2 rounded-xl shadow-lg shadow-fuchsia-500/30 flex items-center justify-center gap-2 text-sm"><i class="ph-bold ph-chat-teardrop-text"></i>Написать сейчас</button>
+            <p class="text-[10px] text-gray-400 mt-2 font-bold uppercase tracking-wider">Осталось 3 врыва</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 5. ЧАТЫ ═══ -->
+<section id="chats" class="mb-20 scroll-mt-10 relative z-10">
+  <h2 class="text-4xl font-black mb-8 flex items-center gap-4"><i class="ph-fill ph-chat-circle-dots text-blue-500"></i>5. Чаты, Безопасность и Согласие</h2>
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
+    <div class="space-y-5">
+      <div class="bg-white p-6 rounded-[1.5rem] border border-gray-100 shadow-sm">
+        <h4 class="font-bold text-xl mb-3 flex items-center gap-2"><i class="ph-fill ph-lock text-gray-700"></i>Блокировка TG-контакта</h4>
+        <ul class="text-sm text-gray-600 font-medium space-y-2">
+          <li>• Кнопка Telegram в шапке — серая, disabled по умолчанию.</li>
+          <li>• Счётчик «Откроется через {N} сообщений», обновляется через WS.</li>
+          <li>• Free: N=15. Premium: N=5. Kupidon: 0 (сразу, лимит 3 раза/сут).</li>
+          <li>• messages_count инкрементируется при каждом сообщении от обоих юзеров.</li>
+        </ul>
+      </div>
+      <div class="bg-green-50 p-6 rounded-[1.5rem] border border-green-200 shadow-sm">
+        <h4 class="font-bold text-xl mb-3 text-green-900 flex items-center gap-2"><i class="ph-bold ph-handshake text-green-600"></i>Запросить ТГ (Мгновенное Согласие)</h4>
+        <ul class="text-sm text-green-800/80 font-medium space-y-2">
+          <li>1. Юзер 1 нажимает «Запросить ТГ» → POST /api/chat/request_tg.</li>
+          <li>2. Юзеру 2 появляется системный пузырь ConsentBubble: «Собеседник хочет в Telegram» + [Отклонить] [Одобрить].</li>
+          <li>3. Одобрить → POST /api/chat/approve_tg → tg_unlocked обоих = true.</li>
+          <li>4. Кнопка Telegram у обоих мгновенно синяя. messages_count-лимит аннулируется.</li>
+          <li>5. Отклонить → системное «Обмен отклонён». Повторный запрос через 24ч.</li>
+        </ul>
+      </div>
+      <div class="bg-fuchsia-50 p-6 rounded-[1.5rem] border border-fuchsia-100 shadow-sm">
+        <h4 class="font-bold text-xl mb-3 flex items-center gap-2 text-fuchsia-900"><i class="ph-bold ph-ice-cream text-fuchsia-500"></i>Ледоколы (Icebreakers)</h4>
+        <p class="text-sm text-fuchsia-800/80 font-medium">При messages_count=0 — 3 кнопки-подсказки над клавиатурой. GET /api/icebreakers → рандомные из пула. Клик = текст отправляется как обычное сообщение.</p>
+      </div>
+      <div class="bg-white p-6 rounded-[1.5rem] border border-gray-100 shadow-sm">
+        <h4 class="font-bold text-xl mb-3 flex items-center gap-2"><i class="ph-bold ph-wifi-high text-blue-500"></i>WebSocket протокол</h4>
+        <ul class="text-sm text-gray-600 font-medium space-y-1.5">
+          <li>• WS /ws/chat/{match_id}?token=JWT</li>
+          <li>• События: message_sent, message_read, typing_start, typing_stop, tg_consent_request, tg_consent_approved, tg_consent_declined, match_created.</li>
+          <li>• Разрыв → Long Polling fallback каждые 3 сек.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="flex justify-center">
+      <div class="w-[290px] bg-white rounded-[2.5rem] border-[6px] border-gray-900 shadow-2xl overflow-hidden mockup-shadow flex flex-col h-[520px]">
+        <div class="bg-gray-50 border-b border-gray-200 px-4 py-3 flex items-center justify-between pt-7">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-full bg-cover bg-center shadow-sm border border-gray-200" style="background-image:url('https://placehold.co/80x80/e2e8f0/94a3b8?text=A')"></div>
+            <div><div class="font-bold text-sm">Аня, 22</div><div class="text-[10px] text-green-500 font-bold">В сети</div></div>
+          </div>
+          <div class="flex flex-col items-end">
+            <button class="w-8 h-8 rounded-full bg-gray-200 text-gray-400 flex items-center justify-center"><i class="ph-fill ph-telegram-logo text-lg"></i></button>
+            <span class="text-[8px] font-bold text-gray-400 mt-0.5">Ещё 4 смс</span>
+          </div>
+        </div>
+        <div class="flex-1 bg-white p-3 space-y-3 overflow-y-auto font-medium">
+          <div class="bg-gray-100 p-3 rounded-2xl rounded-tl-none text-xs max-w-[80%]">Привет! Классные фотки со скейтом)</div>
+          <div class="bg-brand-fuchsia text-white p-3 rounded-2xl rounded-tr-none text-xs max-w-[80%] ml-auto">Спасибо! Тоже катаешь?</div>
+          <div class="bg-blue-50 border border-blue-100 rounded-2xl p-3 text-center shadow-sm">
+            <div class="w-7 h-7 bg-white rounded-full flex items-center justify-center text-blue-500 shadow-sm mx-auto mb-1.5"><i class="ph-bold ph-lock-key-open"></i></div>
+            <p class="text-[10px] font-bold text-blue-900 mb-1">Собеседник хочет в Telegram</p>
+            <div class="flex gap-1.5 justify-center">
+              <button class="bg-white border border-gray-200 text-gray-600 px-2 py-1 rounded-lg text-[10px] font-bold">Отклонить</button>
+              <button class="bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-3 py-1 rounded-lg text-[10px] font-bold">Одобрить</button>
+            </div>
+          </div>
+        </div>
+        <div class="px-3 py-2 bg-white border-t border-gray-50">
+          <div class="flex gap-1 mb-2">
+            <button class="bg-fuchsia-50 border border-fuchsia-100 text-fuchsia-700 px-2 py-1 rounded-full text-[9px] font-bold">🐾 Собаки или кошки?</button>
+            <button class="bg-fuchsia-50 border border-fuchsia-100 text-fuchsia-700 px-2 py-1 rounded-full text-[9px] font-bold">🎵 Плейлист?</button>
+          </div>
+          <div class="flex gap-2">
+            <button class="w-9 h-9 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center shrink-0"><i class="ph-bold ph-paperclip text-sm"></i></button>
+            <div class="flex-1 bg-gray-100 rounded-full px-3 flex items-center text-xs text-gray-400">Сообщение...</div>
+            <button class="w-9 h-9 rounded-full bg-gradient-brand text-white flex items-center justify-center shrink-0"><i class="ph-fill ph-paper-plane-tilt text-sm"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 6. КОМНАТА 18+ ═══ -->
+<section id="18plus" class="mb-20 scroll-mt-10 relative z-10">
+  <div class="bg-gradient-to-br from-[#4A0000] to-[#1A0000] text-white p-10 md:p-14 rounded-[2.5rem] shadow-xl relative overflow-hidden border border-red-900">
+    <div class="absolute top-0 right-0 w-72 h-72 bg-red-600 rounded-full mix-blend-screen filter blur-[120px] opacity-25 animate-pulse"></div>
+    <div class="absolute bottom-0 left-0 w-48 h-48 bg-fuchsia-700 rounded-full mix-blend-screen filter blur-[80px] opacity-15"></div>
+    <div class="relative z-10">
+      <div class="inline-flex items-center gap-2 bg-red-900/50 border border-red-700/50 text-red-300 text-xs font-black uppercase tracking-widest px-4 py-2 rounded-full mb-6"><i class="ph-fill ph-arrows-clockwise"></i>Ребилд — без эротики, другие цели</div>
+      <h2 class="text-4xl font-black mb-4 flex items-center gap-4"><i class="ph-fill ph-fire text-red-400"></i>6. Комната 18+</h2>
+      <p class="text-red-200 text-lg mb-2 max-w-3xl font-medium">Это <b class="text-white">не</b> место для интимных фото. Это честное пространство для взрослых с открытыми намерениями: FWB, свидание без обязательств, открытые отношения, флирт без серьёза. Весь контент остаётся приличным — разница только в пуле людей и тегах.</p>
+      <p class="text-red-500 text-sm mb-10 font-medium">Нюды, порно, интимные фото — запрещены на уровне кода и AI-модерации.</p>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+        <div class="space-y-6">
+          <div class="flex gap-4">
+            <div class="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0"><i class="ph-fill ph-toggle-right text-2xl text-red-400"></i></div>
+            <div>
+              <h4 class="text-xl font-bold mb-1">Активация</h4>
+              <p class="text-red-200 text-sm font-medium">Скрытый тумблер в Настройках (появляется после верификации 18+). Чекбокс «Я совершеннолетний(яя) и хочу перейти в 18+ пул». Тема Mini App меняется на тёмно-бордовую через React Context.</p>
+            </div>
+          </div>
+          <div class="flex gap-4">
+            <div class="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0"><i class="ph-fill ph-git-branch text-2xl text-red-400"></i></div>
+            <div>
+              <h4 class="text-xl font-bold mb-1">Параллельный пул</h4>
+              <p class="text-red-200 text-sm font-medium">is_18_mode_active=true → анкета исчезает из обычной ленты полностью. Видишь только тех, у кого тот же флаг. GET /api/feed WHERE is_18_mode_active = me.is_18_mode_active. Пулы полностью изолированы.</p>
+            </div>
+          </div>
+          <div class="flex gap-4">
+            <div class="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0"><i class="ph-fill ph-tag text-2xl text-red-400"></i></div>
+            <div>
+              <h4 class="text-xl font-bold mb-1">Теги 18+ (is_18_only)</h4>
+              <p class="text-red-200 text-sm font-medium mb-2">Отдельный пул тегов, создаётся в админке командой /tags18. Примеры:</p>
+              <div class="flex flex-wrap gap-2">
+                <span class="px-3 py-1 rounded-full border border-red-700 text-red-200 text-xs font-bold bg-red-900/40">🔥 FWB</span>
+                <span class="px-3 py-1 rounded-full border border-red-700 text-red-200 text-xs font-bold bg-red-900/40">🎲 Без обязательств</span>
+                <span class="px-3 py-1 rounded-full border border-red-700 text-red-200 text-xs font-bold bg-red-900/40">🌙 Один вечер</span>
+                <span class="px-3 py-1 rounded-full border border-red-700 text-red-200 text-xs font-bold bg-red-900/40">💫 Открытые отн.</span>
+                <span class="px-3 py-1 rounded-full border border-red-700 text-red-200 text-xs font-bold bg-red-900/40">🎭 Анонимно</span>
+              </div>
+            </div>
+          </div>
+          <div class="flex gap-4">
+            <div class="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0"><i class="ph-fill ph-shield-warning text-2xl text-red-400"></i></div>
+            <div>
+              <h4 class="text-xl font-bold mb-1">Автомодерация контента</h4>
+              <ul class="text-red-300 text-sm font-medium space-y-1">
+                <li>• Фото/видео → NudeNet classifier на бэкенде (AI). Детект интимного контента.</li>
+                <li>• Если модель confident ≥ 0.85 → автобан медиа + уведомление модератору.</li>
+                <li>• Ссылки в чате → regex-блок до разблокировки TG.</li>
+                <li>• Стоп-слова в биографии → автомодерация с флагом needs_review.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="flex gap-4">
+            <div class="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0"><i class="ph-fill ph-fire text-2xl text-red-400"></i></div>
+            <div>
+              <h4 class="text-xl font-bold mb-1">Исчезающие медиа в чатах</h4>
+              <p class="text-red-200 text-sm font-medium">Match.is_18_room=true → кнопка Скрепки меняется на 🔥. Все фото автоматически is_disappearing=true. У получателя — блюр. Клик = просмотр 1 раз. Закрыл → POST /api/chat/burn_media → удаляется с S3 навсегда.</p>
+            </div>
+          </div>
+          <div class="flex gap-4">
+            <div class="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0"><i class="ph-fill ph-lock text-2xl text-red-400"></i></div>
+            <div>
+              <h4 class="text-xl font-bold mb-1">Лимиты в 18+</h4>
+              <p class="text-red-200 text-sm font-medium">Free в 18+: жёсткий лимит 5 свайпов/сут (вместо 50). Это стимул к апгрейду. Premium/Kupidon: обычные лимиты.</p>
+            </div>
+          </div>
+        </div>
+        <div class="flex items-start justify-center pt-4">
+          <div class="w-full max-w-xs space-y-4">
+            <div class="bg-[#0a0000] rounded-3xl border-4 border-red-900 p-4 shadow-2xl">
+              <div class="text-center text-xs text-red-500 font-bold mb-3 uppercase tracking-widest border-b border-red-900 pb-2 flex items-center justify-center gap-2"><i class="ph-fill ph-fire text-red-500"></i>Комната 18+</div>
+              <div class="rounded-2xl overflow-hidden aspect-[3/4] mb-3 border border-red-900/50 relative" style="background-image:url('https://placehold.co/300x400/1a0000/4a0000?text=[Фото]');background-size:cover;background-position:center">
+                <div class="absolute bottom-0 w-full p-4 bg-gradient-to-t from-black/90 to-transparent">
+                  <div class="font-bold text-white">Аня, 24</div>
+                  <div class="flex gap-1 mt-1"><span class="bg-red-950/80 border border-red-700/40 text-red-200 text-[10px] font-bold px-2 py-0.5 rounded-full">🔥 FWB</span></div>
+                </div>
+              </div>
+              <div class="flex justify-center gap-4 mb-3">
+                <button class="w-12 h-12 rounded-full bg-white/5 border border-red-900 flex items-center justify-center text-gray-500"><i class="ph-bold ph-x text-2xl"></i></button>
+                <button class="w-12 h-12 rounded-full flex items-center justify-center text-white shadow-lg" style="background:linear-gradient(135deg,#FF3333,#FF00FF)"><i class="ph-fill ph-heart text-2xl"></i></button>
+              </div>
+              <div class="bg-gray-900 rounded-full p-2 flex items-center gap-2 border border-red-900/50">
+                <div class="w-7 h-7 rounded-full bg-red-600/20 text-red-500 flex items-center justify-center shrink-0"><i class="ph-fill ph-fire text-sm"></i></div>
+                <div class="text-gray-600 text-xs flex-1">Сообщение...</div>
+              </div>
+              <p class="text-center text-[8px] text-red-900 font-bold mt-2 uppercase tracking-wider">Эротика заблокирована системой</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 7. ОЛИГАРХ ═══ -->
+<section id="oligarch" class="mb-20 scroll-mt-10 relative z-10">
+  <div class="bg-gradient-vip p-1.5 rounded-[3rem] shadow-[0_20px_50px_-12px_rgba(255,215,0,0.5)] relative overflow-hidden">
+    <div class="absolute top-0 -left-full w-1/2 h-full bg-gradient-to-r from-transparent via-white/40 to-transparent skew-x-12" style="animation:shimmer 4s infinite"></div>
+    <div class="bg-[#141416] text-white rounded-[2.8rem] p-12 relative z-10">
+      <div class="inline-flex items-center gap-2 bg-amber-400/20 border border-amber-400/30 text-amber-300 text-xs font-black uppercase tracking-widest px-4 py-2 rounded-full mb-5"><i class="ph-fill ph-arrows-clockwise"></i>Полный ребилд — анонимная интрига</div>
+      <h2 class="text-4xl font-black mb-4 flex items-center gap-4 bg-clip-text text-transparent bg-gradient-vip"><i class="ph-fill ph-crown" style="color:#FFD700"></i>7. Режим «Олигарх»</h2>
+      <p class="text-gray-400 text-lg mb-3 max-w-3xl font-medium">Раньше: купить TG-username напрямую за 1000 Stars. <span class="text-white font-bold">Теперь: анонимная интрига + приоритетный сигнал.</span></p>
+      <p class="text-gray-500 text-sm mb-10 max-w-3xl font-medium">Олигарх не покупает контакт грубой силой. Он отправляет анонимный приоритетный сигнал. Девушка сама решает — раскрыть или нет. Всё держится на взаимности.</p>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-14">
+        <div class="space-y-7">
+          <div class="flex gap-5">
+            <div class="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0"><i class="ph-fill ph-detective text-3xl" style="color:#FFD700"></i></div>
+            <div>
+              <h4 class="text-2xl font-bold mb-2">Стелс-режим</h4>
+              <p class="text-gray-400 font-medium text-sm">is_stealth_mode=true → анкета Олигарха невидима в общей ленте. SQL: WHERE is_stealth_mode=false для всех остальных. Олигарх-призрак — сам выбирает, кому лайкнуть.</p>
+            </div>
+          </div>
+          <div class="flex gap-5">
+            <div class="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0"><i class="ph-fill ph-bell-ringing text-3xl" style="color:#FFD700"></i></div>
+            <div>
+              <h4 class="text-2xl font-bold mb-2">Приоритетное VIP-уведомление</h4>
+              <p class="text-gray-400 font-medium text-sm mb-2">Олигарх лайкает → цель получает push «👑 VIP проявил интерес к вашей анкете». В Симпатиях — карточка с размытым силуэтом и золотым бейджем. Имя и фото скрыты. Уведомление всплывает самым первым.</p>
+              <div class="bg-amber-400/10 border border-amber-400/20 rounded-xl p-3 text-xs text-amber-300 font-medium">INSERT INTO vip_notifications(target_id, swipe_id, is_revealed=false).<br>Пуш через bot.send_message() с type='vip_like_notification'.</div>
+            </div>
+          </div>
+          <div class="flex gap-5">
+            <div class="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0"><i class="ph-fill ph-hand-heart text-3xl" style="color:#FFD700"></i></div>
+            <div>
+              <h4 class="text-2xl font-bold mb-2">Взаимный лайк → Раскрытие</h4>
+              <p class="text-gray-400 font-medium text-sm">Девушка нажимает «Раскрыть» (=лайк) → INSERT INTO Matches с is_oligarch_reveal=true, vip_notifications.is_revealed=true. Олигарх получает мгновенный TG-контакт. Девушка видит его настоящее фото и имя.</p>
+            </div>
+          </div>
+          <div class="flex gap-5">
+            <div class="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0"><i class="ph-fill ph-chat-text text-3xl" style="color:#FFD700"></i></div>
+            <div>
+              <h4 class="text-2xl font-bold mb-2">VIP Суперлайк + анонимное сообщение</h4>
+              <p class="text-gray-400 font-medium text-sm">Олигарх может добавить текст до 100 символов. Девушка видит: «👑 Влиятельный незнакомец: "Хочу познакомиться"». Стоимость: 500 Stars. Хранится в Swipes.vip_message.</p>
+            </div>
+          </div>
+        </div>
+        <div class="space-y-4">
+          <div class="bg-black/40 border border-white/10 p-5 rounded-[2rem] backdrop-blur-md relative overflow-hidden shadow-2xl">
+            <div class="absolute inset-0 bg-gradient-to-br from-yellow-400/8 to-transparent"></div>
+            <div class="relative text-xs font-bold text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-2"><i class="ph-fill ph-bell" style="color:#FFD700"></i>Симпатии у девушки</div>
+            <div class="relative bg-black/60 border rounded-2xl p-4 flex items-center gap-4 mb-3" style="border-color:rgba(255,215,0,0.3)">
+              <div class="w-14 h-14 rounded-2xl border flex items-center justify-center shrink-0 relative overflow-hidden" style="background:linear-gradient(135deg,rgba(255,215,0,0.3),rgba(255,165,0,0.6));border-color:rgba(255,215,0,0.4)">
+                <div class="absolute inset-0 backdrop-blur-sm"></div>
+                <i class="ph-fill ph-user text-2xl text-amber-300 opacity-50 relative z-10"></i>
+                <div class="absolute bottom-0.5 right-0.5 w-5 h-5 rounded-full bg-gradient-vip flex items-center justify-center"><i class="ph-fill ph-crown text-black text-xs"></i></div>
+              </div>
+              <div class="flex-1">
+                <div class="font-bold text-sm mb-0.5" style="background:linear-gradient(135deg,#FFE259,#FFA751);-webkit-background-clip:text;-webkit-text-fill-color:transparent">👑 VIP проявил интерес</div>
+                <p class="text-gray-500 text-xs font-medium">Личность скрыта. Лайкни, чтобы узнать кто.</p>
+                <div class="flex gap-2 mt-2">
+                  <button class="text-black font-black text-xs py-1.5 px-3 rounded-xl flex items-center gap-1" style="background:linear-gradient(135deg,#FFE259,#FFA751)"><i class="ph-fill ph-heart text-sm"></i>Раскрыть</button>
+                  <button class="bg-white/5 border border-white/10 text-gray-500 font-bold text-xs py-1.5 px-3 rounded-xl">Пропустить</button>
+                </div>
+              </div>
+            </div>
+            <div class="relative text-xs font-bold text-gray-600 uppercase tracking-widest mb-2 flex items-center gap-2"><i class="ph-fill ph-check-circle text-green-400"></i>После взаимного лайка</div>
+            <div class="relative bg-black/40 border border-green-400/20 rounded-2xl p-3 flex items-center gap-3">
+              <div class="w-11 h-11 rounded-2xl bg-cover bg-center border border-green-400/40 shrink-0" style="background-image:url('https://placehold.co/80x80/1a1a1a/666?text=VIP')"></div>
+              <div><div class="font-bold text-white text-sm">Артём, 32 ✓</div><p class="text-green-400 text-xs font-bold mt-0.5">Раскрыт! TG-контакт открыт.</p></div>
+            </div>
+          </div>
+          <div class="bg-black/40 border border-white/10 p-5 rounded-[2rem] backdrop-blur-md">
+            <div class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Панель Олигарха</div>
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center"><i class="ph-fill ph-detective" style="color:#FFD700"></i></div>
+                <div><div class="font-bold text-white text-sm">Стелс-режим</div><div class="text-xs text-gray-600">Невидим в общей ленте</div></div>
+              </div>
+              <div class="w-11 h-6 rounded-full flex items-center justify-end pr-1" style="background:#FFD700"><div class="w-4 h-4 bg-white rounded-full"></div></div>
+            </div>
+            <div class="bg-amber-400/10 border border-amber-400/20 rounded-xl p-3 text-xs text-amber-400 font-medium">За неделю: лайков 23 · взаимных мэтчей 4</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 8. АНТИ-ОЛИГАРХ ═══ -->
+<section id="anti-oligarch" class="mb-20 scroll-mt-10 relative z-10">
+  <div class="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-[3rem] p-12 shadow-xl relative overflow-hidden">
+    <div class="absolute top-0 right-0 w-64 h-64 bg-emerald-300 rounded-full mix-blend-multiply filter blur-[100px] opacity-30 animate-pulse"></div>
+    <div class="relative z-10">
+      <div class="inline-flex items-center gap-2 bg-emerald-100 border border-emerald-300 text-emerald-700 text-xs font-black uppercase tracking-widest px-4 py-2 rounded-full mb-5"><i class="ph-fill ph-sparkle"></i>Новая фишка · Только для ♀ · БЕСПЛАТНО навсегда</div>
+      <h2 class="text-4xl font-black mb-4 text-emerald-800 flex items-center gap-4"><i class="ph-fill ph-shield-check text-emerald-500"></i>8. Анти-Олигарх Щит</h2>
+      <p class="text-emerald-700 text-lg mb-8 max-w-3xl font-medium">Полный контроль над тем, кто тебя видит. Ни один Олигарх не достучится без желания. Это сильнейший маркетинговый аргумент для привлечения женской аудитории.</p>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+        <div class="space-y-5">
+          <div class="bg-white rounded-2xl p-6 shadow-sm border border-emerald-100">
+            <h4 class="font-bold text-xl text-emerald-800 mb-3 flex items-center gap-2"><i class="ph-fill ph-eye-slash text-emerald-500"></i>Уровень 1 — Щит (полная невидимость)</h4>
+            <ul class="text-sm text-gray-600 font-medium space-y-2">
+              <li>• is_anti_oligarch = true → анкета исчезает из стелс-ленты Олигархов.</li>
+              <li>• SQL для Олигарха: WHERE u.is_anti_oligarch = false.</li>
+              <li>• Никаких VIP-пушей. Никаких анонимных лайков. Применяется мгновенно.</li>
+            </ul>
+          </div>
+          <div class="bg-white rounded-2xl p-6 shadow-sm border border-emerald-100">
+            <h4 class="font-bold text-xl text-emerald-800 mb-3 flex items-center gap-2"><i class="ph-fill ph-funnel text-emerald-500"></i>Уровень 2 — Фильтр уведомлений</h4>
+            <p class="text-sm text-gray-600 font-medium">Щит выключен, но VIP-пуши не приходят. Анкета видима, лайк Олигарха просто попадает в симпатии без золотого бейджа — как обычный лайк. Анкета отображается в ленте Олигарха, но без спецэффектов.</p>
+          </div>
+          <div class="bg-white rounded-2xl p-6 shadow-sm border border-emerald-100">
+            <h4 class="font-bold text-xl text-emerald-800 mb-3 flex items-center gap-2"><i class="ph-fill ph-question text-emerald-500"></i>Почему бесплатно?</h4>
+            <p class="text-sm text-gray-600 font-medium">Защита = доверие = больше активных девушек = живая платформа. Олигарх не теряет инструменты — он просто не может давить. Всё держится на взаимности. Честная позиция продукта.</p>
+          </div>
+        </div>
+        <div class="flex items-center justify-center">
+          <div class="w-64 bg-white rounded-[2.5rem] shadow-2xl border border-emerald-200 overflow-hidden">
+            <div class="bg-emerald-500 px-6 py-5 text-white">
+              <div class="font-black text-xl flex items-center gap-2"><i class="ph-fill ph-shield-check"></i>Мой щит</div>
+              <p class="text-emerald-100 text-xs mt-1">Конфиденциальность</p>
+            </div>
+            <div class="p-5 space-y-4">
+              <div class="flex items-center justify-between py-3 border-b border-gray-100">
+                <div><div class="font-bold text-sm">Анти-Олигарх</div><div class="text-xs text-gray-400">Невидима для VIP</div></div>
+                <div class="w-12 h-6 bg-emerald-500 rounded-full flex items-center justify-end pr-1 shrink-0"><div class="w-4 h-4 bg-white rounded-full"></div></div>
+              </div>
+              <div class="flex items-center justify-between py-3 border-b border-gray-100">
+                <div><div class="font-bold text-sm">Блок VIP-пушей</div><div class="text-xs text-gray-400">Без анонимных уведомлений</div></div>
+                <div class="w-12 h-6 bg-gray-200 rounded-full flex items-center pl-1 shrink-0"><div class="w-4 h-4 bg-white rounded-full shadow-sm"></div></div>
+              </div>
+              <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-center">
+                <i class="ph-fill ph-shield-check text-3xl text-emerald-500 mb-2"></i>
+                <div class="font-bold text-emerald-800 text-sm">Щит активен</div>
+                <p class="text-xs text-emerald-600 font-medium mt-1">Олигархи тебя не видят.<br><span class="text-gray-400">Бесплатно навсегда ♀</span></p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 9. ТАРИФЫ ═══ -->
+<section id="tiers" class="mb-20 scroll-mt-10 relative z-10">
+  <h2 class="text-4xl font-black mb-8 flex items-center gap-4"><i class="ph-fill ph-diamond text-blue-500"></i>9. Тарифы &amp; Экономика</h2>
+  <div class="overflow-hidden rounded-[2rem] border border-gray-200 shadow-xl bg-white mb-6">
+    <table class="w-full text-left border-collapse text-sm">
+      <thead>
+        <tr class="bg-gray-50 border-b border-gray-200">
+          <th class="p-5 font-bold text-gray-700 w-1/4 text-xs uppercase tracking-wider">Параметры</th>
+          <th class="p-5 text-center w-1/4 border-x border-gray-200"><div class="font-black text-gray-800 text-xl">FREE</div><div class="text-xs text-gray-500 font-bold mt-1">Базовый</div></th>
+          <th class="p-5 text-center border-x border-gray-200 w-1/4 bg-fuchsia-50/50 relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-1 bg-brand-fuchsia"></div>
+            <div class="font-black text-brand-fuchsia text-xl">PREMIUM</div><div class="text-xs text-fuchsia-600 font-bold mt-1">Выбор 80%</div>
+          </th>
+          <th class="p-5 text-center bg-amber-50/50 w-1/4 relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-1 bg-amber-400"></div>
+            <div class="font-black text-amber-500 text-xl flex items-center justify-center gap-2"><i class="ph-fill ph-crown text-2xl"></i>KUPIDON</div><div class="text-xs text-amber-600 font-bold mt-1">VIP уровень</div>
+          </th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        <tr class="hover:bg-gray-50/50"><td class="p-4 font-bold text-gray-700">Свайпов/сут</td><td class="p-4 text-center font-black text-gray-500 text-lg border-x border-gray-200">50</td><td class="p-4 text-center font-black text-brand-fuchsia text-lg border-x border-gray-200">200</td><td class="p-4 text-center font-black text-amber-600 text-lg">500</td></tr>
+        <tr class="hover:bg-gray-50/50"><td class="p-4 font-bold text-red-700">Свайпов в 18+ /сут</td><td class="p-4 text-center font-bold text-red-400 border-x border-gray-200">5</td><td class="p-4 text-center font-bold text-green-500 border-x border-gray-200">200</td><td class="p-4 text-center font-bold text-green-500">500</td></tr>
+        <tr class="hover:bg-gray-50/50"><td class="p-4 font-bold text-gray-700">⏪ Rewind</td><td class="p-4 text-center text-gray-400 border-x border-gray-200">Paywall</td><td class="p-4 text-center font-bold text-brand-fuchsia border-x border-gray-200">✓</td><td class="p-4 text-center font-bold text-amber-500">✓</td></tr>
+        <tr class="hover:bg-gray-50/50"><td class="p-4 font-bold text-gray-700">⭐ Суперлайков/сут</td><td class="p-4 text-center text-gray-400 border-x border-gray-200">0 (купить)</td><td class="p-4 text-center font-bold text-brand-fuchsia border-x border-gray-200">5</td><td class="p-4 text-center font-bold text-amber-500">5 + бонусы</td></tr>
+        <tr class="hover:bg-gray-50/50"><td class="p-4 font-bold text-gray-700">Force Chat /сут</td><td class="p-4 text-center text-gray-400 border-x border-gray-200">Только Stars</td><td class="p-4 text-center font-bold text-brand-fuchsia border-x border-gray-200">3</td><td class="p-4 text-center font-bold text-amber-500">15</td></tr>
+        <tr class="hover:bg-gray-50/50"><td class="p-4 font-bold text-gray-700">TG разблокировка</td><td class="p-4 text-center text-gray-600 border-x border-gray-200">15 смс</td><td class="p-4 text-center font-bold text-brand-fuchsia border-x border-gray-200">5 смс</td><td class="p-4 text-center font-bold text-amber-500">Сразу (3×/сут)</td></tr>
+        <tr class="hover:bg-gray-50/50"><td class="p-4 font-bold text-gray-700">Приоритет выдачи</td><td class="p-4 text-center text-gray-400 border-x border-gray-200">Стандарт</td><td class="p-4 text-center font-bold text-brand-fuchsia border-x border-gray-200">Средний буст 🚀</td><td class="p-4 text-center font-bold text-amber-500">Абсолютный 🔥</td></tr>
+        <tr class="hover:bg-gray-50/50 bg-amber-50/10"><td class="p-4 font-bold text-amber-700">👑 Режим Олигарх</td><td class="p-4 text-center text-gray-400 border-x border-gray-200">—</td><td class="p-4 text-center text-gray-400 border-x border-gray-200">—</td><td class="p-4 text-center font-black text-amber-500">✓</td></tr>
+        <tr class="hover:bg-gray-50/50 bg-emerald-50/10"><td class="p-4 font-bold text-emerald-700">🛡 Анти-Олигарх</td><td class="p-4 text-center font-bold text-emerald-600 border-x border-gray-200">✓ FREE (♀ only)</td><td class="p-4 text-center font-bold text-emerald-600 border-x border-gray-200">✓ FREE</td><td class="p-4 text-center font-bold text-emerald-600">✓ FREE</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="bg-white p-6 rounded-[1.5rem] border border-gray-100 shadow-sm">
+    <h4 class="font-bold text-lg mb-3 flex items-center gap-2"><i class="ph-fill ph-star text-amber-400"></i>Telegram Stars (расходники)</h4>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+      <div class="bg-gray-50 rounded-xl p-4 border border-gray-200 text-center"><div class="font-black text-gray-800 text-lg">50 ⭐</div><div class="text-gray-500 font-medium mt-1">Force Chat (Free)</div></div>
+      <div class="bg-gray-50 rounded-xl p-4 border border-gray-200 text-center"><div class="font-black text-gray-800 text-lg">100 ⭐</div><div class="text-gray-500 font-medium mt-1">Буст (топ 2 часа)</div></div>
+      <div class="bg-gray-50 rounded-xl p-4 border border-gray-200 text-center"><div class="font-black text-gray-800 text-lg">150 ⭐</div><div class="text-gray-500 font-medium mt-1">Суперлайк разовый</div></div>
+      <div class="bg-amber-50 rounded-xl p-4 border border-amber-200 text-center"><div class="font-black text-amber-600 text-lg">500 ⭐</div><div class="text-amber-600 font-medium mt-1">VIP анон. суперлайк</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 10. GOD MODE ═══ -->
+<section id="admin" class="mb-20 scroll-mt-10 relative z-10">
+  <h2 class="text-4xl font-black mb-8 flex items-center gap-4"><i class="ph-fill ph-terminal-window text-gray-800"></i>10. God Mode (Бот-Админка)</h2>
+  <p class="text-gray-600 mb-8 font-medium max-w-2xl">Только для ADMIN_IDS. Все команды прямо в Telegram — никаких веб-панелей. Каждый handler: <code class="bg-gray-100 px-2 py-0.5 rounded text-xs">if message.from_user.id in ADMIN_IDS</code>.</p>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div class="bg-white p-7 rounded-[1.5rem] border border-gray-200 shadow-sm">
+      <div class="text-xs font-mono font-bold text-gray-400 mb-4 bg-gray-100 px-3 py-2 rounded-lg">/user {id_или_@username}</div>
+      <p class="text-sm text-gray-500 mb-4 font-medium">SELECT юзера → стата (тариф, Stars, репорты, бан). Inline-клавиатура:</p>
+      <div class="grid grid-cols-2 gap-2 text-xs font-bold">
+        <button class="bg-white border border-gray-200 py-2.5 rounded-xl text-gray-700">💎 Выдать Kupidon</button>
+        <button class="bg-white border border-gray-200 py-2.5 rounded-xl text-gray-700">🌟 +Stars (FSM ввод)</button>
+        <button class="bg-white border border-gray-200 py-2.5 rounded-xl text-red-600">🔞 18+ Вкл/Выкл</button>
+        <button class="bg-gray-900 border border-gray-900 py-2.5 rounded-xl text-white">👻 Теневой Бан</button>
+        <button class="bg-amber-50 border border-amber-200 py-2.5 rounded-xl text-amber-700 col-span-2">👑 Олигарх Вкл/Выкл</button>
+      </div>
+      <div class="mt-4 bg-gray-50 rounded-xl p-3 text-xs text-gray-600 font-medium border border-gray-200"><b>Теневой бан:</b> юзер видит анкеты, думает что всё ок. Его лайки не пишутся в БД. В ленте других WHERE is_shadowbanned=false.</div>
+    </div>
+    <div class="bg-white p-7 rounded-[1.5rem] border border-gray-200 shadow-sm space-y-4">
+      <div><div class="text-xs font-mono font-bold text-gray-400 mb-2 bg-gray-100 px-3 py-2 rounded-lg">/tags Название | HEX | Эмодзи</div><p class="text-sm text-gray-500 font-medium">INSERT admin_tags с is_18_only=false.</p></div>
+      <div><div class="text-xs font-mono font-bold text-gray-400 mb-2 bg-gray-100 px-3 py-2 rounded-lg">/tags18 Название | HEX | Эмодзи</div><p class="text-sm text-gray-500 font-medium">То же, но is_18_only=true → только в 18+ пуле.</p></div>
+      <div><div class="text-xs font-mono font-bold text-gray-400 mb-2 bg-gray-100 px-3 py-2 rounded-lg">/economy param value</div><p class="text-sm text-gray-500 font-medium">UPDATE config. Пример: /economy free_swipes 30. Без деплоя.</p></div>
+      <div><div class="text-xs font-mono font-bold text-gray-400 mb-2 bg-gray-100 px-3 py-2 rounded-lg">/stats</div><p class="text-sm text-gray-500 font-medium">DAU/MAU, свайпов/24ч, новых регов, конверсия Free→Premium, активных Олигархов.</p></div>
+      <div><div class="text-xs font-mono font-bold text-gray-400 mb-2 bg-gray-100 px-3 py-2 rounded-lg">/ban {id} [причина]</div><p class="text-sm text-gray-500 font-medium">is_banned=true. Юзер видит «Аккаунт заблокирован».</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 11. БАЗА ДАННЫХ ═══ -->
+<section id="database" class="mb-20 scroll-mt-10 relative z-10">
+  <h2 class="text-4xl font-black mb-8 flex items-center gap-4"><i class="ph-fill ph-database text-gray-400"></i>11. Схема БД (PostgreSQL)</h2>
+  <div class="code-block">
+<span class="c">-- CupidBot v2.0 — PostgreSQL + SQLAlchemy 2.0</span>
+
+<span class="kw">TABLE</span> Users {
+  id                  <span class="ty">UUID PRIMARY KEY DEFAULT gen_random_uuid()</span>
+  tg_id               <span class="ty">BIGINT UNIQUE NOT NULL</span>
+  name                <span class="ty">VARCHAR(50) NOT NULL</span>
+  birth_date          <span class="ty">DATE NOT NULL</span>                  <span class="c">-- возраст вычисляется динамически</span>
+  gender              <span class="ty">ENUM('male','female') NOT NULL</span>
+  search_gender       <span class="ty">ENUM('male','female','any') NOT NULL</span>
+  city_id             <span class="ty">INT FK(Cities)</span>
+  lat                 <span class="ty">DECIMAL(9,6)</span>
+  lng                 <span class="ty">DECIMAL(9,6)</span>
+  bio                 <span class="ty">VARCHAR(150)</span>
+  profile_score       <span class="ty">SMALLINT</span>                       <span class="val">DEFAULT 0</span>   <span class="c">-- 0-100, "горячесть"</span>
+
+  tier                <span class="ty">ENUM('free','premium','kupidon')</span>  <span class="val">DEFAULT 'free'</span>
+  swipes_left         <span class="ty">INT</span>                            <span class="val">DEFAULT 50</span>   <span class="c">-- CRON сброс 00:00 МСК</span>
+  force_chats_used    <span class="ty">INT</span>                            <span class="val">DEFAULT 0</span>    <span class="c">-- CRON сброс</span>
+  superlikes_left     <span class="ty">INT</span>                            <span class="val">DEFAULT 0</span>    <span class="c">-- CRON сброс</span>
+  stars_balance       <span class="ty">INT</span>                            <span class="val">DEFAULT 0</span>
+
+  is_18_mode_active   <span class="ty">BOOLEAN</span>                        <span class="val">DEFAULT false</span>
+  is_stealth_mode     <span class="ty">BOOLEAN</span>                        <span class="val">DEFAULT false</span>  <span class="c">-- Олигарх: невидим</span>
+  is_oligarch_mode    <span class="ty">BOOLEAN</span>                        <span class="val">DEFAULT false</span>  <span class="c">-- VIP-механики</span>
+  is_anti_oligarch    <span class="ty">BOOLEAN</span>                        <span class="val">DEFAULT false</span>  <span class="c">-- Щит (только female)</span>
+  is_shadowbanned     <span class="ty">BOOLEAN</span>                        <span class="val">DEFAULT false</span>
+  is_banned           <span class="ty">BOOLEAN</span>                        <span class="val">DEFAULT false</span>
+  ban_reason          <span class="ty">VARCHAR(200)</span>
+  created_at          <span class="ty">TIMESTAMP</span>                      <span class="val">DEFAULT NOW()</span>
+  last_active_at      <span class="ty">TIMESTAMP</span>                      <span class="val">DEFAULT NOW()</span>
+}
+
+<span class="kw">TABLE</span> Swipes {
+  id            <span class="ty">UUID PRIMARY KEY DEFAULT gen_random_uuid()</span>
+  actor_id      <span class="ty">UUID FK(Users) NOT NULL</span>
+  target_id     <span class="ty">UUID FK(Users) NOT NULL</span>
+  action_type   <span class="ty">ENUM('left','right','superlike') NOT NULL</span>
+  is_vip_like   <span class="ty">BOOLEAN</span>       <span class="val">DEFAULT false</span>  <span class="c">-- от Олигарха</span>
+  vip_message   <span class="ty">VARCHAR(100)</span>                 <span class="c">-- анонимное сообщение Олигарха</span>
+  created_at    <span class="ty">TIMESTAMP</span>     <span class="val">DEFAULT NOW()</span>
+  <span class="c">UNIQUE(actor_id, target_id)</span>
+}
+
+<span class="kw">TABLE</span> Matches {
+  id                   <span class="ty">UUID PRIMARY KEY DEFAULT gen_random_uuid()</span>
+  user1_id             <span class="ty">UUID FK(Users) NOT NULL</span>
+  user2_id             <span class="ty">UUID FK(Users) NOT NULL</span>
+  is_force_chat        <span class="ty">BOOLEAN</span>   <span class="val">DEFAULT false</span>
+  is_18_room           <span class="ty">BOOLEAN</span>   <span class="val">DEFAULT false</span>  <span class="c">-- оба в 18+ при матче</span>
+  is_oligarch_reveal   <span class="ty">BOOLEAN</span>   <span class="val">DEFAULT false</span>  <span class="c">-- взаимный матч с Олигархом</span>
+  tg_unlocked_user1    <span class="ty">BOOLEAN</span>   <span class="val">DEFAULT false</span>
+  tg_unlocked_user2    <span class="ty">BOOLEAN</span>   <span class="val">DEFAULT false</span>
+  messages_count       <span class="ty">INT</span>       <span class="val">DEFAULT 0</span>
+  created_at           <span class="ty">TIMESTAMP</span> <span class="val">DEFAULT NOW()</span>
+}
+
+<span class="kw">TABLE</span> Messages {
+  id               <span class="ty">UUID PRIMARY KEY DEFAULT gen_random_uuid()</span>
+  match_id         <span class="ty">UUID FK(Matches) NOT NULL</span>
+  sender_id        <span class="ty">UUID FK(Users) NOT NULL</span>
+  content          <span class="ty">TEXT</span>
+  media_url        <span class="ty">VARCHAR(500)</span>
+  is_disappearing  <span class="ty">BOOLEAN</span>  <span class="val">DEFAULT false</span>  <span class="c">-- 18+ самоудаление</span>
+  is_burned        <span class="ty">BOOLEAN</span>  <span class="val">DEFAULT false</span>  <span class="c">-- просмотрено и удалено</span>
+  msg_type         <span class="ty">ENUM('text','media','system','consent_request','icebreaker')</span>
+  created_at       <span class="ty">TIMESTAMP</span> <span class="val">DEFAULT NOW()</span>
+}
+
+<span class="kw">TABLE</span> Media_Slots {
+  id          <span class="ty">UUID PRIMARY KEY DEFAULT gen_random_uuid()</span>
+  user_id     <span class="ty">UUID FK(Users) ON DELETE CASCADE</span>
+  media_url   <span class="ty">VARCHAR(500)</span>
+  media_type  <span class="ty">ENUM('photo','video')</span>
+  slot_index  <span class="ty">SMALLINT NOT NULL</span>   <span class="c">-- 1-5</span>
+  <span class="c">UNIQUE(user_id, slot_index)</span>
+}
+
+<span class="kw">TABLE</span> Admin_Tags {
+  id           <span class="ty">SERIAL PRIMARY KEY</span>
+  name         <span class="ty">VARCHAR(30) NOT NULL</span>
+  color_hex    <span class="ty">VARCHAR(7) NOT NULL</span>
+  emoji        <span class="ty">VARCHAR(10)</span>
+  is_18_only   <span class="ty">BOOLEAN</span>  <span class="val">DEFAULT false</span>
+  is_active    <span class="ty">BOOLEAN</span>  <span class="val">DEFAULT true</span>
+}
+
+<span class="kw">TABLE</span> User_Tags {
+  user_id  <span class="ty">UUID FK(Users) ON DELETE CASCADE</span>
+  tag_id   <span class="ty">INT FK(Admin_Tags)</span>
+  <span class="c">PRIMARY KEY (user_id, tag_id)</span>
+}
+
+<span class="kw">TABLE</span> VIP_Notifications {
+  id           <span class="ty">UUID PRIMARY KEY DEFAULT gen_random_uuid()</span>
+  target_id    <span class="ty">UUID FK(Users)</span>
+  swipe_id     <span class="ty">UUID FK(Swipes)</span>
+  is_revealed  <span class="ty">BOOLEAN</span>   <span class="val">DEFAULT false</span>
+  created_at   <span class="ty">TIMESTAMP</span> <span class="val">DEFAULT NOW()</span>
+}
+
+<span class="kw">TABLE</span> Config {
+  key    <span class="ty">VARCHAR(50) PRIMARY KEY</span>
+  value  <span class="ty">VARCHAR(200)</span>
+  <span class="c">-- free_swipes_daily=50, free_18_swipes=5</span>
+  <span class="c">-- premium_swipes=200, kupidon_swipes=500</span>
+  <span class="c">-- force_chat_premium=3, force_chat_kupidon=15</span>
+  <span class="c">-- superlike_premium=5, superlike_kupidon=5</span>
+  <span class="c">-- stars_force_free=50, stars_boost=100, stars_superlike=150, stars_vip_superlike=500</span>
+}
+
+<span class="c">-- ИНДЕКСЫ</span>
+CREATE UNIQUE INDEX idx_swipes_pair   ON Swipes(actor_id, target_id);
+CREATE INDEX idx_users_feed          ON Users(gender, tier, is_shadowbanned, is_stealth_mode, city_id);
+CREATE INDEX idx_users_18            ON Users(is_18_mode_active, gender);
+CREATE INDEX idx_users_anti          ON Users(is_anti_oligarch);
+CREATE INDEX idx_matches_users       ON Matches(user1_id, user2_id);
+CREATE INDEX idx_messages_match      ON Messages(match_id, created_at);
+CREATE INDEX idx_vip_target          ON VIP_Notifications(target_id, is_revealed);</div>
+</section>
+
+<!-- ═══ 12. АЛГОРИТМЫ ═══ -->
+<section id="algo" class="mb-24 scroll-mt-10 relative z-10">
+  <h2 class="text-4xl font-black mb-8 flex items-center gap-4"><i class="ph-bold ph-code text-gray-600"></i>12. Ключевые Алгоритмы</h2>
+
+  <h3 class="text-2xl font-bold mb-4 text-gray-800">GET /api/feed — Алгоритм ленты</h3>
+  <div class="code-block mb-8">
+SELECT u.*, (DATE_PART('year', AGE(u.birth_date)))::INT AS age
+FROM users u
+WHERE
+  (me.search_gender = 'any' OR u.gender = me.search_gender)
+  AND u.is_stealth_mode  = <span class="val">false</span>
+  AND u.is_shadowbanned  = <span class="val">false</span>
+  AND u.is_banned        = <span class="val">false</span>
+  AND u.id != me.id
+  AND NOT EXISTS (
+    SELECT 1 FROM swipes s WHERE s.actor_id = me.id AND s.target_id = u.id
+  )
+  AND u.is_18_mode_active = me.is_18_mode_active
+  AND (me.is_oligarch_mode = <span class="val">false</span> OR u.is_anti_oligarch = <span class="val">false</span>)
+  AND ST_DWithin(
+    ST_MakePoint(u.lng, u.lat)::geography,
+    ST_MakePoint(me.lng, me.lat)::geography,
+    :radius_m  <span class="c">-- 50000 → 100000 → 200000 при нехватке анкет</span>
+  )
+ORDER BY
+  CASE u.tier WHEN 'kupidon' THEN 1 WHEN 'premium' THEN 2 ELSE 3 END,
+  CASE WHEN u.created_at > NOW() - INTERVAL '2 hours' THEN 0 ELSE 1 END,
+  RANDOM()
+LIMIT 15;
+  </div>
+
+  <h3 class="text-2xl font-bold mb-4 text-gray-800">POST /api/swipe — Логика свайпа и матча</h3>
+  <div class="code-block mb-8">
+<span class="kw">def</span> handle_swipe(me, target_id, action_type, vip_message=None):
+
+  <span class="c"># 1. Проверить лимиты</span>
+  if me.swipes_left &lt;= 0:
+      raise HTTPException(429, "Limit exceeded")
+  if action_type == 'superlike' and me.superlikes_left &lt;= 0:
+      raise HTTPException(402, "Buy superlikes")
+
+  <span class="c"># 2. Записать свайп</span>
+  swipe = INSERT INTO swipes(
+    actor_id=me.id, target_id, action_type,
+    is_vip_like=me.is_oligarch_mode, vip_message=vip_message
+  )
+
+  <span class="c"># 3. Списать лимиты</span>
+  UPDATE users SET swipes_left = swipes_left - 1 WHERE id = me.id
+  if action_type == 'superlike':
+      UPDATE users SET superlikes_left = superlikes_left - 1 WHERE id = me.id
+
+  <span class="c"># 4. Обработка лайка/суперлайка</span>
+  if action_type in ('right', 'superlike'):
+
+      <span class="c"># 4a. Олигарх → приоритетное VIP-уведомление</span>
+      if me.is_oligarch_mode:
+          target = SELECT * FROM users WHERE id = target_id
+          if not target.is_anti_oligarch:  <span class="c"># щит не активен</span>
+              INSERT INTO vip_notifications(target_id, swipe_id=swipe.id)
+              bot.send_message(target_id, type='vip_like', text='👑 VIP проявил интерес',
+                               vip_message=vip_message)
+
+      <span class="c"># 4b. Проверить взаимный лайк</span>
+      mutual = SELECT * FROM swipes
+               WHERE actor_id = target_id AND target_id = me.id
+               AND action_type IN ('right', 'superlike')
+
+      if mutual:
+          match = INSERT INTO matches(
+            user1_id=me.id, user2_id=target_id,
+            is_18_room=(me.is_18_mode_active AND target.is_18_mode_active),
+            is_oligarch_reveal=me.is_oligarch_mode
+          )
+          if me.is_oligarch_mode:
+              UPDATE vip_notifications SET is_revealed=true WHERE swipe_id=swipe.id
+          return {is_match: true, match_id: match.id}
+
+  return {is_match: false}
+  </div>
+
+  <h3 class="text-2xl font-bold mb-4 text-gray-800">CRON-задачи (ежедневный сброс)</h3>
+  <div class="code-block">
+<span class="c">-- Каждый день в 00:00 МСК (UTC+3)</span>
+UPDATE users SET
+  swipes_left      = CASE
+                       WHEN tier='free'     THEN (SELECT value::int FROM config WHERE key='free_swipes_daily')
+                       WHEN tier='premium'  THEN (SELECT value::int FROM config WHERE key='premium_swipes')
+                       WHEN tier='kupidon'  THEN (SELECT value::int FROM config WHERE key='kupidon_swipes')
+                     END,
+  force_chats_used = 0,
+  superlikes_left  = CASE WHEN tier IN ('premium','kupidon') THEN 5 ELSE 0 END;
+
+<span class="c">-- Каждый час</span>
+<span class="c">-- UPDATE users SET last_active_at = NOW() для онлайн-статуса (через WS ping)</span>
+<span class="c">-- DELETE FROM s3 WHERE is_burned=true AND created_at &lt; NOW() - INTERVAL '24 hours'</span>
+<span class="c">-- Очистка Redis-кэша лент старше 10 минут</span></div>
+</section>
+
+<footer class="text-center py-12 border-t border-gray-200 mt-20 relative z-10">
+  <div class="flex items-center justify-center gap-3 mb-4">
+    <div class="w-10 h-10 rounded-2xl bg-gradient-brand flex items-center justify-center text-white text-lg shadow-lg shadow-fuchsia-500/30"><i class="ph-fill ph-heart"></i></div>
+    <span class="font-black text-xl text-gray-800">CupidBot</span>
+  </div>
+  <p class="text-gray-400 font-bold tracking-widest uppercase text-sm">Master-Plan v2.0 FINAL &copy; 2026</p>
+  <p class="text-xs text-gray-400 mt-2 font-medium">18+ = намерения без эротики · Олигарх = анонимная интрига · Анти-Олигарх = свобода</p>
+</footer>
+</main>
+
+<script>
+const sections=document.querySelectorAll('section[id]');
+const links=document.querySelectorAll('.nav-link');
+window.addEventListener('scroll',()=>{
+  let cur='';
+  sections.forEach(s=>{if(scrollY>=s.offsetTop-160)cur=s.id});
+  links.forEach(l=>{
+    l.classList.remove('bg-fuchsia-50','text-brand-fuchsia','bg-red-50','text-red-600','bg-amber-50','text-amber-600','bg-emerald-50','text-emerald-700','bg-gray-100');
+    const h=l.getAttribute('href');
+    if(h&&h.includes(cur)&&cur){
+      if(cur==='18plus')l.classList.add('bg-red-50','text-red-600');
+      else if(cur==='oligarch')l.classList.add('bg-amber-50','text-amber-600');
+      else if(cur==='anti-oligarch')l.classList.add('bg-emerald-50','text-emerald-700');
+      else if(cur==='admin'||cur==='database'||cur==='algo')l.classList.add('bg-gray-100');
+      else l.classList.add('bg-fuchsia-50','text-brand-fuchsia');
+    }
+  });
+});
+</script>
+</body>
+</html>

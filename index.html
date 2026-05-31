@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="ru" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CupidBot — Master PRD </title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Иконки Phosphor -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Onest:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Onest', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            fuchsia: '#FF00FF',
+                            pink: '#FF66CC',
+                            dark: '#0F0F13',
+                            light: '#FAFAFC'
+                        },
+                        vip: {
+                            gold: '#FFD700',
+                            dark: '#141416'
+                        }
+                    },
+                    backgroundImage: {
+                        'gradient-brand': 'linear-gradient(135deg, #FF00FF 0%, #FF66CC 100%)',
+                        'gradient-vip': 'linear-gradient(135deg, #FFE259 0%, #FFA751 100%)',
+                        'gradient-18': 'linear-gradient(135deg, #4A0000 0%, #1A0000 100%)',
+                        'grid-pattern': 'radial-gradient(circle, #e5e7eb 1px, transparent 1px)'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #FAFAFC; }
+        ::-webkit-scrollbar-thumb { background: #FF66CC; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #FF00FF; }
+        
+        body {
+            background-color: #FAFAFC;
+            background-image: radial-gradient(circle, #e5e7eb 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        
+        .mockup-shadow {
+            box-shadow: 0 30px 60px -15px rgba(255, 0, 255, 0.2);
+        }
+
+        .text-glow {
+            text-shadow: 0 0 20px rgba(255, 0, 255, 0.5);
+        }
+    </style>
+</head>
+<body class="text-gray-800 font-sans antialiased flex">
+
+    <!-- Sidebar Navigation -->
+    <aside class="w-72 fixed h-screen bg-white/80 backdrop-blur-xl border-r border-gray-200/50 flex flex-col z-50 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
+        <div class="p-6 flex items-center gap-3">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-brand flex items-center justify-center text-white text-2xl shadow-lg shadow-fuchsia-500/30">
+                <i class="ph-fill ph-heart"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-extrabold text-gray-900 leading-tight">CupidBot</h1>
+                <span class="text-[10px] font-bold tracking-widest uppercase text-brand-fuchsia bg-fuchsia-100 px-2 py-0.5 rounded-full">Master PRD </span>
+            </div>
+        </div>
+        
+        <nav class="flex-1 overflow-y-auto px-4 pb-6 space-y-1.5 mt-4">
+            <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-2">Ядро продукта</div>
+            <a href="#vision" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-fuchsia-50 hover:text-brand-fuchsia transition-all font-semibold"><i class="ph-bold ph-palette text-lg"></i> Дизайн и UI</a>
+            <a href="#onboarding" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-fuchsia-50 hover:text-brand-fuchsia transition-all font-semibold"><i class="ph-bold ph-user-circle-plus text-lg"></i> Профиль & Медиа</a>
+            <a href="#mechanics" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-fuchsia-50 hover:text-brand-fuchsia transition-all font-semibold"><i class="ph-bold ph-cards text-lg"></i> Свайпы & Симпатии</a>
+            <a href="#chats" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-fuchsia-50 hover:text-brand-fuchsia transition-all font-semibold"><i class="ph-bold ph-chat-circle-dots text-lg"></i> Чаты & Согласие</a>
+            
+            <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-2 mt-6">Монетизация</div>
+            <a href="#monetization" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-fuchsia-50 hover:text-brand-fuchsia transition-all font-semibold"><i class="ph-bold ph-diamond text-lg text-blue-500"></i> Тарифы & Лимиты</a>
+            <a href="#oligarch" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-amber-600 hover:bg-amber-50 font-bold transition-all"><i class="ph-fill ph-crown text-lg"></i> Режим Олигарх</a>
+            <a href="#secret-room" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-600 hover:bg-red-50 font-bold transition-all"><i class="ph-fill ph-fire text-lg"></i> 18+ Комната</a>
+            
+            <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-2 mt-6">Управление</div>
+            <a href="#admin" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 font-semibold transition-all"><i class="ph-fill ph-terminal-window text-lg"></i> God Mode</a>
+            <a href="#database" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 font-semibold transition-all"><i class="ph-bold ph-database text-lg"></i> База Данных</a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="ml-72 flex-1 p-10 lg:p-16 max-w-7xl relative">
+        
+        <!-- HEADER -->
+        <header class="mb-20 relative">
+            <div class="absolute -top-20 -left-20 w-96 h-96 bg-fuchsia-300 rounded-full mix-blend-multiply filter blur-[128px] opacity-40 animate-pulse"></div>
+            <div class="relative z-10">
+                <h1 class="text-6xl font-black text-brand-dark mb-6 leading-[1.1] tracking-tight">
+                    Tinder-Киллер <br>
+                    <span class="bg-clip-text text-transparent bg-gradient-brand text-glow">Master-Plan </span>
+                </h1>
+                <p class="text-xl text-gray-500 max-w-3xl font-medium leading-relaxed">
+                    Закрытая документация проекта. Обновлено с учетом личных границ в чатах, средних бустов для Premium-сегмента и новой механики согласия на передачу юзернейма. Полный сборник всех функций.
+                </p>
+            </div>
+        </header>
+
+        <!-- SECTION 1: VISION -->
+        <section id="vision" class="mb-24 scroll-mt-10 relative z-10">
+            <h2 class="text-4xl font-black mb-8 flex items-center gap-4"><i class="ph-fill ph-palette text-brand-fuchsia drop-shadow-md"></i> 1. Дизайн-система и Оболочка</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-100">
+                    <h3 class="text-2xl font-bold mb-4">Цветовая палитра</h3>
+                    <div class="flex gap-4 mb-6">
+                        <div class="w-16 h-16 rounded-2xl bg-[#ffffff] border-2 border-gray-200 shadow-sm flex items-center justify-center text-xs font-bold text-gray-400">#FFF</div>
+                        <div class="w-16 h-16 rounded-2xl bg-[#FAFAFC] border border-gray-200 shadow-sm flex items-center justify-center text-xs font-bold text-gray-400">#FAFAFC</div>
+                        <div class="w-16 h-16 rounded-2xl bg-[#FF00FF] shadow-lg shadow-fuchsia-500/40 flex items-center justify-center text-xs font-bold text-white">#FF00FF</div>
+                        <div class="w-16 h-16 rounded-2xl bg-[#FF66CC] shadow-lg shadow-pink-500/40 flex items-center justify-center text-xs font-bold text-white">#FF66CC</div>
+                    </div>
+                    <ul class="space-y-3 text-gray-600 font-medium">
+                        <li class="flex gap-2"><i class="ph-fill ph-check-circle text-brand-fuchsia text-xl shrink-0"></i> <b>Стиль:</b> Clean UI, Glassmorphism, Гладкие анимации (60fps).</li>
+                        <li class="flex gap-2"><i class="ph-fill ph-check-circle text-brand-fuchsia text-xl shrink-0"></i> <b>Тактильность:</b> Haptic Feedback API при свайпах и лайках.</li>
+                        <li class="flex gap-2"><i class="ph-fill ph-check-circle text-brand-fuchsia text-xl shrink-0"></i> <b>Навигация:</b> Нижний таб-бар, 4 иконки.</li>
+                    </ul>
+                </div>
+
+                <!-- PHONE MOCKUP: TABS -->
+                <div class="flex justify-center items-center bg-gray-50 rounded-[2rem] p-8 border border-gray-200">
+                    <div class="w-64 h-[450px] bg-white rounded-[2.5rem] border-[6px] border-gray-900 mockup-shadow relative overflow-hidden flex flex-col">
+                        <div class="flex-1 bg-gray-50 flex flex-col items-center justify-center">
+                            <i class="ph-fill ph-heart-break text-4xl text-gray-300 mb-2"></i>
+                            <span class="text-gray-400 font-bold text-sm">Область контента</span>
+                        </div>
+                        <!-- Tab Bar Mockup -->
+                        <div class="h-16 bg-white/90 backdrop-blur-md border-t border-gray-100 flex items-center justify-around px-2 relative z-10">
+                            <div class="flex flex-col items-center gap-1 text-brand-fuchsia"><i class="ph-fill ph-cards text-2xl drop-shadow-sm"></i></div>
+                            <div class="flex flex-col items-center gap-1 text-gray-400 relative"><i class="ph-fill ph-heart text-2xl"></i><span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span></div>
+                            <div class="flex flex-col items-center gap-1 text-gray-400"><i class="ph-fill ph-chat-circle text-2xl"></i></div>
+                            <div class="flex flex-col items-center gap-1 text-gray-400"><i class="ph-fill ph-user text-2xl"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: ONBOARDING -->
+        <section id="onboarding" class="mb-24 scroll-mt-10 relative z-10">
+            <h2 class="text-4xl font-black mb-8 flex items-center gap-4"><i class="ph-fill ph-user-circle-plus text-brand-fuchsia drop-shadow-md"></i> 2. Профиль и Медиа-Экономика</h2>
+            
+            <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-100 mb-8">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                    <div>
+                        <h3 class="text-2xl font-bold mb-4">Жесткие лимиты на слоты</h3>
+                        <p class="text-gray-600 mb-6 font-medium">Мы ограничиваем мусорный контент и бережем сервера. У юзера всего <b>5 слотов</b>.</p>
+                        
+                        <div class="bg-gray-50 p-6 rounded-2xl border border-gray-200 mb-6">
+                            <div class="flex items-center gap-4 mb-4">
+                                <div class="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-brand-fuchsia"><i class="ph-fill ph-image text-2xl"></i></div>
+                                <div><div class="font-bold">1 Фотография</div><div class="text-sm text-gray-500 font-medium">Занимает 1 слот</div></div>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-brand-fuchsia"><i class="ph-fill ph-video-camera text-2xl"></i></div>
+                                <div><div class="font-bold">1 Видео (до 10 сек)</div><div class="text-sm text-gray-500 font-medium">Съедает сразу 3 слота. Повышает горячесть.</div></div>
+                            </div>
+                        </div>
+
+                        <h3 class="text-xl font-bold mb-4">Динамические Бейджи (Админские)</h3>
+                        <p class="text-gray-600 mb-4 font-medium">Никаких скучных списков. Вы создаете хеши с эмодзи и цветом обводки в админке.</p>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="px-4 py-1.5 rounded-full border-2 border-[#FF00FF] text-gray-800 font-bold text-sm bg-fuchsia-50 shadow-sm">💀 Неформал</span>
+                            <span class="px-4 py-1.5 rounded-full border-2 border-[#00BFFF] text-gray-800 font-bold text-sm bg-blue-50 shadow-sm">💻 Технарь</span>
+                            <span class="px-4 py-1.5 rounded-full border-2 border-[#32CD32] text-gray-800 font-bold text-sm bg-green-50 shadow-sm">🌿 Чилл</span>
+                        </div>
+                    </div>
+                    
+                    <div class="relative bg-gradient-brand p-1 rounded-[2rem] shadow-xl">
+                        <div class="bg-white rounded-[1.8rem] p-8 h-full">
+                            <h4 class="font-bold text-xl text-center mb-4">Шкала "Горячести"</h4>
+                            <div class="w-full bg-gray-100 rounded-full h-4 mb-2 overflow-hidden relative shadow-inner">
+                                <div class="bg-gradient-brand h-4 rounded-full w-[80%]"></div>
+                            </div>
+                            <p class="text-center text-sm text-gray-500 mb-8 font-medium">Заполнено на 80%. Добавь видео для 100%!</p>
+                            
+                            <div class="grid grid-cols-5 gap-2 mb-4">
+                                <div class="aspect-[3/4] bg-gray-200 rounded-xl bg-cover bg-center flex items-center justify-center shadow-inner" style="background-image: url('https://placehold.co/200x300/e2e8f0/94a3b8?text=[Фото]')"></div>
+                                <div class="col-span-3 aspect-[9/4] bg-fuchsia-100 rounded-xl flex items-center justify-center border-2 border-brand-fuchsia shadow-sm relative overflow-hidden group">
+                                    <i class="ph-fill ph-play-circle text-4xl text-brand-fuchsia opacity-80 group-hover:scale-110 transition-transform cursor-pointer"></i>
+                                    <div class="absolute bottom-2 right-3 text-xs font-bold text-brand-fuchsia">Видео (3 слота)</div>
+                                </div>
+                                <div class="aspect-[3/4] bg-gray-100 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center text-gray-400 hover:text-brand-fuchsia hover:border-brand-fuchsia transition-colors cursor-pointer"><i class="ph-bold ph-plus text-2xl"></i></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: CORE MECHANICS -->
+        <section id="mechanics" class="mb-24 scroll-mt-10 relative z-10">
+            <h2 class="text-4xl font-black mb-8 flex items-center gap-4"><i class="ph-fill ph-cards text-brand-fuchsia drop-shadow-md"></i> 3. Механика и Симпатии</h2>
+            
+            <!-- СВАЙПЫ И АЛГОРИТМ -->
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-12 mb-16">
+                <div class="space-y-8">
+                    <div class="bg-white p-6 rounded-[1.5rem] border border-gray-100 shadow-sm relative overflow-hidden">
+                        <div class="absolute top-0 right-0 w-2 h-full bg-blue-500"></div>
+                        <h4 class="font-bold text-xl mb-2 flex items-center gap-2"><i class="ph-fill ph-map-pin text-blue-500"></i> Smart Geo (Умная локация)</h4>
+                        <p class="text-gray-600 font-medium text-sm leading-relaxed">Если в городе N кончились анкеты, алгоритм берет координаты города, ищет в БД города в радиусе 50-100 км и бесшовно подкидывает их в колоду. Юзер не видит "пустых экранов".</p>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-[1.5rem] border border-gray-100 shadow-sm relative overflow-hidden">
+                        <div class="absolute top-0 right-0 w-2 h-full bg-amber-400"></div>
+                        <h4 class="font-bold text-xl mb-2 flex items-center gap-2"><i class="ph-fill ph-rewind text-amber-500"></i> Кнопка ⏪ (Шаг назад)</h4>
+                        <p class="text-gray-600 font-medium text-sm leading-relaxed">Отменяет ТОЛЬКО последний свайп влево. Для Free-юзеров кнопка кликабельна, но вызывает поп-ап жесткой монетизации (FOMO): <i>"Случайно упустил судьбу? Верни ее с Premium!"</i>. У платников просто возвращает карточку.</p>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-[1.5rem] border border-gray-100 shadow-sm relative overflow-hidden">
+                        <div class="absolute top-0 right-0 w-2 h-full bg-brand-fuchsia"></div>
+                        <h4 class="font-bold text-xl mb-2 flex items-center gap-2"><i class="ph-fill ph-timer text-brand-fuchsia"></i> Пейволл и Таймер</h4>
+                        <p class="text-gray-600 font-medium text-sm leading-relaxed">При исчерпании лимита свайпов экран блюрится. Выводится сочный арт, таймер до 00:00 МСК и переливающаяся кнопка "Стать Купидоном 👑".</p>
+                    </div>
+                </div>
+
+                <!-- PHONE MOCKUP: SWIPE SCREEN -->
+                <div class="flex justify-center items-center">
+                    <div class="w-80 h-[550px] bg-white rounded-[3rem] border-[8px] border-gray-900 shadow-2xl relative overflow-hidden flex flex-col mockup-shadow">
+                        <!-- Top bar -->
+                        <div class="h-12 w-full absolute top-0 z-20 flex justify-center items-start pt-2">
+                            <div class="w-1/3 h-5 bg-black rounded-b-2xl"></div>
+                        </div>
+                        
+                        <!-- Card Image -->
+                        <div class="flex-1 bg-cover bg-center relative" style="background-image: url('https://placehold.co/400x600/e2e8f0/94a3b8?text=[Лицо+человека]')">
+                            <!-- Gradient overlay -->
+                            <div class="absolute bottom-0 w-full h-1/2 bg-gradient-to-t from-black/90 to-transparent"></div>
+                            
+                            <!-- User Info -->
+                            <div class="absolute bottom-24 left-4 text-white w-full pr-8">
+                                <h2 class="text-3xl font-bold flex items-center gap-2">Аня, 22 <i class="ph-fill ph-check-circle text-blue-400 text-xl"></i></h2>
+                                <p class="text-sm text-gray-300 mt-1 flex items-center gap-1 font-medium"><i class="ph-fill ph-map-pin"></i> Москва (В 2 км)</p>
+                                <div class="flex gap-2 mt-3">
+                                    <span class="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-bold border border-white/30">💀 Неформалка</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Buttons Panel -->
+                        <div class="h-24 bg-white/10 backdrop-blur-xl absolute bottom-0 w-full flex items-center justify-center gap-4 px-4 pb-4">
+                            <button class="w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center text-amber-500 hover:scale-110 transition-transform relative group">
+                                <i class="ph-bold ph-rewind text-xl"></i>
+                                <span class="absolute -top-8 bg-black text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity font-bold">Premium</span>
+                            </button>
+                            <button class="w-16 h-16 rounded-full bg-white shadow-lg flex items-center justify-center text-gray-800 hover:scale-110 transition-transform">
+                                <i class="ph-bold ph-x text-3xl"></i>
+                            </button>
+                            <button class="w-16 h-16 rounded-full bg-gradient-brand shadow-lg shadow-fuchsia-500/50 flex items-center justify-center text-white hover:scale-110 transition-transform">
+                                <i class="ph-fill ph-heart text-3xl"></i>
+                            </button>
+                            <button class="w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center text-purple-600 hover:scale-110 transition-transform relative group">
+                                <i class="ph-fill ph-star text-xl"></i>
+                                <span class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[8px] text-white flex items-center justify-center font-bold">5</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Вкладка Симпатии (Force Chat) -->
+            <div class="glass rounded-[2rem] p-8 shadow-sm">
+                <h3 class="text-2xl font-bold mb-6 flex items-center gap-2">Вкладка ❤️ Симпатии (Обновленная логика)</h3>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                    <div>
+                        <p class="text-gray-600 mb-6 text-lg">Фотографии тех, кто поставил тебе лайк — <b>АБСОЛЮТНО ОТКРЫТЫ</b> для всех тарифов. Никакого блюра. Но написать им напрямую без взаимного свайпа нельзя.</p>
+                        
+                        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm mb-6 relative overflow-hidden group hover:border-brand-fuchsia transition-colors">
+                            <div class="absolute top-0 right-0 w-1.5 h-full bg-gray-300 group-hover:bg-brand-fuchsia transition-colors"></div>
+                            <h4 class="font-bold text-lg mb-2 text-gray-800">Free-юзер</h4>
+                            <p class="text-gray-500 text-sm font-medium">Видит анкету. Чтобы начать чат мгновенно (Force Chat), нужно заплатить Telegram Stars. Либо идти в ленту и надеяться поймать ее там для взаимного мэтча.</p>
+                        </div>
+                        
+                        <div class="bg-gradient-to-r from-fuchsia-50 to-pink-50 p-6 rounded-2xl border border-fuchsia-100 shadow-sm mb-6">
+                            <h4 class="font-bold text-lg mb-2 text-brand-fuchsia flex items-center gap-2">Premium & Kupidon <span class="bg-fuchsia-200 text-fuchsia-800 text-xs px-2 py-0.5 rounded-full font-bold">Force Chat</span></h4>
+                            <p class="text-fuchsia-900/80 text-sm mb-3 font-medium">Могут "ворваться" в чат без взаимного мэтча, нажав на анкету в симпатиях.</p>
+                            <ul class="text-sm font-bold text-fuchsia-900 space-y-1">
+                                <li>• Premium: <span class="text-brand-fuchsia">3 "врыва"</span> в день.</li>
+                                <li>• Kupidon: <span class="text-brand-fuchsia">15 "врывов"</span> в день.</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- Sympathy Card Mockup -->
+                    <div class="flex items-center justify-center bg-gray-50 rounded-3xl p-6 border border-gray-200">
+                        <div class="w-64 bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
+                            <div class="h-64 bg-cover bg-center" style="background-image: url('https://placehold.co/400x400/e2e8f0/94a3b8?text=[Открытое+Фото]')"></div>
+                            <div class="p-4 text-center">
+                                <h4 class="font-bold text-lg">Марина, 21</h4>
+                                <p class="text-xs text-gray-400 mb-4 font-medium">Лайкнула вас час назад</p>
+                                <button class="w-full bg-gradient-brand text-white font-bold py-2.5 rounded-xl shadow-lg shadow-fuchsia-500/30 flex items-center justify-center gap-2 hover:scale-[1.02] transition-transform">
+                                    <i class="ph-bold ph-chat-teardrop-text"></i> Начать чат
+                                </button>
+                                <p class="text-[10px] text-gray-400 mt-2 font-bold uppercase tracking-wider">Осталось 3 врыва</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 4: CHATS & CONSENT (NEW) -->
+        <section id="chats" class="mb-24 scroll-mt-10 relative z-10">
+            <h2 class="text-4xl font-black mb-8 flex items-center gap-4"><i class="ph-fill ph-chat-circle-dots text-blue-500 drop-shadow-md"></i> 4. Чаты и Обоюдное Согласие</h2>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                <!-- Explanations -->
+                <div>
+                    <h3 class="text-2xl font-bold mb-4">Безопасность и Личные границы</h3>
+                    <p class="text-gray-600 text-lg mb-8 font-medium">Мы не выдаем юзернеймы Telegram просто так. Люди должны захотеть перейти в личку. Механика обмена контактами геймифицирована.</p>
+                    
+                    <div class="space-y-4">
+                        <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex items-start gap-4">
+                            <div class="w-10 h-10 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center shrink-0"><i class="ph-bold ph-hourglass-high text-xl"></i></div>
+                            <div>
+                                <h4 class="font-bold">Авто-разблокировка по времени (сообщениям)</h4>
+                                <p class="text-sm text-gray-500 mt-1 font-medium">Кнопка "Telegram" становится активной сама, если диалог живой: <br>
+                                <span class="font-bold text-gray-700">Free:</span> после 15 сообщений. <br>
+                                <span class="font-bold text-brand-fuchsia">Premium:</span> после 5 сообщений.</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-gradient-to-br from-green-50 to-emerald-50 p-5 rounded-2xl border border-green-200 shadow-sm flex items-start gap-4">
+                            <div class="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center shrink-0"><i class="ph-bold ph-handshake text-xl"></i></div>
+                            <div>
+                                <h4 class="font-bold text-green-900">Мгновенный обмен (Согласие)</h4>
+                                <p class="text-sm text-green-800/80 mt-1 font-medium">Не хотите ждать? Любой юзер может нажать <b>«Запросить ТГ»</b>. В чат падает системное сообщение. Если второй нажимает <b>«Одобрить»</b> — защита падает, контакты открыты мгновенно.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chat UI Mockup -->
+                <div class="flex justify-center">
+                    <div class="w-[320px] bg-white rounded-[2.5rem] border-[6px] border-gray-900 shadow-2xl overflow-hidden relative mockup-shadow flex flex-col h-[550px]">
+                        <!-- Chat Header -->
+                        <div class="bg-gray-50 border-b border-gray-200 px-4 py-3 flex items-center justify-between pt-8">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-full bg-cover bg-center shadow-sm border border-gray-200" style="background-image: url('https://placehold.co/100x100/e2e8f0/94a3b8?text=A')"></div>
+                                <div>
+                                    <div class="font-bold text-sm">Аня, 22</div>
+                                    <div class="text-[10px] text-green-500 font-bold">В сети</div>
+                                </div>
+                            </div>
+                            <!-- Disabled TG Button with counter -->
+                            <div class="flex flex-col items-end">
+                                <button class="w-8 h-8 rounded-full bg-gray-200 text-gray-400 flex items-center justify-center" disabled>
+                                    <i class="ph-fill ph-telegram-logo text-lg"></i>
+                                </button>
+                                <span class="text-[8px] font-bold text-gray-400 mt-0.5 uppercase tracking-wide">Еще 4 смс</span>
+                            </div>
+                        </div>
+
+                        <!-- Chat Body -->
+                        <div class="flex-1 bg-white p-4 overflow-y-auto space-y-4 font-medium">
+                            <div class="bg-gray-100 p-3 rounded-2xl rounded-tl-none text-sm max-w-[80%] text-gray-800">Привет! Классные фотки со скейтом)</div>
+                            <div class="bg-brand-fuchsia text-white p-3 rounded-2xl rounded-tr-none text-sm max-w-[80%] ml-auto shadow-md shadow-fuchsia-500/20">Спасибо! Тоже катаешь?</div>
+                            
+                            <!-- System Consent Message -->
+                            <div class="w-full mt-6 mb-2">
+                                <div class="bg-blue-50 border border-blue-100 rounded-2xl p-4 text-center shadow-sm">
+                                    <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center text-blue-500 shadow-sm mx-auto mb-2">
+                                        <i class="ph-bold ph-lock-key-open text-xl"></i>
+                                    </div>
+                                    <p class="text-xs font-bold text-blue-900 mb-1">Собеседник хочет перейти в Telegram</p>
+                                    <p class="text-[10px] text-blue-700/80 mb-3 font-medium">Юзернеймы скрыты для безопасности. Одобрить обмен контактами?</p>
+                                    <div class="flex gap-2 justify-center">
+                                        <button class="bg-white border border-gray-200 text-gray-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-gray-50 transition-colors">Отклонить</button>
+                                        <button class="bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-4 py-1.5 rounded-lg text-xs font-bold shadow-md shadow-blue-500/30 hover:scale-105 transition-transform">Одобрить ТГ</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Chat Input -->
+                        <div class="p-3 bg-white border-t border-gray-100 flex gap-2">
+                            <button class="w-10 h-10 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center shrink-0 hover:bg-gray-200 transition-colors"><i class="ph-bold ph-paperclip"></i></button>
+                            <div class="flex-1 bg-gray-100 rounded-full px-4 flex items-center text-sm text-gray-400 font-medium">Сообщение...</div>
+                            <button class="w-10 h-10 rounded-full bg-gradient-brand text-white flex items-center justify-center shrink-0 shadow-md shadow-fuchsia-500/30 hover:scale-105 transition-transform"><i class="ph-fill ph-paper-plane-tilt"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 5: MONETIZATION & TIERS -->
+        <section id="monetization" class="mb-24 scroll-mt-10 relative z-10">
+            <h2 class="text-4xl font-black mb-8 flex items-center gap-4"><i class="ph-fill ph-diamond text-blue-500 drop-shadow-md"></i> 5. Тарифы и Экономика</h2>
+            
+            <div class="overflow-hidden rounded-[2rem] border border-gray-200 shadow-xl bg-white">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-gray-50 border-b border-gray-200">
+                            <th class="p-6 font-bold text-gray-700 w-1/4 uppercase tracking-wider text-sm">Параметры</th>
+                            <th class="p-6 text-center w-1/4 border-x border-gray-200">
+                                <div class="font-black text-gray-800 text-2xl">FREE</div>
+                                <div class="text-xs text-gray-500 font-bold mt-1 uppercase">Базовый</div>
+                            </th>
+                            <th class="p-6 text-center border-x border-gray-200 w-1/4 bg-fuchsia-50/50 relative overflow-hidden">
+                                <div class="absolute top-0 left-0 w-full h-1 bg-brand-fuchsia"></div>
+                                <div class="font-black text-brand-fuchsia text-2xl">PREMIUM</div>
+                                <div class="text-xs text-fuchsia-600 font-bold mt-1 uppercase">Выбор 80%</div>
+                            </th>
+                            <th class="p-6 text-center bg-amber-50/50 w-1/4 relative overflow-hidden">
+                                <div class="absolute top-0 left-0 w-full h-1 bg-amber-400"></div>
+                                <div class="font-black text-amber-500 text-2xl flex items-center justify-center gap-2"><i class="ph-fill ph-crown text-3xl"></i> KUPIDON</div>
+                                <div class="text-xs text-amber-600 font-bold mt-1 uppercase">VIP уровень</div>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 text-sm">
+                        <!-- Свайпы -->
+                        <tr class="hover:bg-gray-50/50 transition-colors">
+                            <td class="p-5 font-bold text-gray-700">Свайпы в день</td>
+                            <td class="p-5 text-center font-black text-gray-500 text-lg border-x border-gray-200">50</td>
+                            <td class="p-5 text-center font-black text-brand-fuchsia text-lg border-x border-gray-200 bg-fuchsia-50/20">200</td>
+                            <td class="p-5 text-center font-black text-amber-600 text-lg bg-amber-50/20">500</td>
+                        </tr>
+                        <!-- Приоритет -->
+                        <tr class="hover:bg-gray-50/50 transition-colors">
+                            <td class="p-5 font-bold text-gray-700"><i class="ph-bold ph-rocket-launch text-blue-500 mr-1"></i> Приоритет выдачи</td>
+                            <td class="p-5 text-center text-gray-500 font-medium border-x border-gray-200">Стандарт</td>
+                            <td class="p-5 text-center text-brand-fuchsia font-bold border-x border-gray-200 bg-fuchsia-50/20">Средний Буст 🚀</td>
+                            <td class="p-5 text-center font-black text-amber-500 bg-amber-50/20">АБСОЛЮТНЫЙ 🔥</td>
+                        </tr>
+                        <!-- Force Chat -->
+                        <tr class="hover:bg-gray-50/50 transition-colors">
+                            <td class="p-5 font-bold text-gray-700"><i class="ph-bold ph-chat-teardrop-text text-green-500 mr-1"></i> Чат БЕЗ мэтча (Врыв)</td>
+                            <td class="p-5 text-center font-medium text-gray-400 border-x border-gray-200">Только за Stars</td>
+                            <td class="p-5 text-center font-bold text-brand-fuchsia border-x border-gray-200 bg-fuchsia-50/20">3 раза в день</td>
+                            <td class="p-5 text-center font-bold text-amber-600 bg-amber-50/20">15 раз в день</td>
+                        </tr>
+                        <!-- TG Username -->
+                        <tr class="hover:bg-gray-50/50 transition-colors">
+                            <td class="p-5 font-bold text-gray-700"><i class="ph-bold ph-telegram-logo text-blue-400 mr-1"></i> Кнопка @Username</td>
+                            <td class="p-5 text-center font-medium text-gray-500 border-x border-gray-200">После 15 сообщений</td>
+                            <td class="p-5 text-center font-bold text-brand-fuchsia border-x border-gray-200 bg-fuchsia-50/20">После 5 сообщений</td>
+                            <td class="p-5 text-center font-black text-amber-500 bg-amber-50/20">Сразу (Мгновенно)</td>
+                        </tr>
+                        <!-- 18+ Mode -->
+                        <tr class="hover:bg-gray-50/50 transition-colors">
+                            <td class="p-5 font-bold text-red-600"><i class="ph-fill ph-fire mr-1"></i> Доступ в 18+ режим</td>
+                            <td class="p-5 text-center font-bold text-red-400 border-x border-gray-200">Лимит: 5 в день</td>
+                            <td class="p-5 text-center font-bold text-green-500 border-x border-gray-200 bg-fuchsia-50/20">Включено</td>
+                            <td class="p-5 text-center font-bold text-green-500 bg-amber-50/20">Включено</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- SECTION 6: ELITE (OLIGARCH) -->
+        <section id="oligarch" class="mb-24 scroll-mt-10 relative z-10">
+            <div class="bg-gradient-vip p-1.5 rounded-[3rem] shadow-[0_20px_50px_-12px_rgba(255,215,0,0.5)] relative overflow-hidden">
+                <div class="absolute top-0 -left-[100%] w-1/2 h-full bg-gradient-to-r from-transparent via-white/50 to-transparent skew-x-12 animate-[shimmer_3s_infinite]"></div>
+                
+                <div class="bg-vip-dark text-white rounded-[2.8rem] p-12 md:p-16 relative z-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]">
+                    <h2 class="text-5xl font-black mb-6 flex items-center gap-4 text-transparent bg-clip-text bg-gradient-vip">
+                        <i class="ph-fill ph-crown text-vip-gold"></i> 6. Режим «Олигарх»
+                    </h2>
+                    <p class="text-gray-400 text-xl mb-12 max-w-3xl font-medium leading-relaxed">Жесткая монетизация на китах (Whale Monetization). Для тех, кто не светит лицом, но выкупает любые контакты без ожиданий и свайпов.</p>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-16">
+                        <div class="space-y-10">
+                            <div class="flex gap-5">
+                                <div class="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center shrink-0 border border-white/10 shadow-inner"><i class="ph-fill ph-detective text-3xl text-vip-gold"></i></div>
+                                <div>
+                                    <h4 class="text-2xl font-bold mb-2 text-white">Глухой Стелс</h4>
+                                    <p class="text-gray-400 font-medium">Анкета полностью удаляется из алгоритма выдачи. VIP становится призраком, которого никто не видит, пока он сам не проявит инициативу.</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex gap-5">
+                                <div class="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center shrink-0 border border-white/10 shadow-inner"><i class="ph-fill ph-key text-3xl text-vip-gold"></i></div>
+                                <div>
+                                    <h4 class="text-2xl font-bold mb-2 text-white">Золотой Ключ</h4>
+                                    <p class="text-gray-400 font-medium">На карточках появляется кнопка выкупа юзернейма. VIP платит огромную сумму Stars (~$20) — бот мгновенно выдает контакт ТГ в обход всех чатов и мэтчей.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Golden Key UI Mockup -->
+                        <div class="flex justify-center items-center">
+                            <div class="bg-black/40 border border-white/10 p-5 rounded-[2.5rem] w-full max-w-sm backdrop-blur-md relative overflow-hidden shadow-2xl">
+                                <div class="absolute inset-0 bg-gradient-to-br from-vip-gold/10 to-transparent opacity-50"></div>
+                                <div class="relative rounded-3xl overflow-hidden aspect-[4/5] bg-cover bg-center border border-white/5 shadow-2xl" style="background-image: url('https://placehold.co/400x500/1a1a1a/666?text=[Image]')">
+                                    <div class="absolute bottom-0 w-full p-6 bg-gradient-to-t from-black via-black/80 to-transparent">
+                                        <div class="flex justify-between items-end">
+                                            <div>
+                                                <h3 class="text-white font-bold text-2xl drop-shadow-md">Вика, 20</h3>
+                                                <p class="text-gray-300 text-sm mt-1 font-medium">Москва</p>
+                                            </div>
+                                            <button class="bg-gradient-vip text-black font-black py-3 px-5 rounded-2xl flex items-center gap-2 shadow-[0_0_20px_rgba(255,215,0,0.4)] transform hover:scale-105 transition-all">
+                                                <i class="ph-fill ph-key text-xl"></i> 1000 ⭐️
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p class="text-center text-[10px] text-gray-500 mt-5 uppercase tracking-[0.2em] font-bold">Stealth Mode Active</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 7: 18+ SECRET ROOM -->
+        <section id="secret-room" class="mb-24 scroll-mt-10 relative z-10">
+            <h2 class="text-4xl font-black mb-8 flex items-center gap-4 text-red-700"><i class="ph-fill ph-fire text-red-600 drop-shadow-md"></i> 7. Секретная Комната (18+)</h2>
+            
+            <div class="bg-gradient-18 text-white p-8 md:p-12 rounded-[2.5rem] shadow-xl relative overflow-hidden border border-red-900">
+                <div class="absolute top-0 right-0 w-64 h-64 bg-red-600 rounded-full mix-blend-screen filter blur-[100px] opacity-30 animate-pulse"></div>
+                
+                <div class="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-10">
+                    <div>
+                        <h3 class="text-2xl font-bold mb-4 border-b border-red-800 pb-4">Изолированная Экосистема</h3>
+                        <ul class="space-y-4 text-red-100 font-medium">
+                            <li class="flex gap-3"><i class="ph-bold ph-lock-key text-red-400 text-2xl shrink-0"></i> <div><b>Вход:</b> Скрытый тумблер в настройках с чекбоксом "Мне есть 18". Тема Mini App меняется на бордовую.</div></li>
+                            <li class="flex gap-3"><i class="ph-bold ph-git-branch text-red-400 text-2xl shrink-0"></i> <div><b>Параллельная БД:</b> Ты видишь ТОЛЬКО тех, кто тоже нажал тумблер. Твоя анкета пропадает из обычной ленты.</div></li>
+                            <li class="flex gap-3"><i class="ph-bold ph-tag text-red-400 text-2xl shrink-0"></i> <div><b>Жесткие теги:</b> Отдельный пул админских тегов для этого режима (FWB, Эксперименты и т.д.).</div></li>
+                            <li class="flex gap-3"><i class="ph-bold ph-shield-warning text-red-400 text-2xl shrink-0"></i> <div><b>Принудительная Приватность:</b> В чатах 18+ отправка обычных фото на уровне кода заблокирована. ВСЁ отправляется как "исчезающее" (режим бомбочки).</div></li>
+                        </ul>
+                    </div>
+                    
+                    <!-- 18+ Chat Mockup -->
+                    <div class="flex items-center justify-center">
+                        <div class="w-full max-w-xs bg-[#0a0000] rounded-3xl border-4 border-red-900 p-4 shadow-2xl relative">
+                            <div class="text-center text-xs text-red-500 font-bold mb-4 uppercase tracking-widest border-b border-red-900 pb-2">Secret Chat</div>
+                            
+                            <div class="space-y-4 mb-4 font-medium">
+                                <div class="bg-red-950/50 text-red-100 text-sm p-3 rounded-2xl rounded-tl-none self-start max-w-[80%] border border-red-900">Привет 🔥</div>
+                                <div class="bg-brand-fuchsia/20 text-white text-sm p-3 rounded-2xl rounded-tr-none ml-auto max-w-[80%] border border-brand-fuchsia/30">Привет. Сразу к делу?</div>
+                                
+                                <!-- Disappearing message mockup -->
+                                <div class="bg-red-950/40 border border-red-500/50 p-2 rounded-2xl rounded-tl-none self-start max-w-[60%] flex items-center gap-2 cursor-pointer hover:bg-red-900/50 transition-colors">
+                                    <div class="w-10 h-10 bg-red-950 rounded-xl flex items-center justify-center relative overflow-hidden border border-red-800">
+                                        <i class="ph-fill ph-fire text-red-500 text-xl drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]"></i>
+                                        <div class="absolute inset-0 backdrop-blur-[2px]"></div>
+                                    </div>
+                                    <div class="text-[10px] text-red-300 font-bold uppercase tracking-wider leading-tight">Фото <br> (1 просмотр)</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Input -->
+                            <div class="bg-gray-900 rounded-full p-2 flex items-center gap-2 border border-red-900/50">
+                                <div class="w-8 h-8 rounded-full bg-red-600/20 text-red-500 flex items-center justify-center shrink-0"><i class="ph-fill ph-fire"></i></div>
+                                <div class="text-gray-600 text-xs font-medium">Сообщение...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 8: GOD MODE ADMIN -->
+        <section id="admin" class="mb-24 scroll-mt-10 relative z-10">
+            <h2 class="text-4xl font-black mb-8 flex items-center gap-4"><i class="ph-fill ph-terminal-window text-gray-800 drop-shadow-md"></i> 8. God Mode (Админка в ТГ)</h2>
+            <p class="text-lg text-gray-600 mb-10 max-w-3xl font-medium">Управление матрицей прямо из чата с ботом. Никаких веб-панелей. Все команды работают на лету.</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Chat Mockup 1: User Management -->
+                <div class="bg-white p-8 rounded-[2rem] border border-gray-200 shadow-xl">
+                    <div class="text-xs font-mono font-bold text-gray-400 mb-4 uppercase tracking-wider">Отправь боту: /user 1234567</div>
+                    
+                    <div class="bg-blue-50/50 rounded-2xl border border-blue-100 overflow-hidden">
+                        <div class="p-5 border-b border-blue-100/50 bg-white">
+                            <h4 class="font-bold text-lg flex items-center gap-2">👤 @sexy_girl99 (Аня, 22)</h4>
+                            <p class="text-xs text-gray-500 mt-1 font-medium">ID: 1234567 | База: Free | Репорты: 1</p>
+                        </div>
+                        <div class="p-4 grid grid-cols-2 gap-3 text-sm font-bold">
+                            <button class="bg-white border border-gray-200 py-3 rounded-xl shadow-sm text-gray-700 hover:border-brand-fuchsia hover:text-brand-fuchsia transition-colors">💎 Выдать Купидон</button>
+                            <button class="bg-white border border-gray-200 py-3 rounded-xl shadow-sm text-gray-700 hover:border-amber-400 hover:text-amber-500 transition-colors">🌟 +Stars / Буст</button>
+                            <button class="bg-white border border-gray-200 py-3 rounded-xl shadow-sm text-red-600 hover:border-red-500 hover:bg-red-50 transition-colors">🔞 18+ (Вкл/Выкл)</button>
+                            <button class="bg-gray-900 border border-gray-900 py-3 rounded-xl shadow-sm text-white hover:bg-black transition-colors">👻 Теневой Бан</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chat Mockup 2: Economy & Tags -->
+                <div class="bg-white p-8 rounded-[2rem] border border-gray-200 shadow-xl flex flex-col justify-center">
+                    <h4 class="font-bold text-xl mb-6"><i class="ph-fill ph-magic-wand text-purple-500"></i> Создание Бейджей на лету</h4>
+                    <p class="text-gray-500 text-sm mb-4 font-medium">Пишешь боту команду <code>/tags</code> и параметры. Хеш моментально появляется в Mini App у всех юзеров.</p>
+                    
+                    <div class="space-y-3">
+                        <div class="bg-gray-100 p-3 rounded-xl text-xs font-mono text-gray-600 border border-gray-200">Формат: Название | HEX | Эмодзи</div>
+                        <div class="bg-purple-50 border border-purple-100 p-4 rounded-xl text-sm font-medium text-purple-900 flex items-center gap-3">
+                            <i class="ph-fill ph-paper-plane-right text-purple-400 text-xl"></i>
+                            <div>Люблю Аниме | #FF0000 | 🎌</div>
+                        </div>
+                        <div class="text-sm text-green-600 font-bold flex items-center gap-2 mt-2 ml-2"><i class="ph-bold ph-check-circle"></i> Успешно добавлено в БД!</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 9: DATABASE ARCHITECTURE -->
+        <section id="database" class="mb-24 scroll-mt-10 relative z-10">
+            <h2 class="text-4xl font-black mb-8 flex items-center gap-4"><i class="ph-fill ph-database text-gray-400 drop-shadow-md"></i> 9. Архитектура БД (Схема)</h2>
+            <p class="text-gray-600 text-lg mb-6 font-medium">Скопируй этот блок для ИИ или бэкендера при проектировании PostgreSQL.</p>
+            
+            <div class="bg-[#0F0F13] text-green-400 p-8 rounded-[2rem] font-mono text-sm shadow-2xl overflow-x-auto border border-gray-800">
+<pre class="leading-relaxed"><code><span class="text-gray-500">-- Структура ядра (PostgreSQL + SQLAlchemy)</span>
+
+<span class="text-blue-400 font-bold">TABLE</span> Users {
+  id <span class="text-purple-400">UUID PRIMARY KEY</span>
+  tg_id <span class="text-purple-400">BIGINT UNIQUE</span>
+  name <span class="text-purple-400">VARCHAR</span>
+  gender <span class="text-purple-400">ENUM('male', 'female')</span>
+  search_gender <span class="text-purple-400">ENUM('male', 'female', 'any')</span>
+  tier <span class="text-purple-400">ENUM('free', 'premium', 'kupidon')</span> <span class="text-amber-300">DEFAULT 'free'</span>
+  swipes_left <span class="text-purple-400">INT</span> <span class="text-amber-300">DEFAULT 50</span>
+  force_chats_used <span class="text-purple-400">INT</span> <span class="text-amber-300">DEFAULT 0</span> <span class="text-gray-500">-- Лимит мгновенных чатов (3 для Premium, 15 для Kupidon)</span>
+  stars_balance <span class="text-purple-400">INT</span> <span class="text-amber-300">DEFAULT 0</span>
+  
+  <span class="text-gray-500">-- Флаги безопасности и режимов</span>
+  is_18_mode_active <span class="text-purple-400">BOOLEAN</span> <span class="text-amber-300">DEFAULT false</span>
+  is_stealth_mode <span class="text-purple-400">BOOLEAN</span> <span class="text-amber-300">DEFAULT false</span> <span class="text-gray-500">-- Для Олигархов</span>
+  is_shadowbanned <span class="text-purple-400">BOOLEAN</span> <span class="text-amber-300">DEFAULT false</span>
+}
+
+<span class="text-blue-400 font-bold">TABLE</span> Matches {
+  id <span class="text-purple-400">UUID PRIMARY KEY</span>
+  user1_id <span class="text-purple-400">UUID FK(Users)</span>
+  user2_id <span class="text-purple-400">UUID FK(Users)</span>
+  is_force_chat <span class="text-purple-400">BOOLEAN</span> <span class="text-gray-500">-- Если создан кнопкой "Начать чат" из Симпатий</span>
+  tg_unlocked_user1 <span class="text-purple-400">BOOLEAN</span> <span class="text-gray-500">-- Дал согласие на ТГ</span>
+  tg_unlocked_user2 <span class="text-purple-400">BOOLEAN</span> <span class="text-gray-500">-- Дал согласие на ТГ</span>
+  messages_count <span class="text-purple-400">INT</span> <span class="text-amber-300">DEFAULT 0</span> <span class="text-gray-500">-- Таймер до авто-анлока ТГ</span>
+}
+
+<span class="text-blue-400 font-bold">TABLE</span> Media_Slots {
+  id <span class="text-purple-400">UUID PRIMARY KEY</span>
+  user_id <span class="text-purple-400">UUID FK(Users)</span>
+  media_url <span class="text-purple-400">VARCHAR</span>
+  media_type <span class="text-purple-400">ENUM('photo', 'video')</span> <span class="text-gray-500">-- Видео занимает 3 слота в UI</span>
+  slot_index <span class="text-purple-400">INT (1-5)</span>
+}</code></pre>
+            </div>
+        </section>
+        
+        <footer class="text-center py-12 border-t border-gray-200 mt-20 relative z-10">
+            <p class="text-gray-400 font-bold tracking-widest uppercase text-sm">CupidBot Master-Plan  &copy; 2026</p>
+            <p class="text-xs text-gray-400 mt-2 font-medium">Engineered by AI Architect</p>
+        </footer>
+    </main>
+
+    <script>
+        // Подсветка активного пункта меню при скролле
+        const sections = document.querySelectorAll("section");
+        const navLinks = document.querySelectorAll("nav a");
+
+        window.addEventListener("scroll", () => {
+            let current = "";
+            sections.forEach((section) => {
+                const sectionTop = section.offsetTop;
+                if (scrollY >= sectionTop - 150) {
+                    current = section.getAttribute("id");
+                }
+            });
+
+            navLinks.forEach((link) => {
+                link.classList.remove("text-brand-fuchsia", "bg-fuchsia-50");
+                if (link.getAttribute("href").includes(current) && current !== "") {
+                    if(current !== 'secret-room' && current !== 'oligarch') {
+                        link.classList.add("text-brand-fuchsia", "bg-fuchsia-50");
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
