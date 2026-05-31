@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Boolean, Integer, PrimaryKeyConstraint, Sequence, String
+from sqlalchemy import Boolean, ForeignKey, Integer, PrimaryKeyConstraint, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 
@@ -23,8 +23,8 @@ class UserTag(Base):
     __tablename__ = "user_tags"
     __table_args__ = (PrimaryKeyConstraint("user_id", "tag_id"),)
 
-    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
-    tag_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    tag_id: Mapped[int] = mapped_column(ForeignKey("admin_tags.id", ondelete="CASCADE"), nullable=False)
 
     user: Mapped["User"] = relationship("User", back_populates="user_tags")
     tag: Mapped[AdminTag] = relationship("AdminTag", back_populates="user_tags")

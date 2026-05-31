@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import Boolean, DateTime, Enum, String, Text, func
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 import enum
@@ -20,7 +20,7 @@ class Message(Base):
     __tablename__ = "messages"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    match_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
+    match_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("matches.id", ondelete="CASCADE"), nullable=False, index=True)
     sender_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     content: Mapped[str | None] = mapped_column(Text)
     media_url: Mapped[str | None] = mapped_column(String(500))
