@@ -168,6 +168,9 @@ export function Chats({ palette, accent = '#FF00FF', dark = false, onOpenChat, a
                   </div>
                   <div className="text-[13px] font-medium text-[#9ca3af] truncate mt-0.5">{c.last}</div>
                 </div>
+                {c.unread > 0 && (
+                  <span className="shrink-0 min-w-[20px] h-5 px-1.5 rounded-full flex items-center justify-center text-[11px] font-black text-white" style={{ background: accent }}>{c.unread > 99 ? '99+' : c.unread}</span>
+                )}
               </button>
             ))}
           </div>
@@ -188,9 +191,12 @@ export function Dialog({ chatId, me, plan, theme, accent: accentProp, onBack, se
   const [menuOpen, setMenuOpen] = useState(false)
   const [revealed, setRevealed] = useState({})
   const [sending, setSending] = useState(false)
+  const [typing, setTyping] = useState(false)
   const scrollRef = useRef(null)
   const wsRef = useRef(null)
   const fileRef = useRef(null)
+  const typingTimer = useRef(null)
+  const lastTypingSent = useRef(0)
 
   const adult = info?.is_18_room
   const accent = adult ? '#FF3333' : (accentProp || '#FF00FF')
@@ -202,9 +208,14 @@ export function Dialog({ chatId, me, plan, theme, accent: accentProp, onBack, se
     api.icebreakers().then(setIces).catch(() => {})
     api.markRead(chatId).catch(() => {})
     const ws = createChatWS(chatId, (data) => {
-      if (data.type === 'message_sent' && data.message?.sender_id !== me?.id) setMsgs((m) => [...m, data.message])
+      if (data.type === 'message_sent' && data.message?.sender_id !== me?.id) { setMsgs((m) => [...m, data.message]); setTyping(false) }
       else if (data.type === 'tg_consent_request' && data.from_id !== me?.id) setConsentFrom(data.from_id)
       else if (data.type === 'tg_consent_approved') { setToast('✈️ Контакты открыты'); api.chatInfo(chatId).then(setInfo) }
+      else if (data.type === 'typing' && data.user_id !== me?.id) {
+        setTyping(true)
+        clearTimeout(typingTimer.current)
+        typingTimer.current = setTimeout(() => setTyping(false), 2500)
+      }
       else if (data.type === 'poll') setMsgs(data.messages)
     })
     wsRef.current = ws
@@ -270,7 +281,8 @@ export function Dialog({ chatId, me, plan, theme, accent: accentProp, onBack, se
               <span className="text-[15px] font-bold" style={{ color: adult ? '#fff' : '#0F0F13' }}>{info?.name || 'Чат'}</span>
               {info?.verified && <VerifiedTick size={14} />}
             </div>
-            {info?.online && <span className="text-[11px] font-semibold text-[#10B981]">в сети</span>}
+            {typing ? <span className="text-[11px] font-semibold" style={{ color: accent }}>печатает…</span>
+              : info?.online && <span className="text-[11px] font-semibold text-[#10B981]">в сети</span>}
           </div>
           <button onClick={() => setMenuOpen((v) => !v)} className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"><i className="ph-bold ph-dots-three-vertical text-[20px]" style={{ color: adult ? '#fff' : '#9ca3af' }} /></button>
           <div className="flex flex-col items-center shrink-0">
@@ -359,7 +371,7 @@ export function Dialog({ chatId, me, plan, theme, accent: accentProp, onBack, se
           <i className={'ph-fill ' + (sending ? 'ph-spinner animate-spin' : (adult ? 'ph-fire' : 'ph-paperclip')) + ' text-[18px]'} style={{ color: adult ? '#FF3333' : '#6b7280' }} />
         </button>
         <input ref={fileRef} type="file" accept="image/*,video/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) sendMedia(f); e.target.value = '' }} />
-        <input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && send()} placeholder="Сообщение…"
+        <input value={text} onChange={(e) => { setText(e.target.value); const now = Date.now(); if (now - lastTypingSent.current > 1800) { lastTypingSent.current = now; wsRef.current?.send?.({ type: 'typing' }) } }} onKeyDown={(e) => e.key === 'Enter' && send()} placeholder="Сообщение…"
           className="flex-1 h-11 rounded-full px-4 text-[14px] font-medium outline-none" style={{ background: adult ? '#2a1010' : '#fff', color: adult ? '#fff' : '#0F0F13', border: adult ? '1px solid #4A0000' : '1px solid #e5e7eb' }} />
         <button onClick={() => send()} className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 active:scale-90 transition" style={{ background: adult ? 'linear-gradient(135deg,#FF3333,#FF00FF)' : 'linear-gradient(135deg,#FF00FF,#FF66CC)' }}>
           <i className="ph-fill ph-paper-plane-right text-[18px] text-white" />

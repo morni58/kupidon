@@ -56,6 +56,19 @@ export default function App() {
     boot()
   }, [])
 
+  // Native Telegram Back button on sub-screens (UX20).
+  useEffect(() => {
+    const bb = tg?.BackButton
+    if (!bb) return
+    const backMap = { dialog: 'chats', edit: 'profile', verify: 'profile', pricing: 'profile' }
+    const target = backMap[s.screen]
+    const handler = () => { if (target) s.setScreen(target) }
+    try {
+      if (target) { bb.onClick?.(handler); bb.show?.() } else { bb.hide?.() }
+    } catch {}
+    return () => { try { bb.offClick?.(handler) } catch {} }
+  }, [s.screen])
+
   const theme = s.theme()
   const palette = s.palette()
   const accent = s.accent()

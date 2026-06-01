@@ -5,6 +5,7 @@ from typing import List
 import uuid
 
 from app.core.deps import get_db, get_current_user
+from app.core.ratelimit import rate_limiter
 from app.core.media import save_upload, to_public_url
 from app.models.user import User
 from app.models.match import Match
@@ -59,11 +60,22 @@ async def list_chats(
             select(Message).where(Message.match_id == m.id).order_by(Message.created_at.desc()).limit(1)
         )
         last = last_r.scalar_one_or_none()
-        unread_r = await db.execute(
-            select(func.count(Message.id)).where(
-                Message.match_id == m.id, Message.sender_id == partner_id
-            )
+
+        # Unread = partner messages newer than my last "read" marker (UX11).
+        from app.core.redis import get_redis
+        redis = await get_redis()
+        last_read_raw = await redis.get(f"lastread:{m.id}:{me.id}")
+        unread_q = select(func.count(Message.id)).where(
+            Message.match_id == m.id, Message.sender_id == partner_id
         )
+        if last_read_raw:
+            from datetime import datetime as _dt
+            try:
+                unread_q = unread_q.where(Message.created_at > _dt.fromisoformat(last_read_raw))
+            except ValueError:
+                pass
+        unread = (await db.execute(unread_q)).scalar_one()
+
         # tg unlocked state for me
         tg_unlocked = (m.tg_unlocked_user1 and m.tg_unlocked_user2)
 
@@ -82,7 +94,7 @@ async def list_chats(
             "tg_unlocked": tg_unlocked,
             "last": last.content if last and last.content else ("🔥 Фото" if last and last.is_disappearing else "Начните общение"),
             "last_at": last.created_at.isoformat() if last else m.created_at.isoformat(),
-            "unread": 0,  # client-side tracked; kept for shape
+            "unread": int(unread),
         })
     return out
 
@@ -177,7 +189,7 @@ async def send_message(
     match_id: uuid.UUID,
     body: SendMessageRequest,
     db: AsyncSession = Depends(get_db),
-    me: User = Depends(get_current_user),
+    me: User = Depends(rate_limiter("msg", limit=30, window=10)),
 ):
     from app.services.moderation import moderate_text
 
@@ -373,6 +385,10 @@ async def mark_read(
 ):
     """Mark messages as read and broadcast read receipt."""
     await _check_match_access(db, match_id, me)
+    from datetime import datetime, timezone
+    from app.core.redis import get_redis
+    redis = await get_redis()
+    await redis.set(f"lastread:{match_id}:{me.id}", datetime.now(timezone.utc).isoformat())
     from app.ws.manager import ws_manager
     import asyncio
     asyncio.create_task(ws_manager.broadcast(str(match_id), {

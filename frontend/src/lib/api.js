@@ -6,12 +6,21 @@ function authHeader() {
   return t ? { Authorization: `Bearer ${t}` } : {}
 }
 
-async function req(path, { method = 'GET', body, raw } = {}) {
+async function req(path, { method = 'GET', body, raw, timeout = 20000 } = {}) {
   const headers = { ...authHeader() }
   let payload
   if (raw) { payload = raw }
   else if (body !== undefined) { headers['Content-Type'] = 'application/json'; payload = JSON.stringify(body) }
-  const res = await fetch(BASE + path, { method, headers, body: payload })
+  const ctrl = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), timeout)
+  let res
+  try {
+    res = await fetch(BASE + path, { method, headers, body: payload, signal: ctrl.signal })
+  } catch (e) {
+    clearTimeout(timer)
+    throw Object.assign(new Error(e.name === 'AbortError' ? 'timeout' : 'network_error'), { status: 0, data: { detail: 'Сеть недоступна' } })
+  }
+  clearTimeout(timer)
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }))
     throw Object.assign(new Error(err.detail || 'request_failed'), { status: res.status, data: err })
