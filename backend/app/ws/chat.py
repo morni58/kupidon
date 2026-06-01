@@ -43,7 +43,7 @@ async def chat_ws(
         user.last_active_at = datetime.now(timezone.utc)
         await db.commit()
 
-    await ws_manager.connect(match_id, ws)
+    await ws_manager.connect(match_id, ws, user_id)
     try:
         while True:
             data = await ws.receive_text()
@@ -61,4 +61,6 @@ async def chat_ws(
                     "user_id": user_id,
                 })
     except WebSocketDisconnect:
-        ws_manager.disconnect(match_id, ws)
+        ws_manager.disconnect(match_id, ws, user_id)
+    except Exception:
+        ws_manager.disconnect(match_id, ws, user_id)

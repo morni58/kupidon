@@ -3,6 +3,7 @@ import { MeshBG, THEME_MESH, VIBES, VIBE_LIST, ScoreRing, Equalizer, Grain, hexA
 import { Photo, Button, Toggle, Pill, VerifiedTick, TabBar, Confetti } from '../design/ui'
 import { ageFromBirth, birthFromAge, gradPhoto, interestById } from '../design/data'
 import { api, haptic, openInvoice, mediaUrl } from '../lib/api'
+import { SkeletonProfile } from '../design/loaders'
 import { AgeDial, PhotoGrid } from './Onboarding'
 
 function Glass({ children, className = '', dark = false, style = {} }) {
@@ -56,7 +57,7 @@ export function Profile({ theme, palette: paletteProp, accent: accentProp, dark:
   const load = () => api.getMeFull().then(setFull).catch(() => {})
   useEffect(() => { load() }, [])
 
-  if (!full) return <div className="w-full h-full flex items-center justify-center" style={{ background: '#FAFAFC' }}><div className="w-12 h-12 rounded-2xl bg-black/5 animate-pulse" /></div>
+  if (!full) return <SkeletonProfile dark={darkProp} />
 
   const dark = darkProp != null ? darkProp : (theme === 'oligarch' || theme === 'adult')
   const vibe = VIBES[prefs.vibe] || VIBES.neon
@@ -373,7 +374,7 @@ export function ProfileEdit({ onBack, onSaved, setToast }) {
     setBusy(false)
   }
 
-  if (!loaded) return <div className="w-full h-full flex items-center justify-center" style={{ background: '#FAFAFC' }}><div className="w-12 h-12 rounded-2xl bg-black/5 animate-pulse" /></div>
+  if (!loaded) return <SkeletonProfile dark={darkProp} />
 
   const Section = ({ title, children }) => (
     <div className="mb-5"><h3 className="text-[14px] font-black text-[#0F0F13] mb-2.5">{title}</h3>{children}</div>

@@ -3,6 +3,7 @@ import { useStore } from './lib/store'
 import { api, tg } from './lib/api'
 import { registerTags } from './design/data'
 import { Toast } from './design/ui'
+import { BootLoader } from './design/loaders'
 import { Onboarding } from './screens/Onboarding'
 import { Feed } from './screens/Feed'
 import { Likes, Chats, Dialog } from './screens/Social'
@@ -101,9 +102,7 @@ export default function App() {
   let view = null
   switch (s.screen) {
     case 'loading':
-      view = <div className="w-full h-full flex items-center justify-center" style={{ background: '#FAFAFC' }}>
-        <div className="text-[44px] floaty">💕</div>
-      </div>; break
+      view = <BootLoader palette={palette} />; break
     case 'error':
       view = <div className="w-full h-full flex flex-col items-center justify-center text-center px-8" style={{ background: '#FAFAFC' }}>
         <div className="text-[64px]">💔</div>

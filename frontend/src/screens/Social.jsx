@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { MeshBG, VIBES } from '../design/fx'
 import { Photo, Button, TabBar, VerifiedTick } from '../design/ui'
 import { gradPhoto } from '../design/data'
+import { SkeletonRows } from '../design/loaders'
 import { api, createChatWS, haptic, mediaUrl, openInvoice } from '../lib/api'
 
 const pic = (urlOrNull, seedName = '?', emoji = '🙂') => urlOrNull ? { url: mediaUrl(urlOrNull) } : gradPhoto(seedName.charCodeAt(0), emoji)
@@ -69,7 +70,7 @@ export function Likes({ plan, me, palette, accent = '#FF00FF', dark = false, onO
       <div className="relative z-10 h-full overflow-y-auto noscroll" style={{ paddingBottom: 'calc(64px + env(safe-area-inset-bottom) + 16px)' }}>
         <ScreenHead title="Симпатии ❤️" sub="Они лайкнули тебя" dark={dark} />
         <div className="screen-pad space-y-3 pt-2">
-          {loading && <div className="h-32 flex items-center justify-center"><div className="w-12 h-12 rounded-2xl bg-black/5 animate-pulse" /></div>}
+          {loading && <SkeletonRows count={5} dark={dark} />}
           {!loading && items.length === 0 && (
             <div className="text-center py-16">
               <div className="text-[56px]">💔</div>
@@ -154,7 +155,9 @@ export function Chats({ palette, accent = '#FF00FF', dark = false, onOpenChat, a
       <MeshBG palette={palette || VIBES.neon} grainOpacity={0.05} />
       <div className="relative z-10 h-full overflow-y-auto noscroll" style={{ paddingBottom: 'calc(64px + env(safe-area-inset-bottom) + 16px)' }}>
         <ScreenHead title="Чаты 💬" sub="Твои совпадения" dark={dark} />
-        {!loading && chats.length === 0 ? (
+        {loading ? (
+          <div className="screen-pad pt-2"><SkeletonRows count={6} dark={dark} /></div>
+        ) : chats.length === 0 ? (
           <div className="h-[60vh] flex flex-col items-center justify-center text-center px-8">
             <div className="text-[64px]">💬</div>
             <h2 className="text-[20px] font-black mt-2" style={{ color: dark ? '#fff' : '#0F0F13' }}>Нет чатов</h2>

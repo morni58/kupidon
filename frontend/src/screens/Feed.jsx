@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { MeshBG, THEME_MESH, VIBES, hexA, Grain } from '../design/fx'
 import { Photo, Pill, Badge, Button, Sheet, TabBar, Avatar, Confetti } from '../design/ui'
 import { apiCardToPerson, gradPhoto } from '../design/data'
+import { SkeletonFeed } from '../design/loaders'
 import { api, haptic } from '../lib/api'
 
 const INTENTS = [{ label: 'Без обязательств', emoji: '🎲' }, { label: 'Один вечер', emoji: '🌙' }]
@@ -311,7 +312,7 @@ export function Feed({ theme, palette, accent: accentProp, dark, plan, me, refre
 
         <div className="flex-1 min-h-0 screen-pad relative" style={{ paddingBottom: 8 }}>
           {loading ? (
-            <div className="h-full flex items-center justify-center"><div className="w-16 h-16 rounded-2xl bg-black/5 animate-pulse" /></div>
+            <SkeletonFeed dark={dark} />
           ) : ended ? (
             <div className="h-full flex flex-col items-center justify-center text-center px-6">
               <div className="text-[72px] floaty">🌎</div>

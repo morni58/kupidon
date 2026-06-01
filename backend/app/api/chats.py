@@ -249,7 +249,9 @@ async def send_message(
     partner_id = match.user2_id if match.user1_id == me.id else match.user1_id
     partner_r = await db.execute(select(User).where(User.id == partner_id))
     partner = partner_r.scalar_one_or_none()
-    if partner:
+    # Don't push if the partner is already looking at this chat (live WS), and
+    # throttle to at most once per minute per chat otherwise (U-NOTIF).
+    if partner and not ws_manager.is_present(str(match_id), str(partner_id)):
         from app.core.redis import get_redis
         from app.services import notifications as notif
         redis = await get_redis()

@@ -59,6 +59,36 @@ img { max-width: 100%; display: block; }
 .anim-pop { animation: popIn .4s cubic-bezier(.34,1.56,.64,1); }
 .floaty { animation: floaty 3s ease-in-out infinite; }
 
+/* ─── Loading system: shimmer, heartbeat, orbit, sweep ─── */
+@keyframes shimmer { 0% { background-position: -160% 0; } 100% { background-position: 160% 0; } }
+.shimmer {
+  background: linear-gradient(100deg, rgba(255,255,255,0) 30%, rgba(255,255,255,0.55) 50%, rgba(255,255,255,0) 70%);
+  background-size: 200% 100%;
+  animation: shimmer 1.25s ease-in-out infinite;
+}
+.shimmer-dark {
+  background: linear-gradient(100deg, rgba(255,255,255,0) 30%, rgba(255,255,255,0.10) 50%, rgba(255,255,255,0) 70%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); }
+  14% { transform: scale(1.16); }
+  28% { transform: scale(1); }
+  42% { transform: scale(1.10); }
+  56% { transform: scale(1); }
+}
+.heartbeat { animation: heartbeat 1.4s ease-in-out infinite; }
+@keyframes heartGlow { 0%,100% { opacity: .45; transform: scale(1); } 50% { opacity: .9; transform: scale(1.25); } }
+.heart-glow { animation: heartGlow 1.4s ease-in-out infinite; }
+@keyframes orbit { from { transform: rotate(0deg) translateX(46px) rotate(0deg); } to { transform: rotate(360deg) translateX(46px) rotate(-360deg); } }
+@keyframes barSweep { 0% { transform: translateX(-100%); } 100% { transform: translateX(320%); } }
+.bar-sweep { animation: barSweep 1.1s cubic-bezier(.4,0,.2,1) infinite; }
+@keyframes fadeSwap { 0%,16% { opacity: 0; transform: translateY(6px); } 24%,86% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-6px); } }
+
+body.lite .shimmer, body.lite .shimmer-dark { animation-duration: 2.2s; }
+body.lite .heartbeat, body.lite .heart-glow { animation: none !important; }
+
 /* Perf / accessibility: kill expensive infinite background animations for users
    who prefer reduced motion or on low-end devices (PF1/PF2). */
 @media (prefers-reduced-motion: reduce) {
