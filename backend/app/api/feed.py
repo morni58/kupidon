@@ -4,6 +4,7 @@ from typing import List, Optional
 import json
 
 from app.core.deps import get_db, get_current_user
+from app.core.ratelimit import rate_limiter
 from app.core.redis import get_redis
 from app.core.media import to_public_url
 from app.models.user import User
@@ -122,7 +123,7 @@ async def feed(
 async def swipe(
     body: SwipeRequest,
     db: AsyncSession = Depends(get_db),
-    me: User = Depends(get_current_user),
+    me: User = Depends(rate_limiter("swipe", limit=60, window=10)),
 ):
     from fastapi import HTTPException
     from app.models.swipe import ActionTypeEnum
