@@ -153,7 +153,13 @@ export function Onboarding({ onDone, setToast }) {
     if (q.length < 2) { setCityResults([]); return }
     try { setCityResults(await api.geoSearch(q)) } catch {}
   }
-  async function pickCity(c) { try { await api.setCity(c.id) } catch {} setCity(c); setCitySearch(''); setCityResults([]) }
+  async function pickCity(c) {
+    try {
+      if (c.id) await api.setCity(c.id)
+      else await api.setPlace({ name: c.name, region: c.region, country: c.country || 'RU', lat: c.lat, lng: c.lng })
+    } catch {}
+    setCity(c); setCitySearch(''); setCityResults([])
+  }
   async function useGPS() {
     if (!navigator.geolocation) { setToast('GPS недоступен'); return }
     navigator.geolocation.getCurrentPosition(async (pos) => {

@@ -1,3 +1,8 @@
+import os
+# Disable the external geocoder in tests (deterministic, no network). Must be set
+# before app modules import app.services.geocode.
+os.environ.setdefault("GEOCODER_ENABLED", "0")
+
 import asyncio
 import pytest
 import pytest_asyncio
