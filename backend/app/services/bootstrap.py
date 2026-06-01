@@ -87,9 +87,10 @@ async def ensure_schema() -> None:
     try:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
-            # New column on an existing table — create_all won't add it.
+            # New columns on existing tables — create_all won't add them.
             if engine.dialect.name == "postgresql":
                 await conn.execute(text("ALTER TABLE admin_tags ADD COLUMN IF NOT EXISTS category VARCHAR(30)"))
+                await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN NOT NULL DEFAULT false"))
     except Exception as e:
         logger.warning("ensure_schema: %s", e)
 

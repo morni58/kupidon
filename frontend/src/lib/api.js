@@ -107,6 +107,10 @@ export const api = {
 
   // payments
   createInvoice: (product) => req(`/api/payments/create_invoice?product=${product}`, { method: 'POST' }),
+
+  // account
+  exportData: () => req('/api/account/export'),
+  deleteAccount: () => req('/api/account', { method: 'DELETE' }),
 }
 
 // WebSocket for chat with Long-Polling fallback

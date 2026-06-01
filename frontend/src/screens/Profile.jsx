@@ -32,11 +32,26 @@ function AnimNum({ value, className, style }) {
   return <span className={className} style={style}>{n}</span>
 }
 
-export function Profile({ theme, palette: paletteProp, accent: accentProp, dark: darkProp, plan, prefs, setPref, onVerify, onUpgrade, onMutate, onEdit, setToast, active, onTab, dots }) {
+export function Profile({ theme, palette: paletteProp, accent: accentProp, dark: darkProp, plan, prefs, setPref, onVerify, onUpgrade, onMutate, onEdit, onDeleted, setToast, active, onTab, dots }) {
   const [full, setFull] = useState(null)
   const [photoIdx, setPhotoIdx] = useState(0)
   const [scrollY, setScrollY] = useState(0)
+  const [confirmDel, setConfirmDel] = useState(false)
   const scrollRef = useRef(null)
+
+  async function exportData() {
+    try {
+      const data = await api.exportData()
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a'); a.href = url; a.download = 'cupidbot_data.json'; a.click()
+      URL.revokeObjectURL(url); setToast('📦 Данные выгружены')
+    } catch { setToast('Не удалось выгрузить') }
+  }
+  async function deleteAccount() {
+    try { await api.deleteAccount(); haptic('warning'); onDeleted?.() }
+    catch { setToast('Не удалось удалить') }
+  }
 
   const load = () => api.getMeFull().then(setFull).catch(() => {})
   useEffect(() => { load() }, [])
@@ -237,6 +252,27 @@ export function Profile({ theme, palette: paletteProp, accent: accentProp, dark:
               </div>
             </div>
           )}
+
+          {/* данные и приватность */}
+          <Glass dark={dark} className="p-4">
+            <div className="text-[14px] font-black mb-3" style={{ color: txt }}>Данные и приватность</div>
+            <button onClick={exportData} className="w-full flex items-center gap-2.5 py-2.5 text-[14px] font-semibold" style={{ color: txt }}>
+              <i className="ph-bold ph-download-simple" style={{ color: accent }} /> Скачать мои данные
+            </button>
+            {!confirmDel ? (
+              <button onClick={() => setConfirmDel(true)} className="w-full flex items-center gap-2.5 py-2.5 text-[14px] font-semibold text-[#EF4444]">
+                <i className="ph-bold ph-trash" /> Удалить аккаунт
+              </button>
+            ) : (
+              <div className="mt-1 rounded-2xl p-3" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)' }}>
+                <div className="text-[13px] font-semibold text-[#EF4444] mb-2">Точно удалить? Анкета и фото исчезнут, это необратимо.</div>
+                <div className="flex gap-2">
+                  <button onClick={() => setConfirmDel(false)} className="flex-1 h-10 rounded-xl bg-white border border-[#e5e7eb] text-[13px] font-bold text-[#6b7280]">Отмена</button>
+                  <button onClick={deleteAccount} className="flex-1 h-10 rounded-xl text-[13px] font-bold text-white" style={{ background: '#EF4444' }}>Удалить</button>
+                </div>
+              </div>
+            )}
+          </Glass>
         </div>
       </div>
       <TabBar active={active} onTab={onTab} accent={accent} dark={dark} dots={dots} />
