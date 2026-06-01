@@ -69,6 +69,7 @@ async def get_feed(
         .where(User.id != me.id)
         .where(User.is_shadowbanned == False)
         .where(User.is_banned == False)
+        .where(User.is_deleted == False)
         .where(User.is_stealth_mode == False)
         .where(User.is_18_mode_active == me.is_18_mode_active)
         # Only fully onboarded profiles can appear in the feed (C1).

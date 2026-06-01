@@ -119,7 +119,8 @@ export default function App() {
       view = <Dialog {...themeProps} chatId={s.activeChat} me={me} plan={plan} setToast={setToast} onBack={() => s.setScreen('chats')} />; break
     case 'profile':
       view = <Profile {...themeProps} plan={plan} prefs={prefs} setPref={s.setPref} setToast={setToast} dots={dots} active="profile" onTab={onTab}
-        onVerify={() => s.setScreen('verify')} onUpgrade={() => s.setScreen('pricing')} onMutate={refreshMe} onEdit={() => s.setScreen('edit')} />; break
+        onVerify={() => s.setScreen('verify')} onUpgrade={() => s.setScreen('pricing')} onMutate={refreshMe} onEdit={() => s.setScreen('edit')}
+        onDeleted={() => { s.logout(); s.setScreen('error') }} />; break
     case 'edit':
       view = <ProfileEdit setToast={setToast} onBack={() => s.setScreen('profile')} onSaved={async () => { await s.refreshMe(); s.setScreen('profile') }} />; break
     case 'verify':

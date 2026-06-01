@@ -62,6 +62,7 @@ class User(Base):
     is_anti_oligarch: Mapped[bool] = mapped_column(Boolean, default=False)
     is_shadowbanned: Mapped[bool] = mapped_column(Boolean, default=False)
     is_banned: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
     ban_reason: Mapped[str | None] = mapped_column(String(200))
 
     needs_review: Mapped[bool] = mapped_column(Boolean, default=False)

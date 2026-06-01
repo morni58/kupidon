@@ -31,6 +31,8 @@ async def get_current_user(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
     if user.is_banned:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account banned")
+    if getattr(user, "is_deleted", False):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Account deleted")
 
     # Keep last_active_at fresh on any authenticated request, throttled to once
     # every few minutes so we don't write on every call (L1).
