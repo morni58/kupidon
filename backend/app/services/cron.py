@@ -53,6 +53,33 @@ async def daily_reset():
         await db.commit()
 
 
+async def daily_engagement_push():
+    """Once a day, tell users how many people viewed their profile (U-NOTIF).
+    Only for recently-active users with a meaningful count — not spammy."""
+    from app.models.vip import ProfileView
+    from sqlalchemy import func
+    from app.services import notifications as notif
+
+    async with async_session_maker() as db:
+        day_ago = datetime.now(timezone.utc) - timedelta(hours=24)
+        week_ago = datetime.now(timezone.utc) - timedelta(days=7)
+        rows = await db.execute(
+            select(ProfileView.target_id, func.count(ProfileView.id))
+            .where(ProfileView.created_at >= day_ago)
+            .group_by(ProfileView.target_id)
+        )
+        counts = {tid: c for tid, c in rows.all()}
+        if not counts:
+            return
+        users_r = await db.execute(
+            select(User).where(User.id.in_(list(counts.keys())), User.last_active_at >= week_ago)
+        )
+        for user in users_r.scalars().all():
+            c = counts.get(user.id, 0)
+            if c >= 3:
+                await notif.notify_profile_views(user.tg_id, c)
+
+
 async def hourly_cleanup():
     """Clean burned messages and stale Redis feed caches."""
     async with async_session_maker() as db:
@@ -75,5 +102,7 @@ def start_scheduler():
     scheduler.add_job(daily_reset, CronTrigger(hour=21, minute=0, timezone="UTC"))
     # Hourly cleanup
     scheduler.add_job(hourly_cleanup, CronTrigger(minute=0))
+    # Daily engagement push at 18:00 UTC (21:00 MSK).
+    scheduler.add_job(daily_engagement_push, CronTrigger(hour=18, minute=0, timezone="UTC"))
     scheduler.start()
     return scheduler

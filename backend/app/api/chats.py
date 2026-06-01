@@ -222,6 +222,18 @@ async def send_message(
         "message": MessageOut.model_validate(msg).model_dump(mode="json"),
     }))
 
+    # Telegram push to the partner, throttled to once per minute per chat (UX/U-NOTIF).
+    partner_id = match.user2_id if match.user1_id == me.id else match.user1_id
+    partner_r = await db.execute(select(User).where(User.id == partner_id))
+    partner = partner_r.scalar_one_or_none()
+    if partner:
+        from app.core.redis import get_redis
+        from app.services import notifications as notif
+        redis = await get_redis()
+        throttle_key = f"msgpush:{match_id}:{partner_id}"
+        if await redis.set(throttle_key, "1", ex=60, nx=True):
+            asyncio.create_task(notif.notify_new_message(partner.tg_id, me.name))
+
     return msg
 
 

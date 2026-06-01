@@ -193,7 +193,8 @@ export function Dialog({ chatId, me, plan, theme, accent: accentProp, onBack, se
   const myCount = info?.my_messages || msgs.filter((m) => m.sender_id === me?.id).length
   const tgUnlocked = info?.tg_unlocked || plan.tgMsgs === 0 || myCount >= plan.tgMsgs
   const remainTg = Math.max(0, plan.tgMsgs - myCount)
-  const noMsgsYet = msgs.length === 0
+  // Icebreakers show until there's a real (text/media) message — system/consent don't count.
+  const noMsgsYet = !msgs.some((m) => m.msg_type === 'text' || m.msg_type === 'media' || (m.content && m.msg_type !== 'system' && m.msg_type !== 'consent'))
 
   async function send(t) {
     const v = (t || text).trim()
