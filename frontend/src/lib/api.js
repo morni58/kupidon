@@ -70,6 +70,7 @@ export const api = {
   geoResolve: (lat, lng) => req('/api/geo/resolve', { method: 'POST', body: { lat, lng } }),
   geoSearch: (q) => req(`/api/geo/search?q=${encodeURIComponent(q)}`),
   setCity: (cityId) => req(`/api/geo/set_city/${cityId}`, { method: 'POST' }),
+  setPlace: (place) => req('/api/geo/set_place', { method: 'POST', body: place }),
 
   // verify
   verifySelfie: () => req('/api/verify/selfie', { method: 'POST' }),
