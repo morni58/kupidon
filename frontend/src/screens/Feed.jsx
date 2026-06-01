@@ -178,7 +178,7 @@ function Paywall({ open, onClose, onUpgrade }) {
 
 const DIR_MAP = { like: 'right', nope: 'left', super: 'superlike' }
 
-export function Feed({ theme, plan, me, refreshMe, onMatch, onUpgrade, setToast, dots, active, onTab }) {
+export function Feed({ theme, palette, accent: accentProp, dark, plan, me, refreshMe, onMatch, onUpgrade, setToast, dots, active, onTab }) {
   const adult = theme === 'adult'
   const [deck, setDeck] = useState([])
   const [idx, setIdx] = useState(0)
@@ -192,7 +192,7 @@ export function Feed({ theme, plan, me, refreshMe, onMatch, onUpgrade, setToast,
   const [fling, setFling] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  const accent = adult ? '#FF3333' : theme === 'oligarch' ? '#FFD700' : '#FF00FF'
+  const accent = accentProp || (adult ? '#FF3333' : theme === 'oligarch' ? '#FFD700' : '#FF00FF')
 
   async function loadFeed() {
     setLoading(true)
@@ -254,18 +254,18 @@ export function Feed({ theme, plan, me, refreshMe, onMatch, onUpgrade, setToast,
 
   return (
     <div className="w-full h-full flex flex-col relative overflow-hidden">
-      <MeshBG palette={THEME_MESH[theme] || VIBES.neon} />
+      <MeshBG palette={palette || THEME_MESH[theme] || VIBES.neon} />
       <div className="relative z-10 w-full h-full flex flex-col">
         <div className="safe-top screen-pad shrink-0">
           <div className="flex items-center justify-between pt-1 pb-2">
-            <span className="text-[22px] font-black tracking-tight" style={{ color: accent, textShadow: theme === 'light' ? 'none' : `0 0 16px ${hexA(accent, 0.6)}` }}>CupidBot</span>
+            <span className="text-[22px] font-black tracking-tight" style={{ color: accent, textShadow: !dark ? 'none' : `0 0 16px ${hexA(accent, 0.6)}` }}>CupidBot</span>
             <button onClick={() => setOnlyVerified((v) => !v)} className="inline-flex items-center gap-1 rounded-full font-bold transition"
-              style={{ height: 30, padding: '0 11px', fontSize: 11.5, background: onlyVerified ? 'rgba(59,130,246,0.18)' : (theme === 'light' ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.08)'),
-                color: onlyVerified ? '#3B82F6' : (theme === 'light' ? '#6b7280' : '#bbb'), border: `1.5px solid ${onlyVerified ? '#3B82F6' : (theme === 'light' ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.12)')}`, backdropFilter: 'blur(8px)' }}>
+              style={{ height: 30, padding: '0 11px', fontSize: 11.5, background: onlyVerified ? 'rgba(59,130,246,0.18)' : (!dark ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.08)'),
+                color: onlyVerified ? '#3B82F6' : (!dark ? '#6b7280' : '#bbb'), border: `1.5px solid ${onlyVerified ? '#3B82F6' : (!dark ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.12)')}`, backdropFilter: 'blur(8px)' }}>
               <i className="ph-fill ph-seal-check" /> Только Verified
             </button>
           </div>
-          <div className="text-right -mt-1 mb-1"><span className="text-[12px] font-bold" style={{ color: theme === 'light' ? '#9ca3af' : 'rgba(255,255,255,0.6)' }}>{swipesLeft} свайпов</span></div>
+          <div className="text-right -mt-1 mb-1"><span className="text-[12px] font-bold" style={{ color: !dark ? '#9ca3af' : 'rgba(255,255,255,0.6)' }}>{swipesLeft} свайпов</span></div>
         </div>
 
         <div className="flex-1 min-h-0 screen-pad relative" style={{ paddingBottom: 8 }}>
@@ -274,8 +274,8 @@ export function Feed({ theme, plan, me, refreshMe, onMatch, onUpgrade, setToast,
           ) : ended ? (
             <div className="h-full flex flex-col items-center justify-center text-center px-6">
               <div className="text-[72px] floaty">🌎</div>
-              <h2 className="text-[24px] font-black mt-3" style={{ color: theme === 'light' ? '#0F0F13' : '#fff' }}>Анкеты закончились</h2>
-              <p className="mt-2 text-[15px] font-medium" style={{ color: theme === 'light' ? '#6b7280' : 'rgba(255,255,255,0.7)' }}>Возвращайся позже или расширь радиус поиска</p>
+              <h2 className="text-[24px] font-black mt-3" style={{ color: !dark ? '#0F0F13' : '#fff' }}>Анкеты закончились</h2>
+              <p className="mt-2 text-[15px] font-medium" style={{ color: !dark ? '#6b7280' : 'rgba(255,255,255,0.7)' }}>Возвращайся позже или расширь радиус поиска</p>
               <div className="mt-6 w-full"><Button onClick={loadFeed} style={adult ? { background: 'linear-gradient(135deg,#FF3333,#FF00FF)' } : theme === 'oligarch' ? { background: 'linear-gradient(135deg,#FFE259,#FFA751)', color: '#0F0F13' } : {}}>Обновить</Button></div>
             </div>
           ) : (
@@ -296,7 +296,7 @@ export function Feed({ theme, plan, me, refreshMe, onMatch, onUpgrade, setToast,
 
       <Paywall open={paywall} onClose={() => setPaywall(false)} onUpgrade={(p) => { setPaywall(false); onUpgrade(p) }} />
       {match && <MatchModal person={match} theme={theme} onWrite={() => { onMatch(match.matchId); setMatch(null) }} onContinue={() => setMatch(null)} />}
-      <TabBar active={active} onTab={onTab} accent={accent} dark={adult || theme === 'oligarch'} dots={dots} />
+      <TabBar active={active} onTab={onTab} accent={accent} dark={dark} dots={dots} />
     </div>
   )
 }
