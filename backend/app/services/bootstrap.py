@@ -91,6 +91,7 @@ async def ensure_schema() -> None:
             if engine.dialect.name == "postgresql":
                 await conn.execute(text("ALTER TABLE admin_tags ADD COLUMN IF NOT EXISTS category VARCHAR(30)"))
                 await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN NOT NULL DEFAULT false"))
+                await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS tier_until TIMESTAMPTZ"))
     except Exception as e:
         logger.warning("ensure_schema: %s", e)
 
