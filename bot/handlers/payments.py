@@ -44,24 +44,8 @@ async def process_successful_payment(message: Message):
     user_r = await db.execute(select(User).where(User.id == payment.user_id))
     user = user_r.scalar_one_or_none()
     if user:
-        product = payment.product
-        if product == "force_chat":
-            user.force_chats_used = max(0, user.force_chats_used - 1)
-        elif product == "boost":
-            user.superlikes_left += 3
-        elif product == "superlike":
-            user.superlikes_left += 1
-        elif product == "vip_signal":
-            user.vip_signals_used = max(0, user.vip_signals_used - 1)
-        elif product == "premium_month":
-            user.tier = TierEnum.premium
-            user.swipes_left = 200
-            user.superlikes_left = 5
-        elif product == "kupidon_month":
-            user.tier = TierEnum.kupidon
-            user.swipes_left = 500
-            user.superlikes_left = 5
-            user.is_oligarch_mode = True
+        from app.services.payments_apply import apply_payment_effect
+        await apply_payment_effect(user, payment.product, payment.stars)
 
     await db.commit()
     await db.close()

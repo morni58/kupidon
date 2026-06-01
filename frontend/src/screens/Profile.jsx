@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { MeshBG, THEME_MESH, VIBES, VIBE_LIST, ScoreRing, Equalizer, Grain, hexA } from '../design/fx'
 import { Photo, Button, Toggle, Pill, VerifiedTick, TabBar, Confetti } from '../design/ui'
 import { ageFromBirth, gradPhoto, interestById } from '../design/data'
-import { api, haptic, openInvoice } from '../lib/api'
+import { api, haptic, openInvoice, mediaUrl } from '../lib/api'
 
 function Glass({ children, className = '', dark = false, style = {} }) {
   return (
@@ -49,7 +49,7 @@ export function Profile({ theme, plan, prefs, setPref, onVerify, onUpgrade, onMu
   const palette = theme === 'light' ? vibe : THEME_MESH[theme]
   const verified = full.is_verified
   const age = ageFromBirth(full.birth_date)
-  const photos = (full.media && full.media.length ? full.media.map((url) => ({ url })) : [gradPhoto((full.name || '?').charCodeAt(0), '😎')])
+  const photos = (full.media && full.media.length ? full.media.map((url) => ({ url: mediaUrl(url) })) : [gradPhoto((full.name || '?').charCodeAt(0), '😎')])
 
   let score = full.profile_score || 0
   const txt = dark ? '#fff' : '#0F0F13'

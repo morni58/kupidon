@@ -13,28 +13,44 @@ export default function App() {
   const setToast = s.setToast
 
   useEffect(() => {
-    try { tg?.ready?.(); tg?.expand?.() } catch {}
+    try {
+      tg?.ready?.(); tg?.expand?.()
+      // Stop Telegram's vertical drag-to-close from fighting card swipes (U-SCROLL).
+      tg?.disableVerticalSwipes?.()
+    } catch {}
     // preload tag catalog so emoji/colors resolve everywhere
     api.getTags().then(registerTags).catch(() => {})
 
     async function boot() {
       const initData = tg?.initData
-      try {
-        if (initData) {
+      // Always (re)authenticate from Telegram when initData is present, so the
+      // same Telegram account maps to the same profile on every device — never
+      // a fresh account on desktop (U-AUTH).
+      if (initData) {
+        try {
           const res = await api.authTelegram(initData)
           s.setToken(res.access_token)
           if (res.is_new_user) { s.setScreen('onboarding'); return }
-        } else if (!s.token) {
-          // No Telegram context and no token — show onboarding shell (dev)
-          s.setScreen('onboarding'); return
+        } catch {
+          // initData present but auth failed — surface, don't fake-onboard.
+          setToast('Не удалось войти. Открой бота заново.')
+          s.setScreen('error'); return
         }
+      } else if (!s.token) {
+        // Opened outside Telegram with no session.
+        s.setScreen('error'); return
+      }
+
+      try {
         const me = await api.getMe()
         s.setActiveChat(null)
         useStore.setState({ me })
         if (!me.birth_date) s.setScreen('onboarding')
         else s.setScreen('feed')
       } catch {
-        s.setScreen('onboarding')
+        // Token invalid/expired: if we can re-auth via Telegram, onboarding,
+        // otherwise show error rather than a dead onboarding shell.
+        s.setScreen(initData ? 'onboarding' : 'error')
       }
     }
     boot()
@@ -53,6 +69,12 @@ export default function App() {
     case 'loading':
       view = <div className="w-full h-full flex items-center justify-center" style={{ background: '#FAFAFC' }}>
         <div className="text-[44px] floaty">💕</div>
+      </div>; break
+    case 'error':
+      view = <div className="w-full h-full flex flex-col items-center justify-center text-center px-8" style={{ background: '#FAFAFC' }}>
+        <div className="text-[64px]">💔</div>
+        <h2 className="text-[22px] font-black text-[#0F0F13] mt-3">Не удалось войти</h2>
+        <p className="text-[14px] text-[#6b7280] mt-2">Открой CupidBot через кнопку в Telegram-боте, чтобы войти в свой аккаунт.</p>
       </div>; break
     case 'onboarding':
       view = <Onboarding setToast={setToast} onDone={async () => { await s.refreshMe(); s.setScreen('feed') }} />; break

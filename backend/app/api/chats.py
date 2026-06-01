@@ -68,12 +68,13 @@ async def list_chats(
 
         last_active = partner.last_active_at.replace(tzinfo=timezone.utc) if partner.last_active_at else None
 
+        from app.core.media import to_public_url
         out.append({
             "id": str(m.id),
             "partner_id": str(partner_id),
             "name": partner.name,
             "verified": partner.is_verified,
-            "photo": photo,
+            "photo": to_public_url(photo),
             "online": bool(last_active and last_active >= online_cutoff),
             "is_18_room": m.is_18_room,
             "messages_count": m.messages_count,
@@ -112,20 +113,41 @@ async def chat_info(
 
     # messages I sent (for TG unlock counter)
     my_msgs_r = await db.execute(
-        select(func.count(Message.id)).where(Message.match_id == match_id, Message.sender_id == me.id)
+        select(func.count(Message.id)).where(
+            Message.match_id == match_id,
+            Message.sender_id == me.id,
+            Message.msg_type.in_([MsgTypeEnum.text, MsgTypeEnum.media]),
+        )
     )
     my_count = my_msgs_r.scalar_one()
 
+    # Single source of truth for the TG unlock state (L5):
+    # - mutual consent always unlocks
+    # - Kupidon unlocks instantly
+    # - otherwise unlock after a tier-based message threshold
+    from app.models.user import TierEnum
+    from app.services.economy import get_config_value
+    mutual = bool(match.tg_unlocked_user1 and match.tg_unlocked_user2)
+    if me.tier == TierEnum.kupidon:
+        threshold = 0
+    elif me.tier == TierEnum.premium:
+        threshold = int(await get_config_value(db, "tg_unlock_premium_msgs", "5"))
+    else:
+        threshold = int(await get_config_value(db, "tg_unlock_free_msgs", "15"))
+    tg_unlocked = mutual or my_count >= threshold
+
+    from app.core.media import to_public_url
     return {
         "id": str(match.id),
         "partner_id": str(partner_id),
         "name": partner.name,
         "verified": partner.is_verified,
-        "photo": photo,
+        "photo": to_public_url(photo),
         "online": bool(last_active and last_active >= online_cutoff),
         "is_18_room": match.is_18_room,
         "messages_count": match.messages_count,
-        "tg_unlocked": bool(match.tg_unlocked_user1 and match.tg_unlocked_user2),
+        "tg_unlocked": tg_unlocked,
+        "tg_threshold": threshold,
         "my_messages": my_count,
     }
 
@@ -162,14 +184,11 @@ async def send_message(
             raise HTTPException(status_code=422, detail="Message contains forbidden content")
 
     is_18_room = match.is_18_room
-    if is_18_room and content:
-        # In 18+ room block contacts/links in messages until TG unlocked
-        partner_tg_unlocked = (
-            (match.user1_id == me.id and not match.tg_unlocked_user2) or
-            (match.user2_id == me.id and not match.tg_unlocked_user1)
-        )
+    # Contacts stay blocked only until BOTH sides approved the TG exchange (C4).
+    tg_unlocked = bool(match.tg_unlocked_user1 and match.tg_unlocked_user2)
+    if is_18_room and content and not tg_unlocked:
         import re
-        if re.search(r"(@\w+|https?://|t\.me/|\+7[0-9]{10})", content or ""):
+        if re.search(r"(@\w+|https?://|t\.me/|\+?[78][0-9]{10})", content or ""):
             raise HTTPException(status_code=422, detail="Share contacts only after TG unlock")
 
     msg = Message(
@@ -181,15 +200,8 @@ async def send_message(
     )
     db.add(msg)
 
-    # Track unique senders for TG unlock counter
-    partner_id = match.user2_id if match.user1_id == me.id else match.user1_id
-    partner_msgs_r = await db.execute(
-        select(Message).where(
-            Message.match_id == match_id,
-            Message.sender_id == partner_id,
-        ).limit(1)
-    )
-    if partner_msgs_r.scalar_one_or_none():
+    # TG unlock counter: count every real (non-system) message (C3).
+    if body.msg_type in (MsgTypeEnum.text, MsgTypeEnum.media):
         match.messages_count += 1
 
     await db.commit()

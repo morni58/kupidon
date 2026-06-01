@@ -31,4 +31,15 @@ async def get_current_user(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
     if user.is_banned:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account banned")
+
+    # Keep last_active_at fresh on any authenticated request, throttled to once
+    # every few minutes so we don't write on every call (L1).
+    from datetime import datetime, timezone, timedelta
+    now = datetime.now(timezone.utc)
+    last = user.last_active_at
+    if last is not None and last.tzinfo is None:
+        last = last.replace(tzinfo=timezone.utc)
+    if last is None or (now - last) > timedelta(minutes=5):
+        user.last_active_at = now
+        await db.commit()
     return user

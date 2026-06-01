@@ -100,6 +100,9 @@ async def admin_action(call: CallbackQuery):
         user.superlikes_left = 5
         user.is_oligarch_mode = True
         msg = f"✅ {user.name} upgraded to Kupidon"
+    elif action == "stars":
+        user.stars_balance += 100
+        msg = f"🌟 +100 Stars → {user.name}"
     elif action == "verify":
         user.is_verified = not user.is_verified
         msg = f"{'✅ Verified' if user.is_verified else '❌ Unverified'}: {user.name}"

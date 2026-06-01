@@ -1,8 +1,10 @@
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
+from sqlalchemy.exc import IntegrityError
 
 from app.core.config import settings
 from app.core.redis import get_redis, close_redis
@@ -28,10 +30,28 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="CupidBot API", version="3.0.0", lifespan=lifespan)
 
+
+@app.exception_handler(IntegrityError)
+async def integrity_error_handler(request: Request, exc: IntegrityError):
+    """Turn race-condition DB conflicts into a clean 409 instead of 500 (C7/C10)."""
+    return JSONResponse(status_code=409, content={"detail": "conflict"})
+
+
+# CORS: allow configured frontends in prod, fall back to "*" in development.
+_origins_env = os.environ.get("CORS_ORIGINS", "").strip()
+if _origins_env:
+    _allow_origins = [o.strip() for o in _origins_env.split(",") if o.strip()]
+    _allow_credentials = True
+else:
+    # "*" cannot be combined with credentials per the CORS spec; the app uses
+    # Bearer tokens (not cookies), so credentials are not needed here (S2).
+    _allow_origins = ["*"]
+    _allow_credentials = False
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=_allow_origins,
+    allow_credentials=_allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )

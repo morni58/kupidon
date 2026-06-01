@@ -8,7 +8,7 @@ import uuid
 from sqlalchemy import select, func, text, not_, exists
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.user import User, TierEnum
+from app.models.user import User, TierEnum, SearchGenderEnum
 from app.models.swipe import Swipe, ActionTypeEnum
 from app.models.match import Match
 from app.models.tag import UserTag
@@ -70,17 +70,24 @@ async def get_feed(
         .where(User.is_banned == False)
         .where(User.is_stealth_mode == False)
         .where(User.is_18_mode_active == me.is_18_mode_active)
+        # Only fully onboarded profiles can appear in the feed (C1).
+        .where(User.birth_date.isnot(None))
+        .where(User.gender.isnot(None))
     )
 
-    if me.search_gender != "any":
+    if me.search_gender and me.search_gender != SearchGenderEnum.any:
         q = q.where(User.gender == me.search_gender)
 
     if verified_only:
         q = q.where(User.is_verified == True)
 
-    # Anti-oligarch: hide from oligarch if shield on
+    # Anti-oligarch shield works both ways (L2):
+    # - an oligarch never sees shielded users
+    # - a shielded user never sees oligarchs
     if me.is_oligarch_mode:
         q = q.where(User.is_anti_oligarch == False)
+    if me.is_anti_oligarch:
+        q = q.where(User.is_oligarch_mode == False)
 
     # Exclude already swiped
     swiped_sq = select(Swipe.target_id).where(Swipe.actor_id == me.id)
@@ -113,15 +120,12 @@ async def handle_swipe(
     action_type: str,
     vip_message: Optional[str] = None,
 ) -> dict:
-    # 1. Check limits
+    # 1. Check limits (only swipe/superlike caps gate the action itself; the VIP
+    #    cap is evaluated later, only when a VIP signal would actually be sent).
     if me.swipes_left <= 0:
         return {"error": "swipe_limit"}
     if action_type == "superlike" and me.superlikes_left <= 0:
         return {"error": "superlike_limit"}
-
-    vip_daily_cap = int(await get_config_value(db, "vip_daily_cap", "20"))
-    if me.is_oligarch_mode and me.vip_signals_used >= vip_daily_cap:
-        return {"error": "vip_cap"}
 
     # 2. Get target
     result = await db.execute(select(User).where(User.id == target_id))
@@ -133,15 +137,34 @@ async def handle_swipe(
     from app.services.moderation import moderate_text
     clean_vip_msg = moderate_text(vip_message) if vip_message else None
 
-    # Upsert swipe (idempotent via UNIQUE constraint)
-    swipe = Swipe(
-        actor_id=me.id,
-        target_id=target_id,
-        action_type=action_type,
-        is_vip_like=me.is_oligarch_mode,
-        vip_message=clean_vip_msg,
+    # Idempotent upsert: the UNIQUE(actor_id, target_id) constraint means a
+    # repeated swipe (double-tap, or after a rewind) must update, not insert,
+    # otherwise we get an IntegrityError -> 500 (C7).
+    existing_r = await db.execute(
+        select(Swipe).where(Swipe.actor_id == me.id, Swipe.target_id == target_id)
     )
-    db.add(swipe)
+    swipe = existing_r.scalar_one_or_none()
+    if swipe is not None:
+        # Already swiped this person. Only charge/proceed if the action changes
+        # to a like that could create a match; never double-charge limits.
+        already_like = swipe.action_type in (ActionTypeEnum.right, ActionTypeEnum.superlike, "right", "superlike")
+        swipe.action_type = action_type
+        if clean_vip_msg:
+            swipe.vip_message = clean_vip_msg
+        if already_like:
+            # Nothing new to charge; report current (no new match created here).
+            await db.commit()
+            return {"is_match": False, "match_id": None}
+    else:
+        swipe = Swipe(
+            actor_id=me.id,
+            target_id=target_id,
+            action_type=action_type,
+            is_vip_like=me.is_oligarch_mode,
+            vip_message=clean_vip_msg,
+        )
+        db.add(swipe)
+        await db.flush()  # ensure swipe.id is available for VIP notification
 
     me.swipes_left -= 1
     if action_type == "superlike":
@@ -151,11 +174,17 @@ async def handle_swipe(
     is_match = False
 
     if action_type in ("right", "superlike") and not me.is_shadowbanned:
-        # VIP signal for oligarch
+        # VIP signal for oligarch — within the daily cap, or via a paid ticket (C8).
         if me.is_oligarch_mode and not target.is_anti_oligarch:
-            me.vip_signals_used += 1
-            vip_notif = VIPNotification(target_id=target.id, swipe_id=swipe.id)
-            db.add(vip_notif)
+            vip_daily_cap = int(await get_config_value(db, "vip_daily_cap", "20"))
+            can_signal = me.vip_signals_used < vip_daily_cap
+            if not can_signal:
+                from app.services.tickets import consume_ticket
+                can_signal = await consume_ticket("vip_signal", me.id)
+            if can_signal:
+                me.vip_signals_used += 1
+                vip_notif = VIPNotification(target_id=target.id, swipe_id=swipe.id)
+                db.add(vip_notif)
 
         # Check mutual like
         mutual_result = await db.execute(
@@ -177,16 +206,16 @@ async def handle_swipe(
             db.add(match)
             await db.flush()  # get match.id
 
-            # Reveal VIP notification on mutual match
-            if me.is_oligarch_mode:
-                vip_r = await db.execute(
-                    select(VIPNotification).where(
-                        VIPNotification.swipe_id == swipe.id
-                    )
+            # Reveal the VIP notification on mutual match, regardless of which
+            # side completed it. The notification is linked to whichever like
+            # carried the VIP signal — this swipe or the mutual one.
+            vip_r = await db.execute(
+                select(VIPNotification).where(
+                    VIPNotification.swipe_id.in_([swipe.id, mutual.id])
                 )
-                vn = vip_r.scalar_one_or_none()
-                if vn:
-                    vn.is_revealed = True
+            )
+            for vn in vip_r.scalars().all():
+                vn.is_revealed = True
 
             match_id = match.id
             is_match = True
