@@ -1,10 +1,18 @@
 import os
+import logging
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
+from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
+
+logging.basicConfig(
+    level=os.environ.get("LOG_LEVEL", "INFO"),
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+)
+logger = logging.getLogger("cupidbot")
 
 from app.core.config import settings
 from app.core.redis import get_redis, close_redis
@@ -80,6 +88,28 @@ os.makedirs(MEDIA_ROOT, exist_ok=True)
 app.mount("/media", StaticFiles(directory=MEDIA_ROOT), name="media")
 
 
+from fastapi import Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.deps import get_db
+
+
 @app.get("/health")
-async def health():
-    return {"status": "ok", "version": "3.0.0"}
+async def health(db: AsyncSession = Depends(get_db)):
+    """Liveness + dependency check (DB + Redis)."""
+    db_ok = redis_ok = False
+    try:
+        await db.execute(text("SELECT 1"))
+        db_ok = True
+    except Exception as e:
+        logger.warning("health: db down: %s", e)
+    try:
+        r = await get_redis()
+        await r.ping()
+        redis_ok = True
+    except Exception as e:
+        logger.warning("health: redis down: %s", e)
+    status = "ok" if (db_ok and redis_ok) else "degraded"
+    code = 200 if status == "ok" else 503
+    return JSONResponse(status_code=code, content={
+        "status": status, "version": "3.0.0", "db": db_ok, "redis": redis_ok,
+    })

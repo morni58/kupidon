@@ -56,6 +56,19 @@ export default function App() {
     boot()
   }, [])
 
+  // Re-authenticate on token expiry (UX15): try Telegram initData again, else error.
+  useEffect(() => {
+    const onUnauth = async () => {
+      const initData = tg?.initData
+      if (initData) {
+        try { const res = await api.authTelegram(initData); s.setToken(res.access_token); return } catch {}
+      }
+      s.setScreen('error')
+    }
+    window.addEventListener('cupid-unauthorized', onUnauth)
+    return () => window.removeEventListener('cupid-unauthorized', onUnauth)
+  }, [])
+
   // Native Telegram Back button on sub-screens (UX20).
   useEffect(() => {
     const bb = tg?.BackButton

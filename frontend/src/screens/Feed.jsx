@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { MeshBG, THEME_MESH, VIBES, hexA, Grain } from '../design/fx'
 import { Photo, Pill, Badge, Button, Sheet, TabBar, Avatar, Confetti } from '../design/ui'
-import { apiCardToPerson } from '../design/data'
+import { apiCardToPerson, gradPhoto } from '../design/data'
 import { api, haptic } from '../lib/api'
 
 const INTENTS = [{ label: 'Без обязательств', emoji: '🎲' }, { label: 'Один вечер', emoji: '🌙' }]
@@ -127,14 +127,15 @@ function ActionBar({ theme, plan, superLeft, canRewind, onAction }) {
   )
 }
 
-function MatchModal({ person, theme, onWrite, onContinue }) {
+function MatchModal({ person, theme, me, onWrite, onContinue }) {
+  const myAvatar = (me?.media && me.media[0]) ? { url: me.media[0] } : gradPhoto((me?.name || '🙂').charCodeAt(0), '😍')
   return (
     <div className="absolute inset-0 z-50 flex flex-col items-center justify-center px-8 anim-pop overflow-hidden">
       <MeshBG palette={THEME_MESH[theme] || VIBES.berry} grainOpacity={0.12} />
       <div className="absolute inset-0" style={{ background: 'rgba(8,4,12,0.66)' }} />
       <Confetti />
       <div className="relative flex items-center justify-center mb-7" style={{ height: 124 }}>
-        <div className="floaty"><Avatar data={{ from: '#FF00FF', to: '#FF66CC', emoji: '😍' }} size={108} ring /></div>
+        <div className="floaty"><Avatar data={myAvatar} size={108} ring /></div>
         <div className="floaty" style={{ marginLeft: -30, animationDelay: '.6s' }}><Avatar data={person.photos[0]} size={108} ring /></div>
       </div>
       <div className="relative text-[48px] anim-pop">💕</div>
@@ -361,7 +362,7 @@ export function Feed({ theme, palette, accent: accentProp, dark, plan, me, refre
       </Sheet>
 
       <Paywall open={paywall} onClose={() => setPaywall(false)} onUpgrade={(p) => { setPaywall(false); onUpgrade(p) }} />
-      {match && <MatchModal person={match} theme={theme} onWrite={() => { onMatch(match.matchId); setMatch(null) }} onContinue={() => setMatch(null)} />}
+      {match && <MatchModal person={match} theme={theme} me={me} onWrite={() => { onMatch(match.matchId); setMatch(null) }} onContinue={() => setMatch(null)} />}
       <TabBar active={active} onTab={onTab} accent={accent} dark={dark} dots={dots} />
     </div>
   )

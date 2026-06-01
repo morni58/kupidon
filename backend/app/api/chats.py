@@ -168,15 +168,26 @@ async def chat_info(
 @router.get("/chats/{match_id}/messages", response_model=List[MessageOut])
 async def get_messages(
     match_id: uuid.UUID,
+    limit: int = 100,
+    before: str | None = None,
     db: AsyncSession = Depends(get_db),
     me: User = Depends(get_current_user),
 ):
     await _check_match_access(db, match_id, me)
-    result = await db.execute(
-        select(Message).where(Message.match_id == match_id).order_by(Message.created_at)
-    )
+    limit = max(1, min(limit, 200))
+    q = select(Message).where(Message.match_id == match_id)
+    if before:
+        from datetime import datetime as _dt
+        try:
+            q = q.where(Message.created_at < _dt.fromisoformat(before))
+        except ValueError:
+            pass
+    # Take the newest `limit`, then return ascending for display.
+    q = q.order_by(Message.created_at.desc()).limit(limit)
+    rows = list((await db.execute(q)).scalars().all())
+    rows.reverse()
     out = []
-    for m in result.scalars().all():
+    for m in rows:
         mo = MessageOut.model_validate(m)
         # Hide burned media; serve absolute URLs for the rest.
         mo.media_url = None if m.is_burned else to_public_url(m.media_url)

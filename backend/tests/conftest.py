@@ -47,15 +47,22 @@ def fake_redis():
     redis_mod._redis = None
 
 
-@pytest_asyncio.fixture(scope="session", autouse=True)
-async def setup_db():
+@pytest_asyncio.fixture(autouse=True)
+async def setup_db(fake_redis):
+    # Recreate schema per test for isolation (no data bleed between tests).
     async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
     async with TestSession() as db:
         await seed_default_config(db)
+    # Clear in-memory Redis between tests.
+    try:
+        import app.core.redis as redis_mod
+        if redis_mod._redis is not None:
+            await redis_mod._redis.flushall()
+    except Exception:
+        pass
     yield
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
 
 
 @pytest_asyncio.fixture
