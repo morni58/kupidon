@@ -33,9 +33,15 @@ export const api = {
   // tags
   getTags: () => req('/api/tags'),
   setTags: (ids) => req('/api/profile/tags', { method: 'POST', body: ids }),
+  requestTag: (data) => req('/api/tags/request', { method: 'POST', body: data }),
+  myTagRequests: () => req('/api/tags/requests/mine'),
 
   // feed / swipe
-  getFeed: (verifiedOnly = false) => req(`/api/feed?verified_only=${verifiedOnly}`),
+  getFeed: (verifiedOnly = false, tagIds = null) => {
+    const qs = new URLSearchParams({ verified_only: String(verifiedOnly) })
+    if (tagIds && tagIds.length) qs.set('tags', tagIds.join(','))
+    return req(`/api/feed?${qs.toString()}`)
+  },
   swipe: (target_id, action_type, vip_message) => req('/api/swipe', { method: 'POST', body: { target_id, action_type, vip_message } }),
   rewind: () => req('/api/rewind', { method: 'POST' }),
 

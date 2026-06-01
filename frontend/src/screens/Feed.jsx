@@ -205,19 +205,27 @@ export function Feed({ theme, palette, accent: accentProp, dark, plan, me, refre
   const [bump, setBump] = useState(0)
   const [fling, setFling] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [allTags, setAllTags] = useState([])
+  const [filterTags, setFilterTags] = useState([])
+  const [filterOpen, setFilterOpen] = useState(false)
+  const [tempFilter, setTempFilter] = useState([])
+  const openFilter = () => { setTempFilter(filterTags); setFilterOpen(true) }
+  const toggleTemp = (id) => setTempFilter((t) => t.includes(id) ? t.filter((x) => x !== id) : [...t, id])
+
+  useEffect(() => { api.getTags().then(setAllTags).catch(() => {}) }, [])
 
   const accent = accentProp || (adult ? '#FF3333' : theme === 'oligarch' ? '#FFD700' : '#FF00FF')
 
   async function loadFeed() {
     setLoading(true)
     try {
-      const cards = await api.getFeed(onlyVerified)
+      const cards = await api.getFeed(onlyVerified, filterTags)
       setDeck(cards.map((c) => apiCardToPerson(c)))
       setIdx(0)
     } catch { setDeck([]) }
     setLoading(false)
   }
-  useEffect(() => { loadFeed() }, [onlyVerified])
+  useEffect(() => { loadFeed() }, [onlyVerified, filterTags])
   useEffect(() => { setSuperLeft(me?.superlikes_left || 0); setSwipesLeft(me?.swipes_left ?? 50) }, [me?.superlikes_left, me?.swipes_left])
 
   const person = deck[idx]
@@ -247,7 +255,7 @@ export function Feed({ theme, palette, accent: accentProp, dark, plan, me, refre
 
   async function loadFeedAppend() {
     try {
-      const cards = await api.getFeed(onlyVerified)
+      const cards = await api.getFeed(onlyVerified, filterTags)
       if (!cards.length) return
       setDeck((d) => {
         const have = new Set(d.map((p) => p.id))
@@ -284,11 +292,18 @@ export function Feed({ theme, palette, accent: accentProp, dark, plan, me, refre
         <div className="safe-top screen-pad shrink-0">
           <div className="flex items-center justify-between pt-1 pb-2">
             <span className="text-[22px] font-black tracking-tight" style={{ color: accent, textShadow: !dark ? 'none' : `0 0 16px ${hexA(accent, 0.6)}` }}>CupidBot</span>
-            <button onClick={() => setOnlyVerified((v) => !v)} className="inline-flex items-center gap-1 rounded-full font-bold transition"
-              style={{ height: 30, padding: '0 11px', fontSize: 11.5, background: onlyVerified ? 'rgba(59,130,246,0.18)' : (!dark ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.08)'),
-                color: onlyVerified ? '#3B82F6' : (!dark ? '#6b7280' : '#bbb'), border: `1.5px solid ${onlyVerified ? '#3B82F6' : (!dark ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.12)')}`, backdropFilter: 'blur(8px)' }}>
-              <i className="ph-fill ph-seal-check" /> Только Verified
-            </button>
+            <div className="flex items-center gap-2">
+              <button onClick={openFilter} className="inline-flex items-center gap-1 rounded-full font-bold transition"
+                style={{ height: 30, padding: '0 11px', fontSize: 11.5, background: filterTags.length ? hexA(accent, 0.18) : (!dark ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.08)'),
+                  color: filterTags.length ? accent : (!dark ? '#6b7280' : '#bbb'), border: `1.5px solid ${filterTags.length ? accent : (!dark ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.12)')}`, backdropFilter: 'blur(8px)' }}>
+                <i className="ph-fill ph-funnel" /> {filterTags.length ? `Теги ${filterTags.length}` : 'Теги'}
+              </button>
+              <button onClick={() => setOnlyVerified((v) => !v)} className="inline-flex items-center gap-1 rounded-full font-bold transition"
+                style={{ height: 30, padding: '0 11px', fontSize: 11.5, background: onlyVerified ? 'rgba(59,130,246,0.18)' : (!dark ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.08)'),
+                  color: onlyVerified ? '#3B82F6' : (!dark ? '#6b7280' : '#bbb'), border: `1.5px solid ${onlyVerified ? '#3B82F6' : (!dark ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.12)')}`, backdropFilter: 'blur(8px)' }}>
+                <i className="ph-fill ph-seal-check" /> Verified
+              </button>
+            </div>
           </div>
           <div className="text-right -mt-1 mb-1"><span className="text-[12px] font-bold" style={{ color: !dark ? '#9ca3af' : 'rgba(255,255,255,0.6)' }}>{swipesLeft} свайпов</span></div>
         </div>
@@ -318,6 +333,32 @@ export function Feed({ theme, palette, accent: accentProp, dark, plan, me, refre
           </div>
         )}
       </div>
+
+      <Sheet open={filterOpen} onClose={() => setFilterOpen(false)}>
+        <div className="text-center mb-2">
+          <h2 className="text-[20px] font-black text-[#0F0F13]">Фильтр по интересам</h2>
+          <p className="text-[13px] text-[#6b7280] mt-0.5">Показывать только тех, у кого есть выбранные теги</p>
+        </div>
+        <div className="overflow-y-auto noscroll" style={{ maxHeight: '46vh' }}>
+          {Object.entries(allTags.filter((t) => !t.is_18_only || adult).reduce((acc, t) => {
+            const c = t.category || 'Другое'; (acc[c] = acc[c] || []).push(t); return acc
+          }, {})).map(([cat, list]) => (
+            <div key={cat} className="mb-3">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-[#9ca3af] mb-1.5 px-1">{cat}</div>
+              <div className="flex flex-wrap gap-2">
+                {list.map((t) => (
+                  <Pill key={t.id} interest={{ id: t.id, label: t.name, color: t.color_hex || '#FF00FF', emoji: t.emoji }}
+                    selected={tempFilter.includes(t.id)} onClick={() => toggleTemp(t.id)} small />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="flex gap-2 mt-3">
+          <Button variant="ghost" className="flex-1" onClick={() => { setTempFilter([]); setFilterTags([]); setFilterOpen(false) }}>Сбросить</Button>
+          <Button className="flex-1" onClick={() => { setFilterTags(tempFilter); setFilterOpen(false) }}>Применить</Button>
+        </div>
+      </Sheet>
 
       <Paywall open={paywall} onClose={() => setPaywall(false)} onUpgrade={(p) => { setPaywall(false); onUpgrade(p) }} />
       {match && <MatchModal person={match} theme={theme} onWrite={() => { onMatch(match.matchId); setMatch(null) }} onContinue={() => setMatch(null)} />}

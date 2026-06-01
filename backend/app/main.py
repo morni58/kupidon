@@ -18,9 +18,12 @@ async def lifespan(app: FastAPI):
     # Startup
     await get_redis()
     from app.services.economy import seed_default_config
+    from app.services.bootstrap import ensure_schema, seed_tags
     from app.db.database import async_session_maker
+    await ensure_schema()
     async with async_session_maker() as db:
         await seed_default_config(db)
+    await seed_tags()
     scheduler = start_scheduler()
     yield
     # Shutdown

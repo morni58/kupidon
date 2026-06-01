@@ -129,6 +129,64 @@ async def cmd_tags18(message: Message):
     await message.answer(f"✅ 18+ Tag: {emoji or ''} {name}")
 
 
+@router.message(Command("tagreqs"))
+async def cmd_tagreqs(message: Message):
+    """Review paid user-submitted tag requests (U-TAGS-ADMIN)."""
+    if not is_admin(message.from_user.id):
+        return
+    from sqlalchemy import select
+    from app.models.tag import TagRequest, TagRequestStatusEnum
+    async with async_session_maker() as db:
+        reqs = (await db.execute(
+            select(TagRequest).where(TagRequest.status == TagRequestStatusEnum.pending)
+            .order_by(TagRequest.created_at).limit(10)
+        )).scalars().all()
+    if not reqs:
+        await message.answer("Нет заявок на теги.")
+        return
+    for r in reqs:
+        kb = InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text="✅ Одобрить", callback_data=f"tagreq:approve:{r.id}"),
+            InlineKeyboardButton(text="❌ Отклонить", callback_data=f"tagreq:reject:{r.id}"),
+        ]])
+        cat = f" · {r.category}" if r.category else ""
+        flag = " 🔞" if r.is_18_only else ""
+        await message.answer(f"🏷️ {r.emoji or ''} *{r.name}*{cat}{flag}\nЦвет: {r.color_hex}", reply_markup=kb)
+
+
+@router.callback_query(F.data.startswith("tagreq:"))
+async def tagreq_action(call: CallbackQuery):
+    if not is_admin(call.from_user.id):
+        await call.answer("Access denied")
+        return
+    _, action, req_id = call.data.split(":", 2)
+    from sqlalchemy import select
+    from app.models.tag import TagRequest, AdminTag, TagRequestStatusEnum
+    from app.models.user import User
+    from app.services.economy import get_config_value
+    async with async_session_maker() as db:
+        r = (await db.execute(select(TagRequest).where(TagRequest.id == uuid.UUID(req_id)))).scalar_one_or_none()
+        if not r or r.status != TagRequestStatusEnum.pending:
+            await call.answer("Заявка не найдена/обработана")
+            return
+        if action == "approve":
+            db.add(AdminTag(name=r.name, color_hex=r.color_hex, emoji=r.emoji,
+                            category=r.category, is_18_only=r.is_18_only, is_active=True))
+            r.status = TagRequestStatusEnum.approved
+            msg = f"✅ Тег «{r.name}» добавлен"
+        else:
+            r.status = TagRequestStatusEnum.rejected
+            # Refund the Stars the user paid.
+            cost = int(await get_config_value(db, "tag_request_stars", "200"))
+            user = (await db.execute(select(User).where(User.id == r.user_id))).scalar_one_or_none()
+            if user:
+                user.stars_balance += cost
+            msg = f"❌ Тег «{r.name}» отклонён, {cost}⭐ возвращены"
+        await db.commit()
+    await call.answer(msg)
+    await call.message.reply(msg)
+
+
 @router.message(Command("economy"))
 async def cmd_economy(message: Message):
     if not is_admin(message.from_user.id):

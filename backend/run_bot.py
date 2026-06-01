@@ -35,6 +35,7 @@ async def main():
         BotCommand(command="tags18", description="[Admin] Добавить 18+ тег"),
         BotCommand(command="economy", description="[Admin] Параметр экономики"),
         BotCommand(command="reports", description="[Admin] Очередь репортов"),
+        BotCommand(command="tagreqs", description="[Admin] Заявки на теги"),
         BotCommand(command="stats", description="[Admin] Статистика"),
         BotCommand(command="ban", description="[Admin] Бан"),
     ])

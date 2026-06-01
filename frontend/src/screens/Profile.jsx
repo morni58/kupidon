@@ -258,7 +258,23 @@ export function ProfileEdit({ onBack, onSaved, setToast }) {
   const [city, setCity] = useState(null)
   const [citySearch, setCitySearch] = useState('')
   const [cityResults, setCityResults] = useState([])
+  const [newTag, setNewTag] = useState('')
   const [busy, setBusy] = useState(false)
+
+  async function proposeTag() {
+    const name = newTag.trim()
+    if (name.length < 2) { setToast('Введи название тега'); return }
+    try {
+      await api.requestTag({ name })
+      setNewTag(''); haptic('success'); setToast('✅ Заявка отправлена на модерацию')
+    } catch (e) {
+      const d = e?.data?.detail
+      setToast(d === 'not_enough_stars' ? 'Недостаточно Stars (200⭐)'
+        : d === 'Tag already exists' ? 'Такой тег уже есть'
+        : d === 'Tag already requested' ? 'Уже на модерации'
+        : (d || 'Ошибка'))
+    }
+  }
 
   useEffect(() => {
     Promise.all([
@@ -402,6 +418,12 @@ export function ProfileEdit({ onBack, onSaved, setToast }) {
               <Pill key={t.id} interest={{ id: t.id, label: t.name, color: t.color_hex || '#FF00FF', emoji: t.emoji }}
                 selected={tags.includes(t.id)} dim={!tags.includes(t.id) && tags.length >= 5} onClick={() => toggleTag(t.id)} small />
             ))}
+          </div>
+          {/* Предложить свой тег (платно, на модерацию) */}
+          <div className="flex gap-2 mt-3">
+            <input value={newTag} onChange={(e) => setNewTag(e.target.value)} maxLength={30} placeholder="Свой тег (на модерацию, 200⭐)"
+              className="flex-1 rounded-xl outline-none px-3 py-2.5 text-[13px] font-semibold bg-white border border-[#e5e7eb] text-[#0F0F13]" />
+            <Button size="sm" onClick={proposeTag}>Предложить</Button>
           </div>
         </Section>
       </div>
