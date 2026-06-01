@@ -21,6 +21,8 @@ html, body, #root {
 }
 body { background: #FAFAFC; }
 input, textarea { -webkit-user-select: text; user-select: text; }
+/* Images never overflow their rounded containers (U-PHOTOOUT). */
+img { max-width: 100%; display: block; }
 
 ::-webkit-scrollbar { width: 0; height: 0; }
 /* Vertical scroll containers: allow vertical panning, contain overscroll so it
@@ -62,3 +64,7 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 @media (prefers-reduced-motion: reduce) {
   .mesh-a, .mesh-b, .mesh-c, .grain, .floaty { animation: none !important; }
 }
+/* Low-end devices: <body class="lite"> set from JS disables blur/grain/animations. */
+body.lite .grain { display: none !important; }
+body.lite .mesh-a, body.lite .mesh-b, body.lite .mesh-c, body.lite .floaty { animation: none !important; }
+body.lite .mesh-a, body.lite .mesh-b, body.lite .mesh-c { filter: none !important; }

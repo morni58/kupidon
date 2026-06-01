@@ -230,9 +230,10 @@ export function Onboarding({ onDone, setToast }) {
           </div>
           {citySearch && !city && cityResults.length > 0 && (
             <div className="mt-2 bg-white rounded-2xl border border-[#e5e7eb] overflow-hidden noscroll" style={{ maxHeight: 200, overflowY: 'auto' }}>
-              {cityResults.map((c) => (
-                <button key={c.id} onClick={() => pickCity(c)} className="w-full px-4 py-3 flex flex-col items-start active:bg-[#FAFAFC] border-b border-[#f3f4f6] last:border-0">
-                  <span className="text-[15px] font-bold text-[#0F0F13]">{c.name}</span><span className="text-[12px] text-[#9ca3af]">{c.region}</span>
+              {cityResults.map((c, i) => (
+                <button key={c.id ?? `g${i}`} onClick={() => pickCity(c)} className="w-full px-4 py-3 flex items-center gap-2 active:bg-[#FAFAFC] border-b border-[#f3f4f6] last:border-0 text-left">
+                  <div className="flex-1 min-w-0"><span className="text-[15px] font-bold text-[#0F0F13]">{c.name}</span> <span className="text-[12px] text-[#9ca3af]">{c.region}</span></div>
+                  <i className="ph-bold ph-check text-[#FF00FF]" />
                 </button>
               ))}
             </div>
