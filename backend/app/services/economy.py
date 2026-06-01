@@ -18,6 +18,7 @@ DEFAULTS = {
     "boost_stars": "100",
     "superlike_stars": "150",
     "vip_signal_stars": "500",
+    "golden_key_stars": "1000",
     "force_chat_extra_stars": "100",
     "tg_unlock_free_msgs": "15",
     "tg_unlock_premium_msgs": "5",

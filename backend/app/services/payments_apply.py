@@ -5,7 +5,7 @@ product is never applied twice with diverging logic. The caller is responsible
 for marking the Payment row as paid (idempotency guard) before calling this.
 """
 from app.models.user import User, TierEnum
-from app.services.tickets import grant_ticket
+from app.services.tickets import grant_ticket, grant_boost
 
 
 async def apply_payment_effect(user: User, product: str, stars: int) -> None:
@@ -13,9 +13,8 @@ async def apply_payment_effect(user: User, product: str, stars: int) -> None:
         # Grant one Force Chat ticket; consumed by the /force_chat endpoint (C2).
         await grant_ticket("force_chat", user.id)
     elif product == "boost":
-        # TODO (L3): real top-of-feed boost via boost_until column.
-        # For now grant a small visibility perk without touching internal balance.
-        user.superlikes_left += 3
+        # Real top-of-feed boost for 2 hours via a TTL flag (L3).
+        await grant_boost(user.id, 2 * 3600)
     elif product == "superlike":
         user.superlikes_left += 1
     elif product == "vip_signal":

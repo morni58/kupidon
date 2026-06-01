@@ -103,10 +103,16 @@ async def get_feed(
 
     my_tags = await get_my_tag_ids(db, me.id)
 
+    # Active paid boosts bump candidates to the top for 2h (L3).
+    from app.services.tickets import boosted_ids
+    boosted = await boosted_ids([c.id for c in candidates])
+
     scored = []
     for c in candidates:
         c_tags = await get_my_tag_ids(db, c.id)
         s = await score_candidate(me, c, my_tags, c_tags)
+        if c.id in boosted:
+            s += 1.0  # dominates the 0..~1.05 base score
         scored.append((s, c))
 
     scored.sort(key=lambda x: x[0], reverse=True)
