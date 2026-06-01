@@ -8,12 +8,24 @@
 }
 
 * { -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
-html, body, #root { margin: 0; height: 100%; width: 100%; font-family: 'Onest', sans-serif; }
-body { overflow: hidden; background: #FAFAFC; }
+/* Lock the whole app viewport so swipe/drag gestures don't rubber-band or
+   "shake" the page like a normal web page (U-SCROLL). The app behaves like a
+   native screen; only explicitly-scrollable containers (.noscroll) pan. */
+html, body, #root {
+  margin: 0; height: 100%; width: 100%; font-family: 'Onest', sans-serif;
+  position: fixed; inset: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+  touch-action: none;
+}
+body { background: #FAFAFC; }
 input, textarea { -webkit-user-select: text; user-select: text; }
 
 ::-webkit-scrollbar { width: 0; height: 0; }
-.noscroll { -ms-overflow-style: none; scrollbar-width: none; }
+/* Vertical scroll containers: allow vertical panning, contain overscroll so it
+   never propagates to the page / Telegram drag-to-close. */
+.noscroll { -ms-overflow-style: none; scrollbar-width: none; touch-action: pan-y; overscroll-behavior: contain; }
 .noscroll::-webkit-scrollbar { display: none; }
 
 .safe-top { padding-top: calc(var(--sat) + 8px); }
@@ -44,3 +56,9 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .anim-slideL { animation: slideInL .35s cubic-bezier(.22,1,.36,1); }
 .anim-pop { animation: popIn .4s cubic-bezier(.34,1.56,.64,1); }
 .floaty { animation: floaty 3s ease-in-out infinite; }
+
+/* Perf / accessibility: kill expensive infinite background animations for users
+   who prefer reduced motion or on low-end devices (PF1/PF2). */
+@media (prefers-reduced-motion: reduce) {
+  .mesh-a, .mesh-b, .mesh-c, .grain, .floaty { animation: none !important; }
+}

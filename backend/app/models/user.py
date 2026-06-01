@@ -34,10 +34,12 @@ class User(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     tg_id: Mapped[int] = mapped_column(BigInteger, unique=True, nullable=False)
     username: Mapped[str | None] = mapped_column(String(64))
-    name: Mapped[str] = mapped_column(String(50), nullable=False)
-    birth_date: Mapped[date] = mapped_column(Date, nullable=False)
-    gender: Mapped[GenderEnum] = mapped_column(Enum(GenderEnum), nullable=False)
-    search_gender: Mapped[SearchGenderEnum] = mapped_column(Enum(SearchGenderEnum), nullable=False)
+    name: Mapped[str] = mapped_column(String(50), nullable=False, default="User")
+    # Profile fields are filled during onboarding, so they are nullable until then
+    # (matches the Alembic migration). See C9 in IMPROVEMENTS.md.
+    birth_date: Mapped[date | None] = mapped_column(Date)
+    gender: Mapped[GenderEnum | None] = mapped_column(Enum(GenderEnum))
+    search_gender: Mapped[SearchGenderEnum | None] = mapped_column(Enum(SearchGenderEnum))
     city_id: Mapped[int | None] = mapped_column(Integer)
     lat: Mapped[float | None] = mapped_column()
     lng: Mapped[float | None] = mapped_column()

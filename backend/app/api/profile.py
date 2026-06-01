@@ -82,10 +82,11 @@ async def get_my_profile_full(
     from app.models.tag import UserTag
     from app.models.city import City
 
+    from app.core.media import to_public_url
     media_r = await db.execute(
         select(MediaSlot.media_url).where(MediaSlot.user_id == me.id).order_by(MediaSlot.slot_index)
     )
-    media = [u for u in media_r.scalars().all() if u]
+    media = [to_public_url(u) for u in media_r.scalars().all() if u]
 
     tags_r = await db.execute(select(UserTag.tag_id).where(UserTag.user_id == me.id))
     tag_ids = [t[0] for t in tags_r.all()]

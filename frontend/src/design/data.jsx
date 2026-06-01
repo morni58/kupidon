@@ -1,4 +1,5 @@
 /* Data helpers: interests catalog, gradient placeholders, plans, API→card mapping */
+import { mediaUrl } from '../lib/api'
 
 // Static fallback catalog (matches backend seed tags by name). Used for emoji/color when rendering.
 export const INTERESTS = [
@@ -65,7 +66,7 @@ const VIBE_EMOJI = ['😎', '🌸', '🎧', '🏔️', '🎸', '🌊', '☕', '�
 // Convert an API feed card to the design's `person` shape.
 export function apiCardToPerson(c, hasFullMedia = true) {
   const photos = (c.media && c.media.length)
-    ? c.media.map((url) => ({ url }))
+    ? c.media.map((url) => ({ url: mediaUrl(url) }))
     : [gradPhoto((c.name || '?').charCodeAt(0), VIBE_EMOJI[(c.name || '?').charCodeAt(0) % VIBE_EMOJI.length])]
   return {
     id: c.id,
@@ -85,7 +86,7 @@ export function apiCardToPerson(c, hasFullMedia = true) {
 // Convert API "me" profile to design user shape (photos array of {url})
 export function apiMeToUser(me, mediaUrls) {
   const photos = (mediaUrls && mediaUrls.length)
-    ? mediaUrls.map((url) => ({ url }))
+    ? mediaUrls.map((url) => ({ url: mediaUrl(url) }))
     : [gradPhoto((me.name || '?').charCodeAt(0), '😎')]
   while (photos.length < 5) photos.push(null)
   return {

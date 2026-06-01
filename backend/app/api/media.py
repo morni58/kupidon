@@ -35,10 +35,12 @@ async def upload_media(
     content_type = file.content_type or ""
     if content_type.startswith("video"):
         media_type = MediaTypeEnum.video
-        # Video takes 3 slots — check free slots
+        # Video occupies 3 slots — make sure there are 3 free (C5).
         used_r = await db.execute(select(MediaSlot).where(MediaSlot.user_id == me.id))
         used = used_r.scalars().all()
-        if len(used) + 2 > MAX_SLOTS:
+        # Slots currently occupied by *other* indexes than the one we upload into.
+        occupied_other = len([s for s in used if s.slot_index != slot_index])
+        if occupied_other + 3 > MAX_SLOTS:
             raise HTTPException(status_code=400, detail="Free up 3 slots for video")
     else:
         media_type = MediaTypeEnum.photo
@@ -96,7 +98,8 @@ async def upload_media(
     me.profile_score = await recalc_profile_score(db, me)
 
     await db.commit()
-    return {"slot_index": slot_index, "media_url": media_url, "nsfw_score": nsfw_score}
+    from app.core.media import to_public_url
+    return {"slot_index": slot_index, "media_url": to_public_url(media_url), "nsfw_score": nsfw_score}
 
 
 @router.get("/mine")
@@ -109,8 +112,9 @@ async def my_media(
         select(MediaSlot).where(MediaSlot.user_id == me.id).order_by(MediaSlot.slot_index)
     )
     slots = result.scalars().all()
+    from app.core.media import to_public_url
     return [
-        {"slot_index": s.slot_index, "media_url": s.media_url, "media_type": s.media_type.value if s.media_type else None}
+        {"slot_index": s.slot_index, "media_url": to_public_url(s.media_url), "media_type": s.media_type.value if s.media_type else None}
         for s in slots
     ]
 

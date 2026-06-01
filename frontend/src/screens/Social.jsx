@@ -2,9 +2,9 @@ import { useState, useRef, useEffect } from 'react'
 import { MeshBG, VIBES } from '../design/fx'
 import { Photo, Button, TabBar, VerifiedTick } from '../design/ui'
 import { gradPhoto } from '../design/data'
-import { api, createChatWS, haptic } from '../lib/api'
+import { api, createChatWS, haptic, mediaUrl } from '../lib/api'
 
-const pic = (urlOrNull, seedName = '?', emoji = '🙂') => urlOrNull ? { url: urlOrNull } : gradPhoto(seedName.charCodeAt(0), emoji)
+const pic = (urlOrNull, seedName = '?', emoji = '🙂') => urlOrNull ? { url: mediaUrl(urlOrNull) } : gradPhoto(seedName.charCodeAt(0), emoji)
 
 function ScreenHead({ title, sub, dark }) {
   return (

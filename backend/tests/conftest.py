@@ -32,6 +32,16 @@ def event_loop():
     loop.close()
 
 
+@pytest.fixture(scope="session", autouse=True)
+def fake_redis():
+    """Use an in-memory fake Redis so tests don't need a running server."""
+    import fakeredis.aioredis as fr
+    import app.core.redis as redis_mod
+    redis_mod._redis = fr.FakeRedis(decode_responses=True)
+    yield
+    redis_mod._redis = None
+
+
 @pytest_asyncio.fixture(scope="session", autouse=True)
 async def setup_db():
     async with engine.begin() as conn:

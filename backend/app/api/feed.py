@@ -5,8 +5,11 @@ import json
 
 from app.core.deps import get_db, get_current_user
 from app.core.redis import get_redis
+from app.core.media import to_public_url
 from app.models.user import User
 from app.models.tag import AdminTag, UserTag
+from app.models.media import MediaSlot
+from app.models.city import City
 from app.services.matching import get_feed, handle_swipe
 from app.schemas.feed import FeedCard, SwipeRequest, SwipeResponse, TagOut
 from sqlalchemy import select
@@ -14,6 +17,21 @@ from sqlalchemy import select
 router = APIRouter(prefix="/api", tags=["feed"])
 
 FEED_CACHE_TTL = 300  # 5 min
+
+
+def _distance_label(me: User, c: User) -> Optional[str]:
+    """Human-readable approximate distance for a feed card (L11)."""
+    import math
+    if None in (me.lat, me.lng, c.lat, c.lng):
+        return None
+    dx = (float(me.lat) - float(c.lat)) * 111000
+    dy = (float(me.lng) - float(c.lng)) * 111000 * math.cos(math.radians(float(me.lat)))
+    km = math.sqrt(dx ** 2 + dy ** 2) / 1000
+    if km < 1:
+        return "меньше 1 км"
+    if km < 100:
+        return f"{round(km)} км"
+    return f"{round(km / 10) * 10} км"
 
 
 @router.get("/feed", response_model=List[FeedCard])
@@ -30,25 +48,33 @@ async def feed(
 
     candidates = await get_feed(db, me, verified_only=verified_only)
 
+    # My tags — once, not per candidate (P1)
+    my_tags_r = await db.execute(select(UserTag.tag_id).where(UserTag.user_id == me.id))
+    my_tag_ids = {r[0] for r in my_tags_r.all()}
+
+    # City name cache to avoid repeated lookups (L11)
+    city_names: dict[int, Optional[str]] = {}
+
+    async def city_name_for(city_id: Optional[int]) -> Optional[str]:
+        if not city_id:
+            return None
+        if city_id not in city_names:
+            cr = await db.execute(select(City.name).where(City.id == city_id))
+            city_names[city_id] = cr.scalar_one_or_none()
+        return city_names[city_id]
+
     cards = []
     for c in candidates:
-        # Load tags
         tag_r = await db.execute(
             select(AdminTag).join(UserTag, AdminTag.id == UserTag.tag_id).where(UserTag.user_id == c.id)
         )
         tags = tag_r.scalars().all()
 
-        # Load media
         media_r = await db.execute(
-            select(__import__("app.models.media", fromlist=["MediaSlot"]).MediaSlot)
-            .where(__import__("app.models.media", fromlist=["MediaSlot"]).MediaSlot.user_id == c.id)
-            .order_by(__import__("app.models.media", fromlist=["MediaSlot"]).MediaSlot.slot_index)
+            select(MediaSlot).where(MediaSlot.user_id == c.id).order_by(MediaSlot.slot_index)
         )
         media_slots = media_r.scalars().all()
 
-        # Common tags
-        my_tags_r = await db.execute(select(UserTag.tag_id).where(UserTag.user_id == me.id))
-        my_tag_ids = {r[0] for r in my_tags_r.all()}
         c_tag_ids = {t.id for t in tags}
 
         card = FeedCard(
@@ -61,10 +87,12 @@ async def feed(
             is_verified=c.is_verified,
             tier=c.tier,
             city_id=c.city_id,
+            city_name=await city_name_for(c.city_id),
+            dist=_distance_label(me, c),
             lat=c.lat,
             lng=c.lng,
             tags=[TagOut.model_validate(t) for t in tags],
-            media=[m.media_url for m in media_slots if m.media_url],
+            media=[to_public_url(m.media_url) for m in media_slots if m.media_url],
             common_tags_count=len(my_tag_ids & c_tag_ids),
         )
         cards.append(card.model_dump(mode="json"))
@@ -96,14 +124,21 @@ async def swipe(
     await redis.delete(f"feed:{me.id}:False")
     await redis.delete(f"feed:{me.id}:True")
 
-    # Send notifications
-    if result["is_match"]:
-        target_r = await db.execute(select(User).where(User.id == body.target_id))
-        target = target_r.scalar_one_or_none()
-        if target:
-            from app.services.notifications import notify_match
-            import asyncio
-            asyncio.create_task(notify_match(target.tg_id, me.name))
+    # Send notifications (L9/L10)
+    import asyncio
+    target_r = await db.execute(select(User).where(User.id == body.target_id))
+    target = target_r.scalar_one_or_none()
+    if target and not me.is_shadowbanned:
+        from app.services import notifications as notif
+        if result["is_match"]:
+            # Notify both sides of the match.
+            asyncio.create_task(notif.notify_match(target.tg_id, me.name))
+            asyncio.create_task(notif.notify_match(me.tg_id, target.name))
+        elif body.action_type in ("right", "superlike"):
+            if me.is_oligarch_mode and not target.is_anti_oligarch:
+                asyncio.create_task(notif.notify_vip_like(target.tg_id, body.vip_message))
+            elif body.action_type == "superlike":
+                asyncio.create_task(notif.notify_superlike(target.tg_id))
 
     return SwipeResponse(is_match=result["is_match"], match_id=result.get("match_id"))
 
@@ -200,7 +235,7 @@ async def sympathies(
             select(MediaSlot.media_url).where(MediaSlot.user_id == actor.id)
             .order_by(MediaSlot.slot_index).limit(1)
         )
-        photo = ph_r.scalar_one_or_none()
+        photo = to_public_url(ph_r.scalar_one_or_none())
         age = None
         if actor.birth_date:
             from datetime import date
@@ -230,15 +265,22 @@ async def force_chat(
 ):
     from fastapi import HTTPException
     from app.models.match import Match
+    from app.models.user import TierEnum
     from app.services.economy import get_config_value
+    from app.services.tickets import consume_force_chat_ticket
     from sqlalchemy import or_
 
-    if me.tier == "free":
-        raise HTTPException(status_code=402, detail="force_chat_requires_premium")
-
-    max_fc = int(await get_config_value(db, f"{me.tier}_force_chats", "3"))
-    if me.force_chats_used >= max_fc:
-        raise HTTPException(status_code=429, detail="force_chat_limit")
+    used_ticket = False
+    if me.tier == TierEnum.free:
+        # Free users need a paid ticket (C2). Consume one or 402.
+        if not await consume_force_chat_ticket(me.id):
+            raise HTTPException(status_code=402, detail="force_chat_requires_payment")
+        used_ticket = True
+    else:
+        # Daily limit from config; use enum .value to build the key (C6).
+        max_fc = int(await get_config_value(db, f"{me.tier.value}_force_chats", "3"))
+        if me.force_chats_used >= max_fc:
+            raise HTTPException(status_code=429, detail="force_chat_limit")
 
     # Check existing match
     existing_r = await db.execute(
@@ -264,7 +306,8 @@ async def force_chat(
         is_18_room=(me.is_18_mode_active and target.is_18_mode_active),
     )
     db.add(match)
-    me.force_chats_used += 1
+    if not used_ticket:
+        me.force_chats_used += 1
     await db.commit()
     await db.refresh(match)
     return {"match_id": str(match.id)}

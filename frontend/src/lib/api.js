@@ -102,6 +102,16 @@ export function createChatWS(matchId, onMessage) {
   }
 }
 
+// Resolve a media path to an absolute URL the browser can load cross-origin.
+// Backend usually returns absolute URLs now; this is a safety net for any
+// relative "/media/..." paths (U-MEDIA).
+export function mediaUrl(u) {
+  if (!u) return u
+  if (/^https?:\/\//.test(u)) return u
+  const base = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '')
+  return base + (u.startsWith('/') ? u : '/' + u)
+}
+
 // Telegram WebApp helpers
 export const tg = (typeof window !== 'undefined' && window.Telegram?.WebApp) || null
 export function haptic(type = 'light') {
