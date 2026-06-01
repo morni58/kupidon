@@ -311,3 +311,65 @@ async def force_chat(
     await db.commit()
     await db.refresh(match)
     return {"match_id": str(match.id)}
+
+
+@router.post("/buy_golden_contact")
+async def buy_golden_contact(
+    body: __import__("app.schemas.feed", fromlist=["ForceChatRequest"]).ForceChatRequest,
+    db: AsyncSession = Depends(get_db),
+    me: User = Depends(get_current_user),
+):
+    """Golden Key (F1): a Kupidon/oligarch buys a direct contact for Stars.
+    Creates a match with Telegram already unlocked for both sides."""
+    from fastapi import HTTPException
+    from app.models.match import Match
+    from app.models.user import TierEnum
+    from app.services.economy import get_config_value
+    from sqlalchemy import or_
+
+    if me.tier != TierEnum.kupidon:
+        raise HTTPException(status_code=403, detail="golden_key_requires_kupidon")
+
+    cost = int(await get_config_value(db, "golden_key_stars", "1000"))
+    if me.stars_balance < cost:
+        raise HTTPException(status_code=402, detail="not_enough_stars")
+
+    target_r = await db.execute(select(User).where(User.id == body.target_id))
+    target = target_r.scalar_one_or_none()
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+    if target.id == me.id:
+        raise HTTPException(status_code=400, detail="cannot_target_self")
+
+    existing_r = await db.execute(
+        select(Match).where(
+            or_(
+                (Match.user1_id == me.id) & (Match.user2_id == target.id),
+                (Match.user1_id == target.id) & (Match.user2_id == me.id),
+            )
+        )
+    )
+    match = existing_r.scalar_one_or_none()
+    me.stars_balance -= cost
+    if match:
+        match.tg_unlocked_user1 = True
+        match.tg_unlocked_user2 = True
+    else:
+        match = Match(
+            user1_id=me.id, user2_id=target.id,
+            is_oligarch_reveal=True,
+            tg_unlocked_user1=True, tg_unlocked_user2=True,
+        )
+        db.add(match)
+    await db.commit()
+    await db.refresh(match)
+
+    import asyncio
+    from app.services import notifications as notif
+    asyncio.create_task(notif.send_push(
+        target.tg_id,
+        "🗝️ Влиятельный VIP-пользователь выкупил твой контакт за Stars! Загляни в чаты.",
+    ))
+
+    link = f"https://t.me/{target.username}" if target.username else None
+    return {"match_id": str(match.id), "username": target.username, "link": link}

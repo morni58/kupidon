@@ -42,6 +42,7 @@ export const api = {
   // sympathies / views
   sympathies: () => req('/api/sympathies'),
   forceChat: (target_id) => req('/api/force_chat', { method: 'POST', body: { target_id } }),
+  goldenContact: (target_id) => req('/api/buy_golden_contact', { method: 'POST', body: { target_id } }),
   whoViewedMe: () => req('/api/views/me'),
   recordView: (target_id) => req(`/api/views/${target_id}`, { method: 'POST' }),
 

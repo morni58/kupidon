@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { MeshBG, VIBES } from '../design/fx'
 import { Photo, Button, TabBar, VerifiedTick } from '../design/ui'
 import { gradPhoto } from '../design/data'
-import { api, createChatWS, haptic, mediaUrl } from '../lib/api'
+import { api, createChatWS, haptic, mediaUrl, openInvoice } from '../lib/api'
 
 const pic = (urlOrNull, seedName = '?', emoji = '🙂') => urlOrNull ? { url: mediaUrl(urlOrNull) } : gradPhoto(seedName.charCodeAt(0), emoji)
 
@@ -32,9 +32,27 @@ export function Likes({ plan, me, palette, accent = '#FF00FF', dark = false, onO
   }, [])
 
   async function write(item) {
-    if (plan.id === 'free') { setToast('Написать сейчас за 50 ⭐ или жди в ленте'); return }
+    if (plan.id === 'free') {
+      // Free: pay 50⭐ for a one-shot Force Chat, then open it (UX3).
+      try {
+        const inv = await api.createInvoice('force_chat')
+        if (!inv.invoice_link) { setToast('Платёж недоступен, попробуй позже'); return }
+        const st = await openInvoice(inv.invoice_link)
+        if (st !== 'paid') return
+        const r = await api.forceChat(item.user_id); haptic('medium'); onOpenChat(r.match_id)
+      } catch (e) { setToast(e?.data?.detail || 'Не удалось') }
+      return
+    }
     try { const r = await api.forceChat(item.user_id); haptic('medium'); onOpenChat(r.match_id) }
-    catch (e) { if (e.status === 429) setToast('Лимит врывов на сегодня'); else setToast(e?.data?.detail || 'Ошибка') }
+    catch (e) { if (e.status === 429) setToast('Лимит врывов на сегодня'); else if (e.status === 402) setToast('Нужна оплата'); else setToast(e?.data?.detail || 'Ошибка') }
+  }
+
+  async function goldenKey(item) {
+    try {
+      const r = await api.goldenContact(item.user_id); haptic('success')
+      if (r.link) { setToast('🗝️ Контакт выкуплен'); openInvoice && window.open?.(r.link, '_blank') }
+      else { setToast('🗝️ Контакт открыт в чатах'); onOpenChat(r.match_id) }
+    } catch (e) { setToast(e?.status === 402 ? 'Недостаточно Stars (нужно 1000)' : (e?.data?.detail || 'Ошибка')) }
   }
 
   return (
@@ -77,6 +95,11 @@ export function Likes({ plan, me, palette, accent = '#FF00FF', dark = false, onO
                 </div>
                 <div className="text-[12px] font-medium text-[#9ca3af] mt-0.5">Лайкнул(а) недавно</div>
               </div>
+              {plan.id === 'kupidon' && (
+                <button onClick={() => goldenKey(l)} title="Выкупить контакт (1000⭐)" className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90 transition shrink-0" style={{ background: 'linear-gradient(135deg,#FFE259,#FFA751)' }}>
+                  <span className="text-[16px]">🗝️</span>
+                </button>
+              )}
               <Button size="sm" onClick={() => write(l)}>Написать</Button>
             </div>
           ))}
