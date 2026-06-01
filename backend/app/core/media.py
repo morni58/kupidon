@@ -11,10 +11,27 @@ Configure one of:
 - ``PUBLIC_API_URL`` — API origin, e.g. ``https://cupidbot-api.up.railway.app``
 """
 import os
+import uuid
 from typing import Optional
 
 PUBLIC_MEDIA_URL = os.environ.get("PUBLIC_MEDIA_URL", "").rstrip("/")
 PUBLIC_API_URL = os.environ.get("PUBLIC_API_URL", "").rstrip("/")
+MEDIA_ROOT = os.environ.get("MEDIA_ROOT", "/app/media")
+
+
+async def save_upload(data: bytes, owner_id, ext: str) -> str:
+    """Persist raw bytes under the owner's media dir and return the relative URL.
+
+    Single place for writing media so profile uploads and chat uploads behave
+    identically (swap for S3 here in one spot later)."""
+    import aiofiles
+    owner_dir = os.path.join(MEDIA_ROOT, str(owner_id))
+    os.makedirs(owner_dir, exist_ok=True)
+    filename = f"{uuid.uuid4()}.{ext}"
+    filepath = os.path.join(owner_dir, filename)
+    async with aiofiles.open(filepath, "wb") as f:
+        await f.write(data)
+    return f"/media/{owner_id}/{filename}"
 
 
 def to_public_url(url: Optional[str]) -> Optional[str]:

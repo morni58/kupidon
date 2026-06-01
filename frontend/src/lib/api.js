@@ -45,11 +45,21 @@ export const api = {
   whoViewedMe: () => req('/api/views/me'),
   recordView: (target_id) => req(`/api/views/${target_id}`, { method: 'POST' }),
 
+  // safety
+  report: (target_id, reason = 'abuse') => req('/api/report', { method: 'POST', body: { target_id, reason } }),
+  block: (target_id) => req('/api/block', { method: 'POST', body: { target_id } }),
+
   // chats
   chats: () => req('/api/chats'),
   chatInfo: (matchId) => req(`/api/chats/${matchId}/info`),
   messages: (matchId) => req(`/api/chats/${matchId}/messages`),
   sendMessage: (matchId, content) => req(`/api/chats/${matchId}/messages`, { method: 'POST', body: { content, msg_type: 'text' } }),
+  sendChatMedia: (matchId, file) => {
+    const fd = new FormData()
+    fd.append('file', file)
+    return req(`/api/chats/${matchId}/media`, { method: 'POST', raw: fd })
+  },
+  burnMedia: (messageId) => req(`/api/media/burn/${messageId}`, { method: 'POST' }),
   requestTg: (matchId) => req(`/api/chats/${matchId}/request_tg`, { method: 'POST' }),
   approveTg: (matchId) => req(`/api/chats/${matchId}/approve_tg`, { method: 'POST' }),
   declineTg: (matchId) => req(`/api/chats/${matchId}/decline_tg`, { method: 'POST' }),
@@ -71,6 +81,8 @@ export const api = {
     return req(`/api/media/upload/${slot}`, { method: 'POST', raw: fd })
   },
   deleteMedia: (slot) => req(`/api/media/slot/${slot}`, { method: 'DELETE' }),
+  reorderMedia: (order) => req('/api/media/reorder', { method: 'POST', body: order }),
+  myMediaSlots: () => req('/api/media/mine'),
 
   // payments
   createInvoice: (product) => req(`/api/payments/create_invoice?product=${product}`, { method: 'POST' }),

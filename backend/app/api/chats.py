@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_, func
 from typing import List
 import uuid
 
 from app.core.deps import get_db, get_current_user
+from app.core.media import save_upload, to_public_url
 from app.models.user import User
 from app.models.match import Match
 from app.models.message import Message, MsgTypeEnum
@@ -162,7 +163,13 @@ async def get_messages(
     result = await db.execute(
         select(Message).where(Message.match_id == match_id).order_by(Message.created_at)
     )
-    return result.scalars().all()
+    out = []
+    for m in result.scalars().all():
+        mo = MessageOut.model_validate(m)
+        # Hide burned media; serve absolute URLs for the rest.
+        mo.media_url = None if m.is_burned else to_public_url(m.media_url)
+        out.append(mo)
+    return out
 
 
 @router.post("/chats/{match_id}/messages", response_model=MessageOut)
@@ -216,6 +223,57 @@ async def send_message(
     }))
 
     return msg
+
+
+@router.post("/chats/{match_id}/media", response_model=MessageOut)
+async def send_media_message(
+    match_id: uuid.UUID,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    me: User = Depends(get_current_user),
+):
+    """Send a photo/video message. In an 18+ room it is disappearing (F3/F4)."""
+    match = await _check_match_access(db, match_id, me)
+
+    content_type = file.content_type or ""
+    is_video = content_type.startswith("video")
+    data = await file.read()
+    size_mb = len(data) / (1024 * 1024)
+    if size_mb > (15 if is_video else 5):
+        raise HTTPException(status_code=413, detail="File too large")
+
+    rel_url = await save_upload(data, me.id, "mp4" if is_video else "webp")
+
+    # NSFW gate (stub today; real model later). 18+ rooms use the strict threshold.
+    from app.services.moderation import nsfw_service
+    score = await nsfw_service.classify(rel_url)
+    threshold = 0.70 if match.is_18_room else 0.85
+    if score >= threshold:
+        raise HTTPException(status_code=422, detail="Media flagged as NSFW")
+
+    msg = Message(
+        match_id=match_id,
+        sender_id=me.id,
+        media_url=rel_url,
+        msg_type=MsgTypeEnum.media,
+        is_disappearing=match.is_18_room,
+    )
+    db.add(msg)
+    match.messages_count += 1
+    await db.commit()
+    await db.refresh(msg)
+
+    from app.ws.manager import ws_manager
+    import asyncio
+    payload = MessageOut.model_validate(msg).model_dump(mode="json")
+    payload["media_url"] = to_public_url(msg.media_url)
+    asyncio.create_task(ws_manager.broadcast(str(match_id), {
+        "type": "message_sent",
+        "message": payload,
+    }))
+    out = MessageOut.model_validate(msg)
+    out.media_url = to_public_url(msg.media_url)
+    return out
 
 
 @router.post("/chats/{match_id}/request_tg")

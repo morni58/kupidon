@@ -119,6 +119,40 @@ async def my_media(
     ]
 
 
+@router.post("/reorder")
+async def reorder_slots(
+    order: list[int],
+    db: AsyncSession = Depends(get_db),
+    me: User = Depends(get_current_user),
+):
+    """Reorder photo slots. `order` is the current slot_indexes in the desired
+    order; the first becomes the main photo (slot 1). Flexible photo management."""
+    from sqlalchemy import update as sa_update
+    result = await db.execute(select(MediaSlot).where(MediaSlot.user_id == me.id))
+    slots = {s.slot_index: s for s in result.scalars().all()}
+
+    # Validate the requested order references only existing slots.
+    target = [i for i in order if i in slots]
+    if not target:
+        return {"ok": True}
+
+    # Two-phase reassign to avoid violating UNIQUE(user_id, slot_index):
+    # first move everyone to a negative temp index, then to the final index.
+    for s in slots.values():
+        s.slot_index = -(s.slot_index)
+    await db.flush()
+    new_index = 1
+    for old_idx in target:
+        slots[old_idx].slot_index = new_index
+        new_index += 1
+    # Any slots not mentioned keep going after, preserving relative order.
+    for old_idx in sorted(k for k in slots if k not in target):
+        slots[old_idx].slot_index = new_index
+        new_index += 1
+    await db.commit()
+    return {"ok": True}
+
+
 @router.delete("/slot/{slot_index}")
 async def delete_slot(
     slot_index: int,

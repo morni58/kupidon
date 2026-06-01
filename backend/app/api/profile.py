@@ -118,13 +118,19 @@ async def update_profile(
 ):
     from app.services.moderation import moderate_text
 
-    for field, value in body.model_dump(exclude_none=True).items():
+    data = body.model_dump(exclude_none=True)
+    # Resulting gender after this update (for gender-dependent guards).
+    new_gender = data.get("gender", me.gender)
+
+    for field, value in data.items():
         if field == "bio" and value:
             value = moderate_text(value)
             if value is None:
                 raise HTTPException(status_code=422, detail="Bio contains forbidden content")
-        if field == "is_anti_oligarch" and value and me.gender.value != "female":
-            raise HTTPException(status_code=403, detail="Anti-oligarch shield is free for female only")
+        if field == "is_anti_oligarch" and value:
+            g = getattr(new_gender, "value", new_gender)
+            if g != "female":
+                raise HTTPException(status_code=403, detail="Anti-oligarch shield is free for female only")
         if field == "is_18_mode_active" and value and not me.is_verified:
             raise HTTPException(status_code=403, detail="Verification required for 18+ mode")
         if field == "is_stealth_mode" and value and not me.is_oligarch_mode:

@@ -157,8 +157,12 @@ export function Dialog({ chatId, me, plan, onBack, setToast }) {
   const [text, setText] = useState('')
   const [ices, setIces] = useState([])
   const [consentFrom, setConsentFrom] = useState(null)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [revealed, setRevealed] = useState({})
+  const [sending, setSending] = useState(false)
   const scrollRef = useRef(null)
   const wsRef = useRef(null)
+  const fileRef = useRef(null)
 
   const adult = info?.is_18_room
   const accent = adult ? '#FF3333' : '#FF00FF'
@@ -199,6 +203,33 @@ export function Dialog({ chatId, me, plan, onBack, setToast }) {
   async function approveTg() { try { await api.approveTg(chatId); setConsentFrom(null); setToast('✈️ Контакты открыты'); api.chatInfo(chatId).then(setInfo) } catch {} }
   async function declineTg() { try { await api.declineTg(chatId) } catch {} setConsentFrom(null) }
 
+  async function reportUser() {
+    setMenuOpen(false)
+    if (!info?.partner_id) return
+    try { await api.report(info.partner_id); setToast('⚠️ Жалоба отправлена') } catch (e) { setToast(e?.data?.detail === 'Already reported' ? 'Уже отправлено' : 'Не удалось') }
+  }
+  async function blockUser() {
+    setMenuOpen(false)
+    if (!info?.partner_id) return
+    try { await api.block(info.partner_id); setToast('🚫 Пользователь заблокирован'); onBack() } catch { setToast('Не удалось') }
+  }
+
+  async function sendMedia(file) {
+    if (!file) return
+    setSending(true)
+    try { const msg = await api.sendChatMedia(chatId, file); setMsgs((m) => [...m, msg]); haptic('light') }
+    catch (e) { setToast(e?.data?.detail === 'Media flagged as NSFW' ? 'Фото отклонено модерацией' : 'Не отправлено') }
+    setSending(false)
+  }
+
+  async function revealMedia(m) {
+    // 18+ disappearing media: show once, then burn for the recipient.
+    setRevealed((r) => ({ ...r, [m.id]: true }))
+    if (m.is_disappearing && m.sender_id !== me?.id) {
+      try { await api.burnMedia(m.id) } catch {}
+    }
+  }
+
   return (
     <div className="w-full h-full flex flex-col relative" style={{ background: adult ? '#0A0000' : '#FAFAFC' }}>
       <div className="safe-top shrink-0" style={{ background: adult ? 'rgba(20,0,0,0.85)' : 'rgba(255,255,255,0.85)', backdropFilter: 'blur(12px)', borderBottom: adult ? '1px solid #4A0000' : '1px solid #f3f4f6' }}>
@@ -212,7 +243,7 @@ export function Dialog({ chatId, me, plan, onBack, setToast }) {
             </div>
             {info?.online && <span className="text-[11px] font-semibold text-[#10B981]">в сети</span>}
           </div>
-          <button onClick={() => setToast('⚠️ Жалоба отправлена')} className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"><i className="ph-bold ph-warning text-[18px] text-[#9ca3af]" /></button>
+          <button onClick={() => setMenuOpen((v) => !v)} className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"><i className="ph-bold ph-dots-three-vertical text-[20px]" style={{ color: adult ? '#fff' : '#9ca3af' }} /></button>
           <div className="flex flex-col items-center shrink-0">
             <button onClick={() => tgUnlocked ? setToast('✈️ Telegram открыт') : api.requestTg(chatId).then(() => setToast('Запрос отправлен')).catch(() => {})} className="w-9 h-9 rounded-full flex items-center justify-center transition" style={{ background: tgUnlocked ? 'linear-gradient(135deg,#3B82F6,#6366F1)' : '#e5e7eb' }}>
               <i className="ph-fill ph-telegram-logo text-[18px]" style={{ color: tgUnlocked ? '#fff' : '#9ca3af' }} />
@@ -222,10 +253,46 @@ export function Dialog({ chatId, me, plan, onBack, setToast }) {
         </div>
       </div>
 
+      {menuOpen && (
+        <>
+          <div className="absolute inset-0 z-30" onClick={() => setMenuOpen(false)} />
+          <div className="absolute z-40 right-3 rounded-2xl overflow-hidden shadow-xl" style={{ top: 'calc(env(safe-area-inset-top) + 48px)', background: '#fff', border: '1px solid #e5e7eb', minWidth: 180 }}>
+            <button onClick={reportUser} className="w-full px-4 py-3 flex items-center gap-2.5 text-[14px] font-semibold text-[#0F0F13] active:bg-[#FAFAFC] border-b border-[#f3f4f6]"><i className="ph-bold ph-warning text-[#F59E0B]" /> Пожаловаться</button>
+            <button onClick={blockUser} className="w-full px-4 py-3 flex items-center gap-2.5 text-[14px] font-semibold text-[#EF4444] active:bg-[#FAFAFC]"><i className="ph-bold ph-prohibit" /> Заблокировать</button>
+          </div>
+        </>
+      )}
+
       <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto noscroll px-4 py-4 space-y-2">
         {msgs.map((m) => {
           if (m.msg_type === 'consent' || m.msg_type === 'system') return null
           const mine = m.sender_id === me?.id
+          // Media message
+          if (m.msg_type === 'media' || m.media_url) {
+            const burned = m.is_burned || (m.is_disappearing && revealed[m.id] && !mine)
+            const showBlur = m.is_disappearing && !revealed[m.id] && !mine
+            return (
+              <div key={m.id} className={'flex ' + (mine ? 'justify-end' : 'justify-start')}>
+                <div className="max-w-[70%] rounded-2xl overflow-hidden relative" style={{ width: 200, height: 240, background: '#111' }}>
+                  {burned ? (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-center px-3" style={{ color: '#9ca3af' }}>
+                      <i className="ph-fill ph-fire text-[28px]" /><span className="text-[12px] font-semibold">Фото сгорело</span>
+                    </div>
+                  ) : m.media_url ? (
+                    <>
+                      <img src={mediaUrl(m.media_url)} alt="" className="absolute inset-0 w-full h-full" style={{ objectFit: 'cover', filter: showBlur ? 'blur(22px)' : 'none' }} draggable={false} />
+                      {showBlur && (
+                        <button onClick={() => revealMedia(m)} className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-white" style={{ background: 'rgba(0,0,0,0.35)' }}>
+                          <i className="ph-fill ph-fire text-[30px]" style={{ color: '#FF3333' }} /><span className="text-[12px] font-bold">Нажми — исчезнет</span>
+                        </button>
+                      )}
+                      {m.is_disappearing && mine && <span className="absolute bottom-1 right-2 text-[10px] font-bold text-white/80 flex items-center gap-0.5"><i className="ph-fill ph-fire" />исчезающее</span>}
+                    </>
+                  ) : null}
+                </div>
+              </div>
+            )
+          }
           return (
             <div key={m.id} className={'flex ' + (mine ? 'justify-end' : 'justify-start')}>
               <div className={'max-w-[75%] px-3.5 py-2.5 text-[14px] font-medium leading-snug ' + (mine ? 'rounded-2xl rounded-tr-none text-white' : 'rounded-2xl rounded-tl-none')}
@@ -259,9 +326,10 @@ export function Dialog({ chatId, me, plan, onBack, setToast }) {
       )}
 
       <div className="shrink-0 px-3 pt-2 flex items-center gap-2" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 10px)', background: adult ? 'rgba(20,0,0,0.6)' : 'rgba(255,255,255,0.6)', backdropFilter: 'blur(10px)' }}>
-        <button onClick={() => setToast(adult ? '🔥 Исчезающее фото (скоро)' : '📎 Вложение (скоро)')} className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: adult ? '#2a1010' : '#f3f4f6' }}>
-          <i className={'ph-fill ' + (adult ? 'ph-fire' : 'ph-paperclip') + ' text-[18px]'} style={{ color: adult ? '#FF3333' : '#6b7280' }} />
+        <button onClick={() => !sending && fileRef.current?.click()} className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: adult ? '#2a1010' : '#f3f4f6' }}>
+          <i className={'ph-fill ' + (sending ? 'ph-spinner animate-spin' : (adult ? 'ph-fire' : 'ph-paperclip')) + ' text-[18px]'} style={{ color: adult ? '#FF3333' : '#6b7280' }} />
         </button>
+        <input ref={fileRef} type="file" accept="image/*,video/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) sendMedia(f); e.target.value = '' }} />
         <input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && send()} placeholder="Сообщение…"
           className="flex-1 h-11 rounded-full px-4 text-[14px] font-medium outline-none" style={{ background: adult ? '#2a1010' : '#fff', color: adult ? '#fff' : '#0F0F13', border: adult ? '1px solid #4A0000' : '1px solid #e5e7eb' }} />
         <button onClick={() => send()} className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 active:scale-90 transition" style={{ background: adult ? 'linear-gradient(135deg,#FF3333,#FF00FF)' : 'linear-gradient(135deg,#FF00FF,#FF66CC)' }}>
