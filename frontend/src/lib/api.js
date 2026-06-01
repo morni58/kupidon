@@ -23,6 +23,10 @@ async function req(path, { method = 'GET', body, raw, timeout = 20000 } = {}) {
   clearTimeout(timer)
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }))
+    // Token expired/invalid — let the app re-authenticate via Telegram (UX15).
+    if (res.status === 401 && typeof window !== 'undefined') {
+      try { window.dispatchEvent(new CustomEvent('cupid-unauthorized')) } catch {}
+    }
     throw Object.assign(new Error(err.detail || 'request_failed'), { status: res.status, data: err })
   }
   if (res.status === 204) return {}
