@@ -36,7 +36,7 @@ function StepHead({ title, sub }) {
 }
 
 export function AgeDial({ value, onChange }) {
-  const min = 18, max = 60
+  const min = 16, max = 60
   const ref = useRef(null), drag = useRef(null)
   const set = (v) => onChange(Math.max(min, Math.min(max, v)))
   useEffect(() => {
@@ -67,7 +67,7 @@ export function AgeDial({ value, onChange }) {
           )
         })}
       </div>
-      <p className="mt-2 text-[13px] font-medium text-[#9ca3af]">Тебе должно быть 18 лет или больше</p>
+      <p className="mt-2 text-[13px] font-medium text-[#9ca3af]">Тебе должно быть 16 лет или больше</p>
       <input type="range" min={min} max={max} value={value} onChange={(e) => set(+e.target.value)} className="w-full mt-5" style={{ accentColor: '#FF00FF' }} />
     </div>
   )

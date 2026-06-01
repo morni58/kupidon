@@ -79,6 +79,17 @@ async def get_feed(
     if me.search_gender and me.search_gender != SearchGenderEnum.any:
         q = q.where(User.gender == me.search_gender)
 
+    # Age-pool segregation (safety): minors (<18) only see minors, adults only
+    # see adults. Adult<->minor matching is impossible by construction (U-AGE).
+    from app.core.agehelp import calc_age, birthdate_n_years_ago
+    cutoff_18 = birthdate_n_years_ago(18)  # born on/before this date => adult
+    my_age = calc_age(me.birth_date)
+    if my_age is not None:
+        if my_age < 18:
+            q = q.where(User.birth_date > cutoff_18)   # only minors
+        else:
+            q = q.where(User.birth_date <= cutoff_18)  # only adults
+
     if verified_only:
         q = q.where(User.is_verified == True)
 

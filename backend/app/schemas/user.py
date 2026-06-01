@@ -28,8 +28,9 @@ class OnboardingCreate(BaseModel):
         from datetime import date as d
         today = d.today()
         age = today.year - v.year - ((today.month, today.day) < (v.month, v.day))
-        if age < 18:
-            raise ValueError("Must be 18+")
+        # Hard floor only; the exact minimum is enforced per-config in the endpoint.
+        if age < 14:
+            raise ValueError("Too young")
         return v
 
     @field_validator("bio")
@@ -98,8 +99,9 @@ class UserUpdate(BaseModel):
         from datetime import date as d
         today = d.today()
         age = today.year - v.year - ((today.month, today.day) < (v.month, v.day))
-        if age < 18:
-            raise ValueError("Must be 18+")
+        # Hard floor only; the exact minimum is enforced per-config in the endpoint.
+        if age < 14:
+            raise ValueError("Too young")
         return v
 
 

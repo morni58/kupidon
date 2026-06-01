@@ -49,6 +49,12 @@ async def onboarding(
     if me.birth_date:
         raise HTTPException(status_code=400, detail="Already onboarded")
 
+    from app.core.agehelp import calc_age
+    from app.services.economy import get_config_value
+    min_age = int(await get_config_value(db, "min_reg_age", "16"))
+    if (calc_age(body.birth_date) or 0) < min_age:
+        raise HTTPException(status_code=422, detail=f"Must be {min_age}+")
+
     me.name = body.name
     me.birth_date = body.birth_date
     me.gender = body.gender
@@ -120,9 +126,18 @@ async def update_profile(
 ):
     from app.services.moderation import moderate_text
 
+    from app.core.agehelp import calc_age
+    from app.services.economy import get_config_value
+
     data = body.model_dump(exclude_none=True)
-    # Resulting gender after this update (for gender-dependent guards).
+    # Resulting gender / birth_date after this update (for dependent guards).
     new_gender = data.get("gender", me.gender)
+    new_birth = data.get("birth_date", me.birth_date)
+
+    if "birth_date" in data:
+        min_age = int(await get_config_value(db, "min_reg_age", "16"))
+        if (calc_age(data["birth_date"]) or 0) < min_age:
+            raise HTTPException(status_code=422, detail=f"Must be {min_age}+")
 
     for field, value in data.items():
         if field == "bio" and value:
@@ -133,8 +148,12 @@ async def update_profile(
             g = getattr(new_gender, "value", new_gender)
             if g != "female":
                 raise HTTPException(status_code=403, detail="Anti-oligarch shield is free for female only")
-        if field == "is_18_mode_active" and value and not me.is_verified:
-            raise HTTPException(status_code=403, detail="Verification required for 18+ mode")
+        if field == "is_18_mode_active" and value:
+            if not me.is_verified:
+                raise HTTPException(status_code=403, detail="Verification required for 18+ mode")
+            adult_min = int(await get_config_value(db, "adult_mode_min_age", "18"))
+            if (calc_age(new_birth) or 0) < adult_min:
+                raise HTTPException(status_code=403, detail=f"18+ mode requires age {adult_min}+")
         if field == "is_stealth_mode" and value and not me.is_oligarch_mode:
             raise HTTPException(status_code=403, detail="Oligarch mode required")
         setattr(me, field, value)

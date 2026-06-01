@@ -20,6 +20,8 @@ DEFAULTS = {
     "vip_signal_stars": "500",
     "golden_key_stars": "1000",
     "tag_request_stars": "200",
+    "min_reg_age": "16",          # minimum age to register
+    "adult_mode_min_age": "18",   # minimum age for the 18+ content mode
     "force_chat_extra_stars": "100",
     "tg_unlock_free_msgs": "15",
     "tg_unlock_premium_msgs": "5",
