@@ -306,7 +306,7 @@ export function Feed({ theme, palette, accent: accentProp, dark, plan, me, refre
               </button>
             </div>
           </div>
-          <div className="text-right -mt-1 mb-1"><span className="text-[12px] font-bold" style={{ color: !dark ? '#9ca3af' : 'rgba(255,255,255,0.6)' }}>{swipesLeft} свайпов</span></div>
+          <div className="text-right -mt-1 mb-1"><span className="text-[12px] font-bold" style={{ color: !dark ? '#9ca3af' : 'rgba(255,255,255,0.6)' }}>{me ? `${swipesLeft} свайпов` : '…'}</span></div>
         </div>
 
         <div className="flex-1 min-h-0 screen-pad relative" style={{ paddingBottom: 8 }}>

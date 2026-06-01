@@ -17,6 +17,10 @@ export default function App() {
       tg?.ready?.(); tg?.expand?.()
       // Stop Telegram's vertical drag-to-close from fighting card swipes (U-SCROLL).
       tg?.disableVerticalSwipes?.()
+      // Low-end devices: drop expensive blur/grain/animations (PF).
+      const mem = navigator.deviceMemory || 8
+      const cores = navigator.hardwareConcurrency || 8
+      if (mem <= 4 || cores <= 4) document.body.classList.add('lite')
     } catch {}
     // preload tag catalog so emoji/colors resolve everywhere
     api.getTags().then(registerTags).catch(() => {})
@@ -126,7 +130,7 @@ export default function App() {
     case 'verify':
       view = <Verification setToast={setToast} onBack={() => s.setScreen('profile')} onSuccess={async () => { await s.refreshMe(); setToast('✓ Синяя галочка добавлена'); s.setScreen('profile') }} />; break
     case 'pricing':
-      view = <Pricing currentTier={me?.tier} setToast={setToast} onMutate={refreshMe} onBack={() => s.setScreen('profile')} />; break
+      view = <Pricing palette={palette} currentTier={me?.tier} setToast={setToast} onMutate={refreshMe} onBack={() => s.setScreen('profile')} />; break
     default: view = null
   }
 

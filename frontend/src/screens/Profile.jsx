@@ -85,12 +85,12 @@ export function Profile({ theme, palette: paletteProp, accent: accentProp, dark:
       <MeshBG palette={palette} />
       <div ref={scrollRef} onScroll={(e) => setScrollY(e.target.scrollTop)} className="relative z-10 w-full h-full overflow-y-auto noscroll" style={{ paddingBottom: 'calc(64px + env(safe-area-inset-bottom) + 16px)' }}>
         {/* cover carousel */}
-        <div className="relative" style={{ height: 440 }}>
+        <div className="relative" style={{ height: 'clamp(360px, 54vh, 460px)' }}>
           <div className="absolute inset-0 overflow-hidden" style={{ borderRadius: '0 0 2rem 2rem', transform: `translateY(${scrollY * 0.3}px) scale(${1 + scrollY * 0.0004})`, transformOrigin: 'top' }}>
             <Photo data={photos[photoIdx]} rounded="0 0 2rem 2rem" className="w-full h-full" emojiSize={172} />
             <Grain opacity={0.08} blend="overlay" />
           </div>
-          {frameGlow && <div className="absolute inset-x-0 top-0 pointer-events-none" style={{ height: 440, borderRadius: '0 0 2rem 2rem', boxShadow: `inset 0 0 80px ${hexA(accent, 0.45)}, inset 0 -2px 0 ${hexA(accent, 0.5)}` }} />}
+          {frameGlow && <div className="absolute inset-0 pointer-events-none" style={{ borderRadius: '0 0 2rem 2rem', boxShadow: `inset 0 0 80px ${hexA(accent, 0.45)}, inset 0 -2px 0 ${hexA(accent, 0.5)}` }} />}
           <div className="absolute top-3 left-3 right-3 flex gap-1.5" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
             {photos.map((_, i) => <div key={i} className="flex-1 rounded-full" style={{ height: 3, background: i === photoIdx ? '#fff' : 'rgba(255,255,255,0.4)', boxShadow: i === photoIdx ? '0 0 8px #fff' : 'none' }} />)}
           </div>
@@ -430,9 +430,10 @@ export function ProfileEdit({ onBack, onSaved, setToast }) {
           </div>
           {citySearch && cityResults.length > 0 && (
             <div className="mt-2 bg-white rounded-2xl border border-[#e5e7eb] overflow-hidden" style={{ maxHeight: 180, overflowY: 'auto' }}>
-              {cityResults.map((c) => (
-                <button key={c.id} onClick={() => pickCity(c)} className="w-full px-4 py-2.5 flex flex-col items-start active:bg-[#FAFAFC] border-b border-[#f3f4f6] last:border-0">
-                  <span className="text-[15px] font-bold text-[#0F0F13]">{c.name}</span><span className="text-[12px] text-[#9ca3af]">{c.region}</span>
+              {cityResults.map((c, i) => (
+                <button key={c.id ?? `g${i}`} onClick={() => pickCity(c)} className="w-full px-4 py-2.5 flex items-center gap-2 active:bg-[#FAFAFC] border-b border-[#f3f4f6] last:border-0 text-left">
+                  <div className="flex-1 min-w-0"><span className="text-[15px] font-bold text-[#0F0F13]">{c.name}</span> <span className="text-[12px] text-[#9ca3af]">{c.region}</span></div>
+                  <i className="ph-bold ph-check text-[#FF00FF]" />
                 </button>
               ))}
             </div>
@@ -543,18 +544,23 @@ const STARS = [
   { label: 'Разовый суперлайк', price: 150, emoji: '⭐', product: 'superlike' },
   { label: 'VIP-сигнал (Олигарх)', price: 500, emoji: '👑', product: 'vip_signal' },
 ]
-export function Pricing({ onBack, currentTier, setToast, onMutate }) {
+export function Pricing({ onBack, currentTier, setToast, onMutate, palette }) {
   async function buy(product) {
     if (!product) return
     try {
       const res = await api.createInvoice(product)
-      if (res.invoice_link) { const st = await openInvoice(res.invoice_link); if (st === 'paid') { setToast('✅ Оплата прошла!'); onMutate?.() } }
-      else setToast(`Счёт на ${res.stars} ⭐ создан`)
+      if (res.invoice_link) {
+        const st = await openInvoice(res.invoice_link)
+        if (st === 'paid') { setToast('✅ Оплата прошла!'); onMutate?.() }
+      } else {
+        // No invoice link (Bot API/config issue) — tell the user honestly (UX16).
+        setToast('⚠️ Оплата временно недоступна, попробуй позже')
+      }
     } catch { setToast('Ошибка платежа') }
   }
   return (
     <div className="w-full h-full relative overflow-hidden">
-      <MeshBG palette={VIBES.berry} grainOpacity={0.05} />
+      <MeshBG palette={palette || VIBES.berry} grainOpacity={0.05} />
       <div className="relative z-10 w-full h-full overflow-y-auto noscroll">
         <div className="safe-top screen-pad pb-8">
           <div className="flex items-center gap-3 pt-1 pb-3">

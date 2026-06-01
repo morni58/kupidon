@@ -39,7 +39,15 @@ export function Likes({ plan, me, palette, accent = '#FF00FF', dark = false, onO
         if (!inv.invoice_link) { setToast('Платёж недоступен, попробуй позже'); return }
         const st = await openInvoice(inv.invoice_link)
         if (st !== 'paid') return
-        const r = await api.forceChat(item.user_id); haptic('medium'); onOpenChat(r.match_id)
+        // The bot grants the paid ticket asynchronously — retry briefly (race fix).
+        setToast('Открываю чат…')
+        let r = null
+        for (let i = 0; i < 5 && !r; i++) {
+          try { r = await api.forceChat(item.user_id) }
+          catch (err) { if (err.status === 402) await new Promise((res) => setTimeout(res, 900)); else throw err }
+        }
+        if (!r) { setToast('Оплата прошла, но чат не открылся. Попробуй из «Симпатий» ещё раз.'); return }
+        haptic('medium'); onOpenChat(r.match_id)
       } catch (e) { setToast(e?.data?.detail || 'Не удалось') }
       return
     }
