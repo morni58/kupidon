@@ -198,7 +198,7 @@ export function Profile({ theme, palette: paletteProp, accent: accentProp, dark:
             <div className="flex items-center gap-3 p-3.5">
               <span className="text-[22px]">🔞</span>
               <div className="flex-1"><div className="text-[15px] font-bold" style={{ color: txt }}>Комната 18+</div><div className="text-[12px] font-medium" style={{ color: sub }}>Только для verified</div></div>
-              <Toggle on={full.is_18_mode_active} color="#FF3333" onChange={(v) => toggle('is_18_mode_active', v, (val) => val && !verified ? '🔵 Сначала пройди верификацию' : null)} />
+              <Toggle on={full.is_18_mode_active} color="#FF3333" onChange={(v) => toggle('is_18_mode_active', v, (val) => val && age < 18 ? 'Режим 18+ доступен с 18 лет' : val && !verified ? '🔵 Сначала пройди верификацию' : null)} />
             </div>
             {full.gender === 'female' && (
               <div className="flex items-center gap-3 p-3.5">
