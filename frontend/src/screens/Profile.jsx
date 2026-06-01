@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { MeshBG, THEME_MESH, VIBES, VIBE_LIST, ScoreRing, Equalizer, Grain, hexA } from '../design/fx'
 import { Photo, Button, Toggle, Pill, VerifiedTick, TabBar, Confetti } from '../design/ui'
-import { ageFromBirth, gradPhoto, interestById } from '../design/data'
+import { ageFromBirth, birthFromAge, gradPhoto, interestById } from '../design/data'
 import { api, haptic, openInvoice, mediaUrl } from '../lib/api'
+import { AgeDial, PhotoGrid } from './Onboarding'
 
 function Glass({ children, className = '', dark = false, style = {} }) {
   return (
@@ -31,7 +32,7 @@ function AnimNum({ value, className, style }) {
   return <span className={className} style={style}>{n}</span>
 }
 
-export function Profile({ theme, plan, prefs, setPref, onVerify, onUpgrade, onMutate, setToast, active, onTab, dots }) {
+export function Profile({ theme, plan, prefs, setPref, onVerify, onUpgrade, onMutate, onEdit, setToast, active, onTab, dots }) {
   const [full, setFull] = useState(null)
   const [photoIdx, setPhotoIdx] = useState(0)
   const [scrollY, setScrollY] = useState(0)
@@ -79,6 +80,10 @@ export function Profile({ theme, plan, prefs, setPref, onVerify, onUpgrade, onMu
           <div className="absolute top-3 left-3 right-3 flex gap-1.5" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
             {photos.map((_, i) => <div key={i} className="flex-1 rounded-full" style={{ height: 3, background: i === photoIdx ? '#fff' : 'rgba(255,255,255,0.4)', boxShadow: i === photoIdx ? '0 0 8px #fff' : 'none' }} />)}
           </div>
+          <button onClick={onEdit} className="absolute z-20 right-3 flex items-center gap-1.5 px-3 h-9 rounded-full font-bold text-[13px] active:scale-95 transition"
+            style={{ top: 'calc(env(safe-area-inset-top) + 12px)', background: 'rgba(255,255,255,0.92)', color: '#0F0F13', boxShadow: '0 4px 14px rgba(0,0,0,0.18)' }}>
+            <i className="ph-bold ph-pencil-simple" /> Изменить
+          </button>
           <div className="absolute left-0 top-20 bottom-24 w-1/2" onClick={() => setPhotoIdx((p) => Math.max(0, p - 1))} />
           <div className="absolute right-0 top-20 bottom-24 w-1/2" onClick={() => setPhotoIdx((p) => Math.min(photos.length - 1, p + 1))} />
           <div className="absolute inset-x-3 bottom-3 rounded-[1.5rem] px-4 py-3.5 overflow-hidden" style={{ background: 'rgba(16,12,22,0.36)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.18)' }}>
@@ -215,6 +220,169 @@ export function Profile({ theme, plan, prefs, setPref, onVerify, onUpgrade, onMu
         </div>
       </div>
       <TabBar active={active} onTab={onTab} accent={accent} dark={dark} dots={dots} />
+    </div>
+  )
+}
+
+/* ---------------- PROFILE EDIT ---------------- */
+export function ProfileEdit({ onBack, onSaved, setToast }) {
+  const [loaded, setLoaded] = useState(false)
+  const [name, setName] = useState('')
+  const [age, setAge] = useState(24)
+  const [gender, setGender] = useState(null)
+  const [looking, setLooking] = useState(null)
+  const [bio, setBio] = useState('')
+  const [photos, setPhotos] = useState([null, null, null, null, null])
+  const [allTags, setAllTags] = useState([])
+  const [tags, setTags] = useState([])
+  const [city, setCity] = useState(null)
+  const [citySearch, setCitySearch] = useState('')
+  const [cityResults, setCityResults] = useState([])
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    Promise.all([
+      api.getMeFull().catch(() => null),
+      api.getTags().catch(() => []),
+      api.myMediaSlots().catch(() => []),
+    ]).then(([full, tagList, slots]) => {
+      if (full) {
+        setName(full.name || '')
+        setAge(ageFromBirth(full.birth_date) || 24)
+        setGender(full.gender || null)
+        setLooking(full.search_gender || null)
+        setBio(full.bio || '')
+        setTags(full.tag_ids || [])
+        if (full.city_name) setCity({ name: full.city_name })
+      }
+      setAllTags(tagList)
+      const arr = [null, null, null, null, null]
+      for (const s of slots) { if (s.slot_index >= 1 && s.slot_index <= 5) arr[s.slot_index - 1] = { url: mediaUrl(s.media_url) } }
+      setPhotos(arr)
+      setLoaded(true)
+    })
+  }, [])
+
+  const toggleTag = (id) => setTags((t) => t.includes(id) ? t.filter((x) => x !== id) : t.length >= 5 ? t : [...t, id])
+
+  async function searchCity(q) {
+    setCitySearch(q); setCity(null)
+    if (q.length < 2) { setCityResults([]); return }
+    try { setCityResults(await api.geoSearch(q)) } catch {}
+  }
+  async function pickCity(c) { try { await api.setCity(c.id) } catch {} setCity(c); setCitySearch(''); setCityResults([]) }
+  async function useGPS() {
+    if (!navigator.geolocation) { setToast('GPS недоступен'); return }
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      try { const r = await api.geoResolve(pos.coords.latitude, pos.coords.longitude); setCity({ id: r.city_id, name: r.city_name || 'Местоположение' }); setToast('📍 ' + (r.city_name || 'Найдено')) }
+      catch { setToast('Ошибка GPS') }
+    }, () => setToast('Доступ к GPS запрещён'))
+  }
+
+  async function save() {
+    if (name.trim().length < 2) { setToast('Введи имя'); return }
+    setBusy(true)
+    try {
+      const patch = { name: name.trim(), birth_date: birthFromAge(age), bio: bio || '' }
+      if (gender) patch.gender = gender
+      if (looking) patch.search_gender = looking === 'all' ? 'any' : looking
+      await api.updateProfile(patch)
+      await api.setTags(tags)
+      haptic('success'); setToast('✅ Профиль обновлён'); onSaved?.()
+    } catch (e) {
+      setToast(e?.data?.detail === 'Must be 18+' ? 'Доступ с 18 лет' : (e?.data?.detail || 'Ошибка сохранения'))
+    }
+    setBusy(false)
+  }
+
+  if (!loaded) return <div className="w-full h-full flex items-center justify-center" style={{ background: '#FAFAFC' }}><div className="w-12 h-12 rounded-2xl bg-black/5 animate-pulse" /></div>
+
+  const Section = ({ title, children }) => (
+    <div className="mb-5"><h3 className="text-[14px] font-black text-[#0F0F13] mb-2.5">{title}</h3>{children}</div>
+  )
+
+  return (
+    <div className="w-full h-full flex flex-col" style={{ background: '#FAFAFC' }}>
+      <div className="safe-top shrink-0 flex items-center gap-3 px-4 pb-2" style={{ borderBottom: '1px solid #f3f4f6', background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)' }}>
+        <button onClick={onBack} className="w-9 h-9 rounded-full bg-white border border-[#e5e7eb] flex items-center justify-center active:scale-90 transition shrink-0"><i className="ph-bold ph-arrow-left text-[18px] text-[#0F0F13]" /></button>
+        <h1 className="text-[18px] font-black text-[#0F0F13]">Редактировать профиль</h1>
+      </div>
+
+      <div className="flex-1 min-h-0 overflow-y-auto noscroll screen-pad pt-4" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 90px)' }}>
+        <Section title="Фото"><PhotoGrid photos={photos} setPhotos={setPhotos} setToast={setToast} /></Section>
+
+        <Section title="Имя">
+          <input value={name} onChange={(e) => setName(e.target.value.replace(/[^a-zA-Zа-яА-ЯёЁ\s-]/g, ''))} placeholder="Имя"
+            className="w-full h-13 rounded-2xl bg-white border-2 border-[#e5e7eb] focus:border-[#FF00FF] outline-none px-4 py-3.5 text-[16px] font-semibold text-[#0F0F13] transition" />
+        </Section>
+
+        <Section title="Возраст"><div style={{ height: 180 }}><AgeDial value={age} onChange={setAge} /></div></Section>
+
+        <Section title="Пол">
+          <div className="grid grid-cols-2 gap-3">
+            {[{ id: 'male', label: 'Парень', emoji: '👨' }, { id: 'female', label: 'Девушка', emoji: '👩' }].map((g) => (
+              <button key={g.id} onClick={() => setGender(g.id)} className="rounded-2xl flex items-center justify-center gap-2 transition active:scale-95"
+                style={{ height: 60, background: gender === g.id ? 'rgba(255,0,255,0.06)' : '#fff', border: `2px solid ${gender === g.id ? '#FF00FF' : '#e5e7eb'}` }}>
+                <span className="text-[24px]">{g.emoji}</span><span className="text-[15px] font-bold text-[#0F0F13]">{g.label}</span>
+              </button>
+            ))}
+          </div>
+        </Section>
+
+        <Section title="Кого ищешь">
+          <div className="grid grid-cols-3 gap-2.5">
+            {[{ id: 'male', label: 'Парня', emoji: '👨' }, { id: 'female', label: 'Девушку', emoji: '👩' }, { id: 'all', label: 'Всех', emoji: '💞' }].map((o) => {
+              const sel = looking === o.id || (looking === 'any' && o.id === 'all')
+              return (
+                <button key={o.id} onClick={() => setLooking(o.id)} className="rounded-2xl flex flex-col items-center justify-center gap-1 transition active:scale-95"
+                  style={{ height: 64, background: sel ? 'rgba(255,0,255,0.06)' : '#fff', border: `2px solid ${sel ? '#FF00FF' : '#e5e7eb'}` }}>
+                  <span className="text-[22px]">{o.emoji}</span><span className="text-[12px] font-bold text-[#0F0F13]">{o.label}</span>
+                </button>
+              )
+            })}
+          </div>
+        </Section>
+
+        <Section title="Город">
+          <button onClick={useGPS} className="w-full h-12 rounded-2xl flex items-center justify-center gap-2 font-bold text-white mb-2.5" style={{ background: 'linear-gradient(135deg,#FF00FF,#FF66CC)' }}><i className="ph-fill ph-map-pin" /> Найти меня по GPS</button>
+          <div className="relative">
+            <i className="ph-bold ph-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-[#9ca3af]" />
+            <input value={citySearch} onChange={(e) => searchCity(e.target.value)} placeholder="Введи город…"
+              className="w-full h-12 rounded-2xl bg-white border-2 border-[#e5e7eb] focus:border-[#FF00FF] outline-none pl-11 pr-4 text-[15px] font-semibold text-[#0F0F13] transition" />
+          </div>
+          {citySearch && cityResults.length > 0 && (
+            <div className="mt-2 bg-white rounded-2xl border border-[#e5e7eb] overflow-hidden" style={{ maxHeight: 180, overflowY: 'auto' }}>
+              {cityResults.map((c) => (
+                <button key={c.id} onClick={() => pickCity(c)} className="w-full px-4 py-2.5 flex flex-col items-start active:bg-[#FAFAFC] border-b border-[#f3f4f6] last:border-0">
+                  <span className="text-[15px] font-bold text-[#0F0F13]">{c.name}</span><span className="text-[12px] text-[#9ca3af]">{c.region}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          {city && <div className="mt-2.5 flex items-center gap-2 text-[15px] font-bold text-[#10B981]"><i className="ph-fill ph-check-circle text-[20px]" /> {city.name}</div>}
+        </Section>
+
+        <Section title="О себе">
+          <div className="relative">
+            <textarea value={bio} maxLength={150} onChange={(e) => setBio(e.target.value)} rows={4} placeholder="Расскажи о себе…"
+              className="w-full rounded-2xl bg-white border-2 border-[#e5e7eb] focus:border-[#FF00FF] outline-none p-4 text-[15px] font-medium text-[#0F0F13] resize-none transition" />
+            <span className="absolute bottom-3 right-4 text-[12px] font-bold text-[#9ca3af]">{bio.length}/150</span>
+          </div>
+        </Section>
+
+        <Section title={`Интересы (${tags.length}/5)`}>
+          <div className="flex flex-wrap gap-2">
+            {allTags.filter((t) => !t.is_18_only).map((t) => (
+              <Pill key={t.id} interest={{ id: t.id, label: t.name, color: t.color_hex || '#FF00FF', emoji: t.emoji }}
+                selected={tags.includes(t.id)} dim={!tags.includes(t.id) && tags.length >= 5} onClick={() => toggleTag(t.id)} small />
+            ))}
+          </div>
+        </Section>
+      </div>
+
+      <div className="shrink-0 px-4 pt-2" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)', background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)', borderTop: '1px solid #f3f4f6' }}>
+        <Button disabled={busy} onClick={save}>{busy ? 'Сохраняем…' : 'Сохранить'}</Button>
+      </div>
     </div>
   )
 }

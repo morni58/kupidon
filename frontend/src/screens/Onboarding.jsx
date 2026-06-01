@@ -35,7 +35,7 @@ function StepHead({ title, sub }) {
   )
 }
 
-function AgeDial({ value, onChange }) {
+export function AgeDial({ value, onChange }) {
   const min = 18, max = 60
   const ref = useRef(null), drag = useRef(null)
   const set = (v) => onChange(Math.max(min, Math.min(max, v)))
@@ -74,7 +74,7 @@ function AgeDial({ value, onChange }) {
 }
 
 // Real photo upload grid
-function PhotoGrid({ photos, setPhotos, setToast }) {
+export function PhotoGrid({ photos, setPhotos, setToast }) {
   const [loadingIdx, setLoadingIdx] = useState(null)
   const fileRefs = useRef([])
   const pick = (idx) => { if (loadingIdx == null) fileRefs.current[idx]?.click() }

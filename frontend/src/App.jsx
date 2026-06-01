@@ -6,7 +6,7 @@ import { Toast } from './design/ui'
 import { Onboarding } from './screens/Onboarding'
 import { Feed } from './screens/Feed'
 import { Likes, Chats, Dialog } from './screens/Social'
-import { Profile, Verification, Pricing } from './screens/Profile'
+import { Profile, ProfileEdit, Verification, Pricing } from './screens/Profile'
 
 export default function App() {
   const s = useStore()
@@ -89,7 +89,9 @@ export default function App() {
       view = <Dialog chatId={s.activeChat} me={me} plan={plan} setToast={setToast} onBack={() => s.setScreen('chats')} />; break
     case 'profile':
       view = <Profile theme={theme} plan={plan} prefs={prefs} setPref={s.setPref} setToast={setToast} dots={dots} active="profile" onTab={onTab}
-        onVerify={() => s.setScreen('verify')} onUpgrade={() => s.setScreen('pricing')} onMutate={refreshMe} />; break
+        onVerify={() => s.setScreen('verify')} onUpgrade={() => s.setScreen('pricing')} onMutate={refreshMe} onEdit={() => s.setScreen('edit')} />; break
+    case 'edit':
+      view = <ProfileEdit setToast={setToast} onBack={() => s.setScreen('profile')} onSaved={async () => { await s.refreshMe(); s.setScreen('profile') }} />; break
     case 'verify':
       view = <Verification setToast={setToast} onBack={() => s.setScreen('profile')} onSuccess={async () => { await s.refreshMe(); setToast('✓ Синяя галочка добавлена'); s.setScreen('profile') }} />; break
     case 'pricing':
