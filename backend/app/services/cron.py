@@ -22,7 +22,19 @@ async def daily_reset():
         users_r = await db.execute(select(User).where(User.is_banned == False))
         users = users_r.scalars().all()
 
+        now = datetime.now(timezone.utc)
         for user in users:
+            # Expire paid subscriptions whose term has ended -> back to free.
+            if user.tier != TierEnum.free and user.tier_until is not None:
+                tu = user.tier_until
+                if tu.tzinfo is None:
+                    tu = tu.replace(tzinfo=timezone.utc)
+                if tu < now:
+                    user.tier = TierEnum.free
+                    user.tier_until = None
+                    user.is_oligarch_mode = False
+                    user.is_stealth_mode = False
+
             # Reset daily counters
             if user.tier == TierEnum.free:
                 user.swipes_left = free_sw

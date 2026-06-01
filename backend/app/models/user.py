@@ -49,6 +49,7 @@ class User(Base):
     streak_days: Mapped[int] = mapped_column(SmallInteger, default=0)
 
     tier: Mapped[TierEnum] = mapped_column(Enum(TierEnum), default=TierEnum.free)
+    tier_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     swipes_left: Mapped[int] = mapped_column(Integer, default=50)
     force_chats_used: Mapped[int] = mapped_column(Integer, default=0)
     superlikes_left: Mapped[int] = mapped_column(Integer, default=0)
