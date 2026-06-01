@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { api } from './api'
 import { PLANS } from '../design/data'
+import { VIBES, THEME_MESH, darkVibe } from '../design/fx'
 
 // Cosmetic-only profile prefs persisted locally
 const loadPrefs = () => {
@@ -17,6 +18,8 @@ export const useStore = create((set, get) => ({
   vibe: prefs.vibe || 'neon',
   frame: prefs.frame || 'glow',
   anthem: prefs.anthem !== false,
+  uiTheme: prefs.uiTheme || 'light',   // light | dark (visual; separate from 18+ mode)
+  anthemTrack: prefs.anthemTrack || null, // {name, url} chosen profile anthem
 
   setScreen: (screen) => set({ screen }),
   setActiveChat: (activeChat) => set({ activeChat }),
@@ -30,7 +33,8 @@ export const useStore = create((set, get) => ({
   },
 
   setPref: (patch) => {
-    const next = { vibe: get().vibe, frame: get().frame, anthem: get().anthem, ...patch }
+    const cur = get()
+    const next = { vibe: cur.vibe, frame: cur.frame, anthem: cur.anthem, uiTheme: cur.uiTheme, anthemTrack: cur.anthemTrack, ...patch }
     localStorage.setItem('cupid_prefs', JSON.stringify(next))
     set(patch)
   },
@@ -47,10 +51,30 @@ export const useStore = create((set, get) => ({
   plan: () => PLANS[get().me?.tier] || PLANS.free,
   theme: () => {
     const me = get().me
-    if (!me) return 'light'
-    if (me.is_18_mode_active) return 'adult'
+    const ui = get().uiTheme === 'dark' ? 'dark' : 'light'
+    if (!me) return ui
+    if (me.is_18_mode_active) return 'adult'        // content mode forces its theme
     if (me.tier === 'kupidon' && me.is_stealth_mode) return 'oligarch'
-    return 'light'
+    return ui
+  },
+  // Concrete palette + accent for the current theme & chosen vibe — used by ALL
+  // screens so customization applies everywhere (U-THEMES / U-CUSTOM).
+  palette: () => {
+    const t = get().theme()
+    const vibe = VIBES[get().vibe] || VIBES.neon
+    if (t === 'adult' || t === 'oligarch') return THEME_MESH[t]
+    if (t === 'dark') return darkVibe(vibe)
+    return vibe
+  },
+  accent: () => {
+    const t = get().theme()
+    if (t === 'adult') return '#FF3333'
+    if (t === 'oligarch') return '#FFD700'
+    return (VIBES[get().vibe] || VIBES.neon).accent
+  },
+  isDark: () => {
+    const t = get().theme()
+    return t === 'adult' || t === 'oligarch' || t === 'dark'
   },
   settings: () => {
     const me = get().me || {}

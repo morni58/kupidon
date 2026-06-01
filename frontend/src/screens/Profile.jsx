@@ -32,7 +32,7 @@ function AnimNum({ value, className, style }) {
   return <span className={className} style={style}>{n}</span>
 }
 
-export function Profile({ theme, plan, prefs, setPref, onVerify, onUpgrade, onMutate, onEdit, setToast, active, onTab, dots }) {
+export function Profile({ theme, palette: paletteProp, accent: accentProp, dark: darkProp, plan, prefs, setPref, onVerify, onUpgrade, onMutate, onEdit, setToast, active, onTab, dots }) {
   const [full, setFull] = useState(null)
   const [photoIdx, setPhotoIdx] = useState(0)
   const [scrollY, setScrollY] = useState(0)
@@ -43,11 +43,10 @@ export function Profile({ theme, plan, prefs, setPref, onVerify, onUpgrade, onMu
 
   if (!full) return <div className="w-full h-full flex items-center justify-center" style={{ background: '#FAFAFC' }}><div className="w-12 h-12 rounded-2xl bg-black/5 animate-pulse" /></div>
 
-  const dark = theme === 'oligarch' || theme === 'adult'
-  const themeAccent = theme === 'oligarch' ? '#FFD700' : theme === 'adult' ? '#FF3333' : null
+  const dark = darkProp != null ? darkProp : (theme === 'oligarch' || theme === 'adult')
   const vibe = VIBES[prefs.vibe] || VIBES.neon
-  const accent = themeAccent || vibe.accent
-  const palette = theme === 'light' ? vibe : THEME_MESH[theme]
+  const accent = accentProp || vibe.accent
+  const palette = paletteProp || (theme === 'light' ? vibe : THEME_MESH[theme])
   const verified = full.is_verified
   const age = ageFromBirth(full.birth_date)
   const photos = (full.media && full.media.length ? full.media.map((url) => ({ url: mediaUrl(url) })) : [gradPhoto((full.name || '?').charCodeAt(0), '😎')])
@@ -94,7 +93,7 @@ export function Profile({ theme, plan, prefs, setPref, onVerify, onUpgrade, onMu
             </div>
             <div className="mt-1.5 flex items-center justify-between">
               <p className="text-[12.5px] font-semibold flex items-center gap-1" style={{ color: 'rgba(255,255,255,0.8)' }}><i className="ph-fill ph-map-pin" style={{ color: accent }} /> {full.city_name || 'Рядом'}</p>
-              {prefs.anthem && <div className="flex items-center gap-2"><Equalizer color="#fff" bars={4} height={14} /><span className="text-[11px] font-semibold" style={{ color: 'rgba(255,255,255,0.75)' }}>Мой гимн</span></div>}
+              {prefs.anthem && <div className="flex items-center gap-2 min-w-0"><Equalizer color="#fff" bars={4} height={14} /><span className="text-[11px] font-semibold truncate max-w-[160px]" style={{ color: 'rgba(255,255,255,0.75)' }}>{prefs.anthemTrack || 'Мой гимн'}</span></div>}
             </div>
           </div>
         </div>
@@ -113,6 +112,21 @@ export function Profile({ theme, plan, prefs, setPref, onVerify, onUpgrade, onMu
           {/* customization */}
           <Glass dark={dark} className="p-4">
             <div className="flex items-center gap-2 mb-3"><i className="ph-fill ph-palette" style={{ color: accent }} /><span className="text-[14px] font-black" style={{ color: txt }}>Оформление профиля</span></div>
+
+            {/* Тема (визуальная, не зависит от 18+) */}
+            <div className="text-[11px] font-bold uppercase tracking-wider mb-2" style={{ color: sub }}>Тема</div>
+            <div className="flex gap-2.5 mb-4">
+              {[{ id: 'light', label: 'Светлая', emoji: '☀️' }, { id: 'dark', label: 'Тёмная', emoji: '🌙' }].map((th) => {
+                const on = (prefs.uiTheme || 'light') === th.id
+                return (
+                  <button key={th.id} onClick={() => setPref({ uiTheme: th.id })} className="flex-1 rounded-2xl flex items-center justify-center gap-1.5 py-2.5 transition active:scale-95"
+                    style={{ background: on ? hexA(accent, 0.14) : (dark ? 'rgba(255,255,255,0.05)' : '#fff'), border: `2px solid ${on ? accent : (dark ? 'rgba(255,255,255,0.12)' : '#e5e7eb')}`, color: txt, fontWeight: 700, fontSize: 13 }}>
+                    <span>{th.emoji}</span>{th.label}
+                  </button>
+                )
+              })}
+            </div>
+
             <div className="text-[11px] font-bold uppercase tracking-wider mb-2" style={{ color: sub }}>Вайб</div>
             <div className="flex gap-2.5 mb-4">
               {VIBE_LIST.map((v) => (
@@ -127,9 +141,15 @@ export function Profile({ theme, plan, prefs, setPref, onVerify, onUpgrade, onMu
               <Toggle on={prefs.frame === 'glow'} color={accent} onChange={(v) => setPref({ frame: v ? 'glow' : 'flat' })} />
             </div>
             <div className="flex items-center justify-between py-1">
-              <div className="flex items-center gap-2"><i className="ph-fill ph-music-notes text-[16px]" style={{ color: accent }} /><span className="text-[13.5px] font-semibold" style={{ color: txt }}>Музыкальный гимн</span></div>
+              <div className="flex items-center gap-2"><i className="ph-fill ph-music-notes text-[16px]" style={{ color: accent }} /><span className="text-[13.5px] font-semibold" style={{ color: txt }}>Мой гимн (любимый трек)</span></div>
               <Toggle on={prefs.anthem} color={accent} onChange={(v) => setPref({ anthem: v })} />
             </div>
+            {prefs.anthem && (
+              <input value={prefs.anthemTrack || ''} onChange={(e) => setPref({ anthemTrack: e.target.value })} maxLength={60}
+                placeholder="Исполнитель — Название трека"
+                className="w-full mt-1 rounded-xl outline-none px-3 py-2.5 text-[13px] font-semibold"
+                style={{ background: dark ? 'rgba(255,255,255,0.06)' : '#fff', border: `1.5px solid ${dark ? 'rgba(255,255,255,0.12)' : '#e5e7eb'}`, color: txt }} />
+            )}
           </Glass>
 
           {/* streak */}

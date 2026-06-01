@@ -34,6 +34,16 @@ export const THEME_MESH = {
     blobs: [['#FFD700', 20, 16, 60, 0.22, 'mesh-a'], ['#7A5C12', 84, 30, 72, 0.40, 'mesh-b'], ['#B8860B', 46, 96, 66, 0.26, 'mesh-c'], ['#2A210A', 88, 86, 64, 0.6, 'mesh-a']] },
 }
 
+// Build a dark-themed palette from any vibe: same accent colours, dark base.
+// This is the plain "dark mode" (not the 18+/oligarch themes).
+export function darkVibe(vibe) {
+  const v = vibe || VIBES.neon
+  return {
+    id: v.id + '-dark', name: v.name, accent: v.accent, base: '#0C0C10', dark: true,
+    blobs: v.blobs.map((b) => [b[0], b[1], b[2], b[3], Math.min(0.5, b[4] + 0.06), b[5]]),
+  }
+}
+
 export function MeshBG({ palette, className = '', style = {}, grain = true, grainOpacity, drift = true }) {
   const p = palette || VIBES.neon
   return (

@@ -57,10 +57,14 @@ export default function App() {
   }, [])
 
   const theme = s.theme()
+  const palette = s.palette()
+  const accent = s.accent()
+  const dark = s.isDark()
   const plan = s.plan()
   const me = s.me
   const dots = { likes: true, chats: false }
-  const prefs = { vibe: s.vibe, frame: s.frame, anthem: s.anthem }
+  const prefs = { vibe: s.vibe, frame: s.frame, anthem: s.anthem, uiTheme: s.uiTheme, anthemTrack: s.anthemTrack }
+  const themeProps = { theme, palette, accent, dark }
   const onTab = (id) => s.setScreen(id)
   const refreshMe = () => s.refreshMe()
 
@@ -79,16 +83,16 @@ export default function App() {
     case 'onboarding':
       view = <Onboarding setToast={setToast} onDone={async () => { await s.refreshMe(); s.setScreen('feed') }} />; break
     case 'feed':
-      view = <Feed theme={theme} plan={plan} me={me} refreshMe={refreshMe} setToast={setToast} dots={dots} active="feed" onTab={onTab}
+      view = <Feed {...themeProps} plan={plan} me={me} refreshMe={refreshMe} setToast={setToast} dots={dots} active="feed" onTab={onTab}
         onMatch={(matchId) => s.openChat(matchId)} onUpgrade={(product) => s.setScreen('pricing')} />; break
     case 'likes':
-      view = <Likes plan={plan} me={me} setToast={setToast} dots={dots} active="likes" onTab={onTab} onOpenChat={(id) => s.openChat(id)} />; break
+      view = <Likes {...themeProps} plan={plan} me={me} setToast={setToast} dots={dots} active="likes" onTab={onTab} onOpenChat={(id) => s.openChat(id)} />; break
     case 'chats':
-      view = <Chats dots={dots} active="chats" onTab={onTab} onOpenChat={(id) => s.openChat(id)} />; break
+      view = <Chats {...themeProps} dots={dots} active="chats" onTab={onTab} onOpenChat={(id) => s.openChat(id)} />; break
     case 'dialog':
-      view = <Dialog chatId={s.activeChat} me={me} plan={plan} setToast={setToast} onBack={() => s.setScreen('chats')} />; break
+      view = <Dialog {...themeProps} chatId={s.activeChat} me={me} plan={plan} setToast={setToast} onBack={() => s.setScreen('chats')} />; break
     case 'profile':
-      view = <Profile theme={theme} plan={plan} prefs={prefs} setPref={s.setPref} setToast={setToast} dots={dots} active="profile" onTab={onTab}
+      view = <Profile {...themeProps} plan={plan} prefs={prefs} setPref={s.setPref} setToast={setToast} dots={dots} active="profile" onTab={onTab}
         onVerify={() => s.setScreen('verify')} onUpgrade={() => s.setScreen('pricing')} onMutate={refreshMe} onEdit={() => s.setScreen('edit')} />; break
     case 'edit':
       view = <ProfileEdit setToast={setToast} onBack={() => s.setScreen('profile')} onSaved={async () => { await s.refreshMe(); s.setScreen('profile') }} />; break

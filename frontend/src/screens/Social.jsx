@@ -15,8 +15,13 @@ function ScreenHead({ title, sub, dark }) {
   )
 }
 
+// Surface helpers so cards respond to the active theme everywhere (U-CUSTOM).
+const surfaceStyle = (dark) => dark
+  ? { background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(12px)' }
+  : { background: 'rgba(255,255,255,0.85)', border: '1px solid rgba(255,255,255,0.6)', backdropFilter: 'blur(12px)', boxShadow: '0 8px 24px -14px rgba(0,0,0,0.12)' }
+
 /* ---------------- LIKES ---------------- */
-export function Likes({ plan, me, onOpenChat, setToast, dots, active, onTab }) {
+export function Likes({ plan, me, palette, accent = '#FF00FF', dark = false, onOpenChat, setToast, dots, active, onTab }) {
   const [items, setItems] = useState([])
   const [views, setViews] = useState({ count: 0, items: [], is_premium: false })
   const [loading, setLoading] = useState(true)
@@ -34,15 +39,15 @@ export function Likes({ plan, me, onOpenChat, setToast, dots, active, onTab }) {
 
   return (
     <div className="w-full h-full relative overflow-hidden">
-      <MeshBG palette={VIBES.neon} grainOpacity={0.05} />
+      <MeshBG palette={palette || VIBES.neon} grainOpacity={0.05} />
       <div className="relative z-10 h-full overflow-y-auto noscroll" style={{ paddingBottom: 'calc(64px + env(safe-area-inset-bottom) + 16px)' }}>
-        <ScreenHead title="Симпатии ❤️" sub="Они лайкнули тебя" />
+        <ScreenHead title="Симпатии ❤️" sub="Они лайкнули тебя" dark={dark} />
         <div className="screen-pad space-y-3 pt-2">
           {loading && <div className="h-32 flex items-center justify-center"><div className="w-12 h-12 rounded-2xl bg-black/5 animate-pulse" /></div>}
           {!loading && items.length === 0 && (
             <div className="text-center py-16">
               <div className="text-[56px]">💔</div>
-              <h2 className="text-[18px] font-black text-[#0F0F13] mt-2">Пока никто не лайкнул</h2>
+              <h2 className="text-[18px] font-black mt-2" style={{ color: dark ? '#fff' : '#0F0F13' }}>Пока никто не лайкнул</h2>
               <p className="text-[13px] text-[#6b7280] mt-1">Свайпай активнее — и симпатии появятся!</p>
             </div>
           )}
@@ -63,11 +68,11 @@ export function Likes({ plan, me, onOpenChat, setToast, dots, active, onTab }) {
               </div>
             </div>
           ) : (
-            <div key={l.user_id} className="rounded-3xl p-3 flex items-center gap-3" style={{ background: 'rgba(255,255,255,0.85)', border: '1px solid rgba(255,255,255,0.6)', backdropFilter: 'blur(12px)', boxShadow: '0 8px 24px -14px rgba(0,0,0,0.12)' }}>
+            <div key={l.user_id} className="rounded-3xl p-3 flex items-center gap-3" style={surfaceStyle(dark)}>
               <Photo data={pic(l.photo, l.name, '💃')} rounded="16px" className="w-16 h-16 shrink-0" emojiSize={34} />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1">
-                  <span className="text-[16px] font-bold text-[#0F0F13]">{l.name}{l.age ? `, ${l.age}` : ''}</span>
+                  <span className="text-[16px] font-bold" style={{ color: dark ? '#fff' : '#0F0F13' }}>{l.name}{l.age ? `, ${l.age}` : ''}</span>
                   {l.is_verified && <VerifiedTick size={16} />}
                 </div>
                 <div className="text-[12px] font-medium text-[#9ca3af] mt-0.5">Лайкнул(а) недавно</div>
@@ -78,7 +83,7 @@ export function Likes({ plan, me, onOpenChat, setToast, dots, active, onTab }) {
 
           {/* who viewed you */}
           <div className="pt-2">
-            <h3 className="text-[15px] font-bold text-[#0F0F13] mb-2 px-1">👁 Кто смотрел тебя</h3>
+            <h3 className="text-[15px] font-bold mb-2 px-1" style={{ color: dark ? '#fff' : '#0F0F13' }}>👁 Кто смотрел тебя</h3>
             {views.is_premium ? (
               <div className="grid grid-cols-4 gap-3">
                 {views.items.map((v, i) => (
@@ -90,7 +95,7 @@ export function Likes({ plan, me, onOpenChat, setToast, dots, active, onTab }) {
                 {views.items.length === 0 && <span className="text-[13px] text-[#9ca3af] col-span-4">Пока никто не смотрел</span>}
               </div>
             ) : (
-              <div className="rounded-3xl p-4" style={{ background: 'rgba(255,255,255,0.85)', border: '1px solid rgba(255,255,255,0.6)', backdropFilter: 'blur(12px)' }}>
+              <div className="rounded-3xl p-4" style={surfaceStyle(dark)}>
                 <div className="flex gap-3 mb-3">
                   {[0, 1, 2, 3].map((i) => <div key={i} className="w-14 h-14 rounded-full" style={{ background: 'linear-gradient(135deg,#d1d5db,#9ca3af)', filter: 'blur(3px)' }} />)}
                 </div>
@@ -103,26 +108,26 @@ export function Likes({ plan, me, onOpenChat, setToast, dots, active, onTab }) {
           </div>
         </div>
       </div>
-      <TabBar active={active} onTab={onTab} accent="#FF00FF" dots={dots} />
+      <TabBar active={active} onTab={onTab} accent={accent} dark={dark} dots={dots} />
     </div>
   )
 }
 
 /* ---------------- CHATS LIST ---------------- */
-export function Chats({ onOpenChat, active, onTab, dots }) {
+export function Chats({ palette, accent = '#FF00FF', dark = false, onOpenChat, active, onTab, dots }) {
   const [chats, setChats] = useState([])
   const [loading, setLoading] = useState(true)
   useEffect(() => { api.chats().then((c) => { setChats(c); setLoading(false) }).catch(() => setLoading(false)) }, [])
   return (
     <div className="w-full h-full relative overflow-hidden">
-      <MeshBG palette={VIBES.neon} grainOpacity={0.05} />
+      <MeshBG palette={palette || VIBES.neon} grainOpacity={0.05} />
       <div className="relative z-10 h-full overflow-y-auto noscroll" style={{ paddingBottom: 'calc(64px + env(safe-area-inset-bottom) + 16px)' }}>
-        <ScreenHead title="Чаты 💬" sub="Твои совпадения" />
+        <ScreenHead title="Чаты 💬" sub="Твои совпадения" dark={dark} />
         {!loading && chats.length === 0 ? (
           <div className="h-[60vh] flex flex-col items-center justify-center text-center px-8">
             <div className="text-[64px]">💬</div>
-            <h2 className="text-[20px] font-black text-[#0F0F13] mt-2">Нет чатов</h2>
-            <p className="text-[14px] text-[#6b7280] mt-1">Свайпай — и они появятся!</p>
+            <h2 className="text-[20px] font-black mt-2" style={{ color: dark ? '#fff' : '#0F0F13' }}>Нет чатов</h2>
+            <p className="text-[14px] mt-1" style={{ color: dark ? '#9ca3af' : '#6b7280' }}>Свайпай — и они появятся!</p>
           </div>
         ) : (
           <div className="screen-pad pt-2">
@@ -135,7 +140,7 @@ export function Chats({ onOpenChat, active, onTab, dots }) {
                 </div>
                 <div className="flex-1 min-w-0 text-left">
                   <div className="flex items-center gap-1">
-                    <span className="text-[16px] font-bold text-[#0F0F13]">{c.name}</span>
+                    <span className="text-[16px] font-bold" style={{ color: dark ? '#fff' : '#0F0F13' }}>{c.name}</span>
                     {c.verified && <VerifiedTick size={15} />}
                   </div>
                   <div className="text-[13px] font-medium text-[#9ca3af] truncate mt-0.5">{c.last}</div>
@@ -145,13 +150,13 @@ export function Chats({ onOpenChat, active, onTab, dots }) {
           </div>
         )}
       </div>
-      <TabBar active={active} onTab={onTab} accent="#FF00FF" dots={dots} />
+      <TabBar active={active} onTab={onTab} accent={accent} dark={dark} dots={dots} />
     </div>
   )
 }
 
 /* ---------------- DIALOG ---------------- */
-export function Dialog({ chatId, me, plan, onBack, setToast }) {
+export function Dialog({ chatId, me, plan, theme, accent: accentProp, onBack, setToast }) {
   const [info, setInfo] = useState(null)
   const [msgs, setMsgs] = useState([])
   const [text, setText] = useState('')
@@ -165,7 +170,7 @@ export function Dialog({ chatId, me, plan, onBack, setToast }) {
   const fileRef = useRef(null)
 
   const adult = info?.is_18_room
-  const accent = adult ? '#FF3333' : '#FF00FF'
+  const accent = adult ? '#FF3333' : (accentProp || '#FF00FF')
 
   useEffect(() => {
     if (!chatId) return
