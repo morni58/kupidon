@@ -60,6 +60,7 @@ async def get_feed(
     me: User,
     verified_only: bool = False,
     limit: int = 15,
+    tag_ids: Optional[list[int]] = None,
 ) -> List[User]:
     """Return scored and filtered feed candidates."""
     # Base filters
@@ -80,6 +81,11 @@ async def get_feed(
 
     if verified_only:
         q = q.where(User.is_verified == True)
+
+    # Optional interest filter: only show people who share a selected tag (U-TAGS).
+    if tag_ids:
+        tagged = select(UserTag.user_id).where(UserTag.tag_id.in_(tag_ids))
+        q = q.where(User.id.in_(tagged))
 
     # Anti-oligarch shield works both ways (L2):
     # - an oligarch never sees shielded users

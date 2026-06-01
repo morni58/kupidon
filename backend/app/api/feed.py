@@ -19,6 +19,15 @@ router = APIRouter(prefix="/api", tags=["feed"])
 FEED_CACHE_TTL = 300  # 5 min
 
 
+async def _invalidate_feed(redis, user_id) -> None:
+    """Drop all cached feed variants (verified/tags combos) for a user."""
+    try:
+        async for key in redis.scan_iter(match=f"feed:{user_id}:*"):
+            await redis.delete(key)
+    except Exception:
+        pass
+
+
 def _distance_label(me: User, c: User) -> Optional[str]:
     """Human-readable approximate distance for a feed card (L11)."""
     import math
@@ -37,16 +46,24 @@ def _distance_label(me: User, c: User) -> Optional[str]:
 @router.get("/feed", response_model=List[FeedCard])
 async def feed(
     verified_only: bool = Query(False),
+    tags: Optional[str] = Query(None, description="comma-separated tag ids to filter by"),
     db: AsyncSession = Depends(get_db),
     me: User = Depends(get_current_user),
 ):
+    tag_ids = None
+    if tags:
+        try:
+            tag_ids = [int(x) for x in tags.split(",") if x.strip()]
+        except ValueError:
+            tag_ids = None
+
     redis = await get_redis()
-    cache_key = f"feed:{me.id}:{verified_only}"
+    cache_key = f"feed:{me.id}:{verified_only}:{tags or ''}"
     cached = await redis.get(cache_key)
     if cached:
         return json.loads(cached)
 
-    candidates = await get_feed(db, me, verified_only=verified_only)
+    candidates = await get_feed(db, me, verified_only=verified_only, tag_ids=tag_ids)
 
     # My tags — once, not per candidate (P1)
     my_tags_r = await db.execute(select(UserTag.tag_id).where(UserTag.user_id == me.id))
@@ -121,8 +138,7 @@ async def swipe(
 
     # Invalidate feed cache
     redis = await get_redis()
-    await redis.delete(f"feed:{me.id}:False")
-    await redis.delete(f"feed:{me.id}:True")
+    await _invalidate_feed(redis, me.id)
 
     # Send notifications (L9/L10)
     import asyncio
@@ -179,8 +195,7 @@ async def rewind(
 
     # Invalidate feed cache so the card comes back
     redis = await get_redis()
-    await redis.delete(f"feed:{me.id}:False")
-    await redis.delete(f"feed:{me.id}:True")
+    await _invalidate_feed(redis, me.id)
 
     return {"ok": True, "restored_target_id": str(target_id)}
 

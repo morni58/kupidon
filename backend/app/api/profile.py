@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from pydantic import BaseModel
+from typing import Optional
 
 from app.core.deps import get_db, get_current_user
 from app.models.user import User
@@ -154,6 +156,78 @@ async def get_tags(
         q = q.where(AdminTag.is_18_only == False)
     result = await db.execute(q)
     return result.scalars().all()
+
+
+class TagRequestCreate(BaseModel):
+    name: str
+    color_hex: str = "#FF00FF"
+    emoji: Optional[str] = None
+    category: Optional[str] = None
+    is_18_only: bool = False
+
+
+@router.post("/tags/request")
+async def request_tag(
+    body: TagRequestCreate,
+    db: AsyncSession = Depends(get_db),
+    me: User = Depends(get_current_user),
+):
+    """Paid user-submitted tag, sent to moderation (U-TAGS-ADMIN).
+
+    Must be a general-interest topic; charged in Stars from the internal balance.
+    Refunded automatically if a moderator rejects it.
+    """
+    from app.models.tag import TagRequest, AdminTag, TagRequestStatusEnum
+    from app.services.economy import get_config_value
+    from app.services.moderation import moderate_text
+
+    name = (body.name or "").strip()
+    if not (2 <= len(name) <= 30):
+        raise HTTPException(status_code=422, detail="Tag name must be 2-30 chars")
+    if moderate_text(name) is None:
+        raise HTTPException(status_code=422, detail="Tag name contains forbidden content")
+
+    # Reject duplicates (existing tag or pending request) — Unicode-safe, DB-agnostic.
+    norm = name.casefold()
+    existing_names = {n.casefold() for n in (await db.execute(select(AdminTag.name))).scalars().all()}
+    if norm in existing_names:
+        raise HTTPException(status_code=409, detail="Tag already exists")
+    pending_names = {
+        n.casefold() for n in (await db.execute(
+            select(TagRequest.name).where(TagRequest.status == TagRequestStatusEnum.pending)
+        )).scalars().all()
+    }
+    if norm in pending_names:
+        raise HTTPException(status_code=409, detail="Tag already requested")
+
+    cost = int(await get_config_value(db, "tag_request_stars", "200"))
+    if me.stars_balance < cost:
+        raise HTTPException(status_code=402, detail="not_enough_stars")
+    me.stars_balance -= cost
+
+    req = TagRequest(
+        user_id=me.id, name=name, color_hex=body.color_hex or "#FF00FF",
+        emoji=body.emoji, category=body.category, is_18_only=body.is_18_only,
+    )
+    db.add(req)
+    await db.commit()
+    return {"ok": True, "status": "pending", "charged": cost}
+
+
+@router.get("/tags/requests/mine")
+async def my_tag_requests(
+    db: AsyncSession = Depends(get_db),
+    me: User = Depends(get_current_user),
+):
+    from app.models.tag import TagRequest
+    rows = (await db.execute(
+        select(TagRequest).where(TagRequest.user_id == me.id).order_by(TagRequest.created_at.desc())
+    )).scalars().all()
+    return [
+        {"id": str(r.id), "name": r.name, "emoji": r.emoji, "category": r.category,
+         "status": r.status.value, "created_at": r.created_at.isoformat()}
+        for r in rows
+    ]
 
 
 @router.post("/profile/tags")
