@@ -149,11 +149,25 @@ function MatchModal({ person, theme, onWrite, onContinue }) {
 }
 
 function Paywall({ open, onClose, onUpgrade }) {
-  const [t, setT] = useState('04:32:10')
+  const [t, setT] = useState('00:00:00')
   useEffect(() => {
     if (!open) return
-    let s = 4 * 3600 + 32 * 60 + 10
-    const id = setInterval(() => { s = Math.max(0, s - 1); const h = String(Math.floor(s / 3600)).padStart(2, '0'); const m = String(Math.floor((s % 3600) / 60)).padStart(2, '0'); const ss = String(s % 60).padStart(2, '0'); setT(`${h}:${m}:${ss}`) }, 1000)
+    // Real countdown to the next 00:00 Moscow time (UTC+3).
+    const secsToMskMidnight = () => {
+      const now = new Date()
+      const msk = new Date(now.getTime() + (now.getTimezoneOffset() + 180) * 60000)
+      const next = new Date(msk); next.setHours(24, 0, 0, 0)
+      return Math.max(0, Math.floor((next - msk) / 1000))
+    }
+    const tick = () => {
+      let s = secsToMskMidnight()
+      const h = String(Math.floor(s / 3600)).padStart(2, '0')
+      const m = String(Math.floor((s % 3600) / 60)).padStart(2, '0')
+      const ss = String(s % 60).padStart(2, '0')
+      setT(`${h}:${m}:${ss}`)
+    }
+    tick()
+    const id = setInterval(tick, 1000)
     return () => clearInterval(id)
   }, [open])
   return (
@@ -209,6 +223,9 @@ export function Feed({ theme, palette, accent: accentProp, dark, plan, me, refre
   const person = deck[idx]
   const ended = !loading && idx >= deck.length
 
+  // Record a profile view when a new card comes to the front (UX14 / "кто смотрел").
+  useEffect(() => { if (person?.id) api.recordView(person.id).catch(() => {}) }, [person?.id])
+
   async function decide(dir) {
     const p = deck[idx]
     setPhotoIdx(0); setFling(null)
@@ -229,7 +246,15 @@ export function Feed({ theme, palette, accent: accentProp, dark, plan, me, refre
   }
 
   async function loadFeedAppend() {
-    try { const cards = await api.getFeed(onlyVerified); if (cards.length) setDeck((d) => [...d, ...cards.map((c) => apiCardToPerson(c))]) } catch {}
+    try {
+      const cards = await api.getFeed(onlyVerified)
+      if (!cards.length) return
+      setDeck((d) => {
+        const have = new Set(d.map((p) => p.id))
+        const fresh = cards.map((c) => apiCardToPerson(c)).filter((p) => !have.has(p.id))
+        return fresh.length ? [...d, ...fresh] : d
+      })
+    } catch {}
   }
 
   async function onAction(dir) {
