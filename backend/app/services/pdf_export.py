@@ -157,6 +157,14 @@ def build_profile_pdf(*, profile: dict, stats: dict | None, tag_names: list[str]
         c.line(M, H - (y + 6), M + 26, H - (y + 6))
         y += 22
 
+    def footer():
+        today = date.today().strftime("%d.%m.%Y")
+        c.setStrokeColorRGB(*LIGHT); c.setLineWidth(0.8)
+        c.line(M, 40, W - M, 40)
+        c.setFont(REG, 8); c.setFillColorRGB(*GRAY)
+        c.drawString(M, 28, f"CupidBot · выгружено {today}")
+        c.drawRightString(W - M, 28, "cupidbot")
+
     def ensure(need):
         nonlocal y
         if y + need > H - 56:
@@ -227,14 +235,6 @@ def build_profile_pdf(*, profile: dict, stats: dict | None, tag_names: list[str]
         rrect(M, y, W - M * 2, 30, 8, CHIPBG)
         text(M + 12, y + 19, f"♪  {profile.get('anthem_title') or 'Мой трек'}", BOLD, 11, MAGENTA)
         y += 40
-
-    def footer():
-        today = date.today().strftime("%d.%m.%Y")
-        c.setStrokeColorRGB(*LIGHT); c.setLineWidth(0.8)
-        c.line(M, 40, W - M, 40)
-        c.setFont(REG, 8); c.setFillColorRGB(*GRAY)
-        c.drawString(M, 28, f"CupidBot · выгружено {today}")
-        c.drawRightString(W - M, 28, "cupidbot")
 
     footer()
     c.showPage()
