@@ -75,7 +75,11 @@ export function AnthemEditor({ url, title, start, onChange, setToast }) {
           )}
         </div>
       )}
-      <input ref={fileRef} type="file" accept="audio/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) pick(f) }} />
+      {/* Broad accept + explicit extensions so mobile pickers offer "Files"/music,
+          not just the photo-video gallery (where audio can't be chosen). */}
+      <input ref={fileRef} type="file"
+        accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.oga,.opus,.flac,.weba,.wma,.aif,.aiff"
+        hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) pick(f); e.target.value = '' }} />
     </div>
   )
 }

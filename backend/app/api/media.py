@@ -31,16 +31,28 @@ async def upload_anthem(
 ):
     """Upload a profile anthem (short audio clip). Returns the public URL."""
     ct = (file.content_type or "").lower()
-    if not (ct.startswith("audio") or ct in ("application/ogg", "video/mp4")):
-        raise HTTPException(status_code=400, detail="Нужен аудиофайл")
+    name = (file.filename or "").lower()
+    # Mobile/Telegram file pickers frequently report a generic content-type
+    # (application/octet-stream) or none at all when a track is chosen from
+    # "Files". Accept by extension too, so real audio isn't wrongly rejected.
+    AUDIO_EXT = (".mp3", ".m4a", ".aac", ".wav", ".ogg", ".oga", ".opus", ".flac", ".weba", ".aif", ".aiff", ".wma", ".mp4")
+    name_ext = os.path.splitext(name)[1]
+    ext_ok = name_ext in AUDIO_EXT
+    ct_ok = ct.startswith("audio") or ct in ("application/ogg", "video/mp4", "application/octet-stream", "")
+    if not (ct_ok or ext_ok):
+        raise HTTPException(status_code=400, detail="Нужен аудиофайл (mp3, m4a, wav…)")
     data = await file.read()
     if len(data) > MAX_AUDIO_MB * 1024 * 1024:
         raise HTTPException(status_code=413, detail=f"Файл больше {MAX_AUDIO_MB} МБ")
 
-    ext = "mp3"
-    if "ogg" in ct: ext = "ogg"
-    elif "wav" in ct: ext = "wav"
-    elif "mp4" in ct or "m4a" in ct or "aac" in ct: ext = "m4a"
+    # Prefer the real file extension; fall back to content-type hints.
+    ext = (name_ext.lstrip(".") if ext_ok else "")
+    if not ext:
+        if "ogg" in ct: ext = "ogg"
+        elif "wav" in ct: ext = "wav"
+        elif "mp4" in ct or "m4a" in ct or "aac" in ct: ext = "m4a"
+        else: ext = "mp3"
+    if ext == "mp4": ext = "m4a"
     user_dir = os.path.join(MEDIA_ROOT, str(me.id))
     os.makedirs(user_dir, exist_ok=True)
     filename = f"anthem_{uuid.uuid4().hex[:8]}.{ext}"
