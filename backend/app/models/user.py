@@ -76,6 +76,9 @@ class User(Base):
     is_banned: Mapped[bool] = mapped_column(Boolean, default=False)
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
     ban_reason: Mapped[str | None] = mapped_column(String(200))
+    # Moderation: cumulative warnings + temporary mute (no messaging until then).
+    warns: Mapped[int] = mapped_column(SmallInteger, default=0, server_default="0")
+    muted_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     needs_review: Mapped[bool] = mapped_column(Boolean, default=False)
     last_streak_date: Mapped[date | None] = mapped_column(Date)

@@ -118,7 +118,17 @@ async def get_my_profile_full(
         "city_name": city_name, "media": media, "tag_ids": tag_ids,
         "anthem_url": me.anthem_url, "anthem_title": me.anthem_title, "anthem_start": me.anthem_start,
         "prompts": me.prompts or {},
+        # Staff level so the app can show the moderation panel entry.
+        "staff_level": _staff_level(me), "role": me.role or "user",
     }
+
+
+def _staff_level(u: User) -> int:
+    import os as _os
+    owners = [int(x) for x in _os.environ.get("ADMIN_IDS", "").split(",") if x.strip()]
+    if u.tg_id in owners:
+        return 3
+    return {"user": 0, "moderator": 1, "admin": 2}.get(u.role or "user", 0)
 
 
 # NOTE: this dynamic route is declared AFTER /profile/me and /profile/full so it

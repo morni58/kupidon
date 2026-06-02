@@ -216,6 +216,13 @@ async def send_message(
 ):
     from app.services.moderation import moderate_text
 
+    # Temporary mute: blocked from sending until muted_until passes.
+    if me.muted_until:
+        from datetime import datetime, timezone
+        mu = me.muted_until if me.muted_until.tzinfo else me.muted_until.replace(tzinfo=timezone.utc)
+        if mu > datetime.now(timezone.utc):
+            raise HTTPException(status_code=403, detail="Тебе временно ограничили переписку")
+
     match = await _check_match_access(db, match_id, me)
 
     # Rate-limit: max 5 msg per 10 sec (simple check via recent count)

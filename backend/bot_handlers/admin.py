@@ -101,6 +101,13 @@ async def admin_action(call: CallbackQuery):
             user.is_oligarch_mode = not user.is_oligarch_mode; msg = f"Oligarch={'on' if user.is_oligarch_mode else 'off'}"
         elif action == "ban":
             user.is_banned = not user.is_banned; msg = f"Banned={'on' if user.is_banned else 'off'}: {user.name}"
+        # Audit log.
+        try:
+            from app.services.staff_actions import log_action
+            actor = (await db.execute(select(User).where(User.tg_id == call.from_user.id))).scalar_one_or_none()
+            await log_action(db, actor, f"panel_{action}", user)
+        except Exception:
+            pass
         await db.commit()
     await call.answer(msg)
     await call.message.reply(msg)
@@ -382,6 +389,9 @@ async def cmd_ban(message: Message):
         if await role_level_of_user(user) >= await _lvl(message.from_user.id):
             await message.answer("⛔️ Нельзя забанить равного/старшего по роли.")
             return
-        user.is_banned = True; user.ban_reason = reason
+        from app.services import staff_actions as sa
+        from app.models.user import User as _U
+        actor = (await db.execute(select(_U).where(_U.tg_id == message.from_user.id))).scalar_one_or_none()
+        await sa.act_ban(db, actor, user, reason)
         await db.commit()
     await message.answer(f"🚫 Забанен {user.name} ({user.tg_id}): {reason}")

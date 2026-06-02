@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import DateTime, Enum, PrimaryKeyConstraint, String, func
+from sqlalchemy import BigInteger, DateTime, Enum, PrimaryKeyConstraint, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import UUID
 import enum
@@ -33,6 +33,22 @@ class Report(Base):
     note: Mapped[str | None] = mapped_column(String(500))
     match_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
     status: Mapped[ReportStatusEnum] = mapped_column(Enum(ReportStatusEnum), default=ReportStatusEnum.open)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class StaffAction(Base):
+    """Audit log: every moderation/admin action, who did it and to whom."""
+    __tablename__ = "staff_actions"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    actor_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), index=True)
+    actor_tg: Mapped[int | None] = mapped_column(BigInteger)
+    actor_name: Mapped[str | None] = mapped_column(String(60))
+    action: Mapped[str] = mapped_column(String(40), index=True)
+    target_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), index=True)
+    target_tg: Mapped[int | None] = mapped_column(BigInteger)
+    target_name: Mapped[str | None] = mapped_column(String(60))
+    detail: Mapped[str | None] = mapped_column(String(300))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 

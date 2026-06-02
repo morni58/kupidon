@@ -73,7 +73,7 @@ function ProfileAnthem({ full, reload, setToast, dark, txt }) {
   )
 }
 
-export function Profile({ theme, palette: paletteProp, accent: accentProp, dark: darkProp, plan, prefs, setPref, onVerify, onUpgrade, onMutate, onEdit, onStats, onDeleted, setToast, active, onTab, dots }) {
+export function Profile({ theme, palette: paletteProp, accent: accentProp, dark: darkProp, plan, prefs, setPref, onVerify, onUpgrade, onMutate, onEdit, onStats, onAdmin, onDeleted, setToast, active, onTab, dots }) {
   const [full, setFull] = useState(() => useStore.getState().meFullCache || null)
   const [photoIdx, setPhotoIdx] = useState(0)
   const [scrollY, setScrollY] = useState(0)
@@ -227,6 +227,19 @@ export function Profile({ theme, palette: paletteProp, accent: accentProp, dark:
             <span className="text-[14px] font-bold flex-1 text-left" style={{ color: txt }}>Моя статистика и данные</span>
             <i className="ph-bold ph-caret-right" style={{ color: sub }} />
           </button>
+
+          {/* staff: moderation panel (only for moderators/admins/owner) */}
+          {onAdmin && (full.staff_level || 0) >= 1 && (
+            <button onClick={onAdmin} className="w-full rounded-3xl p-3.5 flex items-center gap-3 active:scale-[0.99] transition"
+              style={{ background: 'linear-gradient(135deg, rgba(168,85,247,0.18), rgba(99,102,241,0.18))', border: '1px solid rgba(168,85,247,0.4)' }}>
+              <div className="w-9 h-9 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#A855F7,#6366F1)' }}><i className="ph-fill ph-shield-star text-[18px] text-white" /></div>
+              <div className="flex-1 text-left">
+                <div className="text-[14px] font-black" style={{ color: txt }}>Панель модерации</div>
+                <div className="text-[11.5px] font-semibold" style={{ color: sub }}>{({ 1: '🛡️ Модератор', 2: '⭐ Админ', 3: '👑 Владелец' })[full.staff_level] || ''}</div>
+              </div>
+              <i className="ph-bold ph-caret-right" style={{ color: '#A855F7' }} />
+            </button>
+          )}
 
           {/* verification CTA */}
           {!verified && (

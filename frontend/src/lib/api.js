@@ -117,6 +117,18 @@ export const api = {
   accountStats: () => req('/api/account/stats'),
   userStats: (userId) => req(`/api/profile/${userId}/stats`),
 
+  // admin / moderation panel
+  adminWhoami: () => req('/api/admin/whoami'),
+  adminStats: () => req('/api/admin/stats'),
+  adminReports: () => req('/api/admin/reports'),
+  adminDismissReport: (id) => req(`/api/admin/reports/${id}/dismiss`, { method: 'POST' }),
+  adminVerifyQueue: () => req('/api/admin/verify'),
+  adminSearch: (q) => req(`/api/admin/users?q=${encodeURIComponent(q)}`),
+  adminGetUser: (id) => req(`/api/admin/users/${id}`),
+  adminUserAction: (id, body) => req(`/api/admin/users/${id}/action`, { method: 'POST', body }),
+  adminAudit: () => req('/api/admin/audit'),
+  adminStaff: () => req('/api/admin/staff'),
+
   // blind date
   blindToday: () => req('/api/blind/today'),
   blindJoin: () => req('/api/blind/join', { method: 'POST' }),

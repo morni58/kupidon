@@ -16,7 +16,7 @@ logger = logging.getLogger("cupidbot")
 
 from app.core.config import settings
 from app.core.redis import get_redis, close_redis
-from app.api import auth, profile, feed, chats, reports, verify, media, payments, views, geo, account, blind
+from app.api import auth, profile, feed, chats, reports, verify, media, payments, views, geo, account, blind, admin
 from app.ws.chat import router as ws_router
 from app.services.cron import start_scheduler
 
@@ -80,6 +80,7 @@ app.include_router(views.router)
 app.include_router(geo.router)
 app.include_router(account.router)
 app.include_router(blind.router)
+app.include_router(admin.router)
 
 # WebSocket
 app.include_router(ws_router)

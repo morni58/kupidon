@@ -47,20 +47,13 @@ async def report_user(
         note=(body.note or "").strip()[:500] or None, match_id=body.match_id,
     )
     db.add(report)
+    await db.flush()  # ensure this report counts toward escalation
 
-    # Auto-shadowban after 3 unique reports
-    count_r = await db.execute(
-        select(func.count(Report.id)).where(
-            Report.target_id == body.target_id,
-        )
-    )
-    count = count_r.scalar_one()
-    if count >= 2:  # this will be the 3rd
-        target_r = await db.execute(select(User).where(User.id == body.target_id))
-        target = target_r.scalar_one_or_none()
-        if target:
-            target.is_shadowbanned = True
-            target.needs_review = True
+    # Auto-escalation on distinct-reporter thresholds (shadowban / ban + alert).
+    target = (await db.execute(select(User).where(User.id == body.target_id))).scalar_one_or_none()
+    if target:
+        from app.services.staff_actions import escalate_reports
+        await escalate_reports(db, target)
 
     await db.commit()
     return {"ok": True}

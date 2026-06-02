@@ -39,6 +39,11 @@ async def _notify(tg_id: int, text: str):
         pass
 
 
+async def _actor(db, tg_id: int):
+    """Load the staff member's User row (for audit attribution)."""
+    return (await db.execute(select(User).where(User.tg_id == tg_id))).scalar_one_or_none()
+
+
 # ─────────────────────── role management ───────────────────────
 @router.message(Command("staffhelp"))
 async def cmd_staffhelp(message: Message):
@@ -50,10 +55,10 @@ async def cmd_staffhelp(message: Message):
         "/reports — очередь жалоб\n"
         "/verifyqueue — заявки на галочку\n"
         "/user <id|@> — карточка пользователя\n"
-        "/find <текст> — поиск пользователей\n"
-        "/recent — последние регистрации\n"
+        "/find <текст> — поиск · /recent — новые\n"
         "/ban <id|@> [причина] · /unban <id|@>\n"
-        "/adstats — статистика бота\n"
+        "/warn <id|@> · /mute <id|@> <ч> · /unmute <id|@>\n"
+        "/audit — журнал действий · /adstats — статистика\n"
     )
     adm = (
         "\n⭐ *Админ*\n"
@@ -134,7 +139,9 @@ async def cmd_grant(message: Message):
         from bot_handlers.perms import OWNER_IDS
         if u.tg_id in OWNER_IDS:
             await message.answer("Это владелец — роль менять не нужно."); return
-        u.role = target_role
+        from app.services import staff_actions as sa
+        actor = await _actor(db, message.from_user.id)
+        await sa.act_set_role(db, actor, u, target_role)
         await db.commit()
         tg, name = u.tg_id, u.name
     await message.answer(f"✅ {name} теперь {ROLE_RU[target_role]}")
@@ -158,7 +165,9 @@ async def cmd_revoke(message: Message):
         if (u.role or "user") == "user":
             await message.answer("У него и так нет роли."); return
         old = u.role
-        u.role = "user"
+        from app.services import staff_actions as sa
+        actor = await _actor(db, message.from_user.id)
+        await sa.act_set_role(db, actor, u, "user")
         await db.commit()
         tg, name = u.tg_id, u.name
     await message.answer(f"🗑️ Снял роль {ROLE_RU.get(old, old)} с {name}")
@@ -184,20 +193,12 @@ async def cmd_give(message: Message):
         u = await resolve_user(db, parts[1])
         if not u:
             await message.answer("Пользователь не найден."); return
-        from app.services.payments_apply import apply_payment_effect
-        await apply_payment_effect(u, product, 0)
-        if days and product in ("premium_month", "kupidon_month"):
-            from datetime import datetime, timezone, timedelta
-            base = u.tier_until
-            now = datetime.now(timezone.utc)
-            if base and base.tzinfo is None:
-                base = base.replace(tzinfo=timezone.utc)
-            start = base if (base and base > now) else now
-            u.tier_until = start + timedelta(days=days)
+        from app.services import staff_actions as sa
+        actor = await _actor(db, message.from_user.id)
+        await sa.act_give(db, actor, u, product, days)
         await db.commit()
-        tg, name = u.tg_id, u.name
+        name = u.name
     await message.answer(f"🎁 Выдал «{parts[2]}»{f' на {days} дн.' if days else ''} → {name}")
-    await _notify(tg, f"🎁 Тебе подарили «{parts[2]}» в CupidBot! Загляни в приложение 💘")
 
 
 @router.message(Command("stars"))
@@ -215,12 +216,11 @@ async def cmd_stars(message: Message):
         u = await resolve_user(db, parts[1])
         if not u:
             await message.answer("Не найден."); return
-        u.stars_balance = max(0, (u.stars_balance or 0) + amount)
+        from app.services import staff_actions as sa
+        actor = await _actor(db, message.from_user.id)
+        msg = await sa.act_stars(db, actor, u, amount)
         await db.commit()
-        tg, name, bal = u.tg_id, u.name, u.stars_balance
-    await message.answer(f"⭐ {name}: {'+' if amount >= 0 else ''}{amount} → баланс {bal}")
-    if amount > 0:
-        await _notify(tg, f"⭐ Тебе начислили {amount} Stars в CupidBot!")
+    await message.answer(msg)
 
 
 @router.message(Command("setlimit"))
@@ -261,11 +261,93 @@ async def cmd_unban(message: Message):
         u = await resolve_user(db, parts[1])
         if not u:
             await message.answer("Не найден."); return
-        u.is_banned = False; u.is_shadowbanned = False; u.ban_reason = None
+        from app.services import staff_actions as sa
+        actor = await _actor(db, message.from_user.id)
+        msg = await sa.act_unban(db, actor, u)
         await db.commit()
-        name, tg = u.name, u.tg_id
-    await message.answer(f"♻️ Разбанен {name}")
-    await _notify(tg, "♻️ Твой аккаунт в CupidBot разблокирован.")
+    await message.answer(msg)
+
+
+@router.message(Command("warn"))
+async def cmd_warn(message: Message):
+    if not await require(message, MOD):
+        return
+    parts = message.text.split(maxsplit=2)
+    if len(parts) < 2:
+        await message.answer("Usage: /warn <id|@> [причина]"); return
+    reason = parts[2] if len(parts) > 2 else ""
+    async with async_session_maker() as db:
+        u = await resolve_user(db, parts[1])
+        if not u:
+            await message.answer("Не найден."); return
+        if await role_level_of_user(u) >= await level_of(message.from_user.id):
+            await message.answer("⛔️ Нельзя варнить равного/старшего."); return
+        from app.services import staff_actions as sa
+        actor = await _actor(db, message.from_user.id)
+        msg = await sa.act_warn(db, actor, u, reason)
+        await db.commit()
+    await message.answer(msg)
+
+
+@router.message(Command("mute"))
+async def cmd_mute(message: Message):
+    if not await require(message, MOD):
+        return
+    parts = message.text.split()
+    if len(parts) < 3:
+        await message.answer("Usage: /mute <id|@> <часов>"); return
+    try:
+        hours = int(parts[2])
+    except ValueError:
+        await message.answer("Часы числом."); return
+    async with async_session_maker() as db:
+        u = await resolve_user(db, parts[1])
+        if not u:
+            await message.answer("Не найден."); return
+        if await role_level_of_user(u) >= await level_of(message.from_user.id):
+            await message.answer("⛔️ Нельзя мьютить равного/старшего."); return
+        from app.services import staff_actions as sa
+        actor = await _actor(db, message.from_user.id)
+        msg = await sa.act_mute(db, actor, u, hours)
+        await db.commit()
+    await message.answer(msg)
+
+
+@router.message(Command("unmute"))
+async def cmd_unmute(message: Message):
+    if not await require(message, MOD):
+        return
+    parts = message.text.split(maxsplit=1)
+    if len(parts) < 2:
+        await message.answer("Usage: /unmute <id|@>"); return
+    async with async_session_maker() as db:
+        u = await resolve_user(db, parts[1])
+        if not u:
+            await message.answer("Не найден."); return
+        from app.services import staff_actions as sa
+        actor = await _actor(db, message.from_user.id)
+        msg = await sa.act_unmute(db, actor, u)
+        await db.commit()
+    await message.answer(msg)
+
+
+@router.message(Command("audit"))
+async def cmd_audit(message: Message):
+    if not await require(message, MOD):
+        return
+    from app.models.safety import StaffAction
+    async with async_session_maker() as db:
+        rows = (await db.execute(
+            select(StaffAction).order_by(StaffAction.created_at.desc()).limit(20)
+        )).scalars().all()
+    if not rows:
+        await message.answer("Лог действий пуст."); return
+    lines = ["📜 *Журнал действий:*\n"]
+    for a in rows:
+        actor = a.actor_name or ("система" if not a.actor_tg else str(a.actor_tg))
+        when = a.created_at.strftime("%d.%m %H:%M") if a.created_at else ""
+        lines.append(f"`{when}` *{a.action}* · {actor} → {a.target_name or '—'}" + (f" ({a.detail})" if a.detail else ""))
+    await message.answer("\n".join(lines))
 
 
 # ─────────────────────── search ───────────────────────

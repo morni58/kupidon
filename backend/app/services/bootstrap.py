@@ -92,6 +92,10 @@ async def ensure_schema() -> None:
                 await conn.execute(text("ALTER TABLE admin_tags ADD COLUMN IF NOT EXISTS category VARCHAR(30)"))
                 await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN NOT NULL DEFAULT false"))
                 await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS tier_until TIMESTAMPTZ"))
+                # Staff roles + moderation fields.
+                await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) NOT NULL DEFAULT 'user'"))
+                await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS warns SMALLINT NOT NULL DEFAULT 0"))
+                await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS muted_until TIMESTAMPTZ"))
     except Exception as e:
         logger.warning("ensure_schema: %s", e)
 
