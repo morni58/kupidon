@@ -113,6 +113,7 @@ export const api = {
 
   // account
   exportData: () => req('/api/account/export'),
+  exportPdf: () => req('/api/account/export_pdf', { method: 'POST', timeout: 40000 }),
   accountStats: () => req('/api/account/stats'),
   userStats: (userId) => req(`/api/profile/${userId}/stats`),
 

@@ -84,15 +84,15 @@ export function Profile({ theme, palette: paletteProp, accent: accentProp, dark:
   async function exportData() {
     if (exporting) return
     setExporting(true)
-    setToast('🎨 Готовим красивую выгрузку…')
+    setToast('🎨 Собираем красивый PDF…')
     try {
-      const f = full || (await api.getMeFull())
-      const stats = await api.accountStats().catch(() => null)
-      const tagNames = (f.tag_ids || []).map((t) => interestById(t)?.label).filter(Boolean)
-      const { downloadProfilePdf } = await import('../lib/pdf')   // lazy: keep jspdf out of the main bundle
-      await downloadProfilePdf({ full: f, stats, tagNames }, `cupidbot_${(f.name || 'profile').toLowerCase()}.pdf`)
-      haptic('success'); setToast('📄 Профиль сохранён в PDF')
-    } catch (e) { setToast('Не удалось выгрузить') }
+      // Built server-side and delivered by the bot as a document — reliable in
+      // Telegram (no webview download trap) and Cyrillic-safe.
+      await api.exportPdf()
+      haptic('success'); setToast('📄 Отправили файл в чат с ботом — забери там')
+    } catch (e) {
+      setToast(e?.data?.detail || 'Не удалось. Открой бота и нажми Start')
+    }
     setExporting(false)
   }
   async function deleteAccount() {
@@ -310,7 +310,7 @@ export function Profile({ theme, palette: paletteProp, accent: accentProp, dark:
           <Glass dark={dark} className="p-4">
             <div className="text-[14px] font-black mb-3" style={{ color: txt }}>Данные и приватность</div>
             <button onClick={exportData} disabled={exporting} className="w-full flex items-center gap-2.5 py-2.5 text-[14px] font-semibold" style={{ color: txt, opacity: exporting ? 0.6 : 1 }}>
-              <i className={'ph-bold ' + (exporting ? 'ph-spinner animate-spin' : 'ph-file-pdf')} style={{ color: accent }} /> {exporting ? 'Готовим PDF…' : 'Скачать мой профиль (PDF)'}
+              <i className={'ph-bold ' + (exporting ? 'ph-spinner animate-spin' : 'ph-file-pdf')} style={{ color: accent }} /> {exporting ? 'Собираем PDF…' : 'Мой профиль в PDF (в чат с ботом)'}
             </button>
             {!confirmDel ? (
               <button onClick={() => setConfirmDel(true)} className="w-full flex items-center gap-2.5 py-2.5 text-[14px] font-semibold text-[#EF4444]">

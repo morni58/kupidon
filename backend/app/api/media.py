@@ -29,30 +29,34 @@ async def upload_anthem(
     db: AsyncSession = Depends(get_db),
     me: User = Depends(get_current_user),
 ):
-    """Upload a profile anthem (short audio clip). Returns the public URL."""
+    """Upload a profile anthem. Accepts AUDIO or VIDEO (we play just the audio
+    track) — on phones the gallery offers videos but not music, so letting the
+    user pick a video and using its sound is the most reliable path."""
     ct = (file.content_type or "").lower()
     name = (file.filename or "").lower()
     # Mobile/Telegram file pickers frequently report a generic content-type
-    # (application/octet-stream) or none at all when a track is chosen from
-    # "Files". Accept by extension too, so real audio isn't wrongly rejected.
-    AUDIO_EXT = (".mp3", ".m4a", ".aac", ".wav", ".ogg", ".oga", ".opus", ".flac", ".weba", ".aif", ".aiff", ".wma", ".mp4")
+    # (application/octet-stream) or none at all. Accept by extension too.
+    AUDIO_EXT = (".mp3", ".m4a", ".aac", ".wav", ".ogg", ".oga", ".opus", ".flac", ".weba", ".aif", ".aiff", ".wma")
+    VIDEO_EXT = (".mp4", ".mov", ".m4v", ".webm", ".3gp", ".mkv", ".avi")
     name_ext = os.path.splitext(name)[1]
-    ext_ok = name_ext in AUDIO_EXT
-    ct_ok = ct.startswith("audio") or ct in ("application/ogg", "video/mp4", "application/octet-stream", "")
-    if not (ct_ok or ext_ok):
-        raise HTTPException(status_code=400, detail="Нужен аудиофайл (mp3, m4a, wav…)")
+    is_audio = name_ext in AUDIO_EXT or ct.startswith("audio")
+    is_video = name_ext in VIDEO_EXT or ct.startswith("video")
+    ct_ok = is_audio or is_video or ct in ("application/ogg", "application/octet-stream", "")
+    if not ct_ok:
+        raise HTTPException(status_code=400, detail="Нужен аудио- или видеофайл")
     data = await file.read()
-    if len(data) > MAX_AUDIO_MB * 1024 * 1024:
-        raise HTTPException(status_code=413, detail=f"Файл больше {MAX_AUDIO_MB} МБ")
+    limit = 25 if is_video else MAX_AUDIO_MB  # videos are heavier; we only keep the sound
+    if len(data) > limit * 1024 * 1024:
+        raise HTTPException(status_code=413, detail=f"Файл больше {limit} МБ")
 
     # Prefer the real file extension; fall back to content-type hints.
-    ext = (name_ext.lstrip(".") if ext_ok else "")
+    ext = (name_ext.lstrip(".") if (name_ext in AUDIO_EXT or name_ext in VIDEO_EXT) else "")
     if not ext:
         if "ogg" in ct: ext = "ogg"
         elif "wav" in ct: ext = "wav"
-        elif "mp4" in ct or "m4a" in ct or "aac" in ct: ext = "m4a"
+        elif ct.startswith("video"): ext = "mp4"
+        elif "m4a" in ct or "aac" in ct: ext = "m4a"
         else: ext = "mp3"
-    if ext == "mp4": ext = "m4a"
     user_dir = os.path.join(MEDIA_ROOT, str(me.id))
     os.makedirs(user_dir, exist_ok=True)
     filename = f"anthem_{uuid.uuid4().hex[:8]}.{ext}"

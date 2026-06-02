@@ -17,13 +17,14 @@ export function AnthemEditor({ url, title, start, onChange, setToast }) {
 
   async function pick(file) {
     if (!file) return
-    if (file.size > 8 * 1024 * 1024) { setToast('Файл больше 8 МБ'); return }
+    const isVid = /^video\//.test(file.type) || /\.(mp4|mov|m4v|webm|3gp|mkv|avi)$/i.test(file.name)
+    if (file.size > (isVid ? 25 : 8) * 1024 * 1024) { setToast(`Файл больше ${isVid ? 25 : 8} МБ`); return }
     setBusy(true)
     try {
       const res = await api.uploadAnthem(file)
       const full = mediaUrl(res.anthem_url)
       onChange({ url: res.anthem_url, fullUrl: full, title: title || file.name.replace(/\.[^.]+$/, '').slice(0, 60), start: 0 })
-      haptic('success'); setToast('🎵 Гимн загружен — обрежь и сохрани')
+      haptic('success'); setToast(isVid ? '🎬 Возьмём звук из видео — обрежь момент' : '🎵 Гимн загружен — обрежь и сохрани')
     } catch (e) { setToast(e?.data?.detail || 'Не удалось загрузить') }
     setBusy(false)
   }
@@ -48,14 +49,17 @@ export function AnthemEditor({ url, title, start, onChange, setToast }) {
   return (
     <div>
       {!url ? (
-        <button onClick={() => fileRef.current?.click()} disabled={busy}
-          className="w-full h-12 rounded-2xl flex items-center justify-center gap-2 font-bold text-[14px] text-white active:scale-[0.98] transition"
-          style={{ background: 'linear-gradient(135deg,#FF00FF,#FF66CC)', opacity: busy ? 0.6 : 1 }}>
-          <i className="ph-fill ph-music-notes-plus text-[18px]" /> {busy ? 'Загрузка…' : 'Добавить гимн (аудио)'}
-        </button>
+        <>
+          <button onClick={() => fileRef.current?.click()} disabled={busy}
+            className="w-full h-12 rounded-2xl flex items-center justify-center gap-2 font-bold text-[14px] text-white active:scale-[0.98] transition"
+            style={{ background: 'linear-gradient(135deg,#FF00FF,#FF66CC)', opacity: busy ? 0.6 : 1 }}>
+            <i className="ph-fill ph-music-notes-plus text-[18px]" /> {busy ? 'Загрузка…' : 'Добавить гимн — аудио или видео'}
+          </button>
+          <p className="text-[11px] text-center mt-1.5" style={{ color: '#9ca3af' }}>Нет музыки в выборе? Возьми видео — оставим только звук 🎬</p>
+        </>
       ) : (
         <div className="rounded-2xl p-3" style={{ background: 'rgba(255,0,255,0.05)', border: '1px solid rgba(255,0,255,0.18)' }}>
-          <audio ref={audioRef} src={fullUrl} preload="metadata" onLoadedMetadata={(e) => setDur(e.target.duration || 0)} />
+          <video ref={audioRef} src={fullUrl} preload="metadata" playsInline style={{ display: 'none' }} onLoadedMetadata={(e) => setDur(e.target.duration || 0)} />
           <div className="flex items-center gap-3">
             <button onClick={preview} className="w-11 h-11 rounded-full flex items-center justify-center text-white shrink-0 active:scale-90 transition" style={{ background: 'linear-gradient(135deg,#FF00FF,#FF66CC)' }}>
               <i className={'ph-fill ' + (playing ? 'ph-pause' : 'ph-play') + ' text-[18px]'} />
@@ -75,10 +79,10 @@ export function AnthemEditor({ url, title, start, onChange, setToast }) {
           )}
         </div>
       )}
-      {/* Broad accept + explicit extensions so mobile pickers offer "Files"/music,
-          not just the photo-video gallery (where audio can't be chosen). */}
+      {/* Accept audio AND video: on phones the gallery offers videos but not
+          music, so picking a video and keeping its sound is the reliable path. */}
       <input ref={fileRef} type="file"
-        accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.oga,.opus,.flac,.weba,.wma,.aif,.aiff"
+        accept="audio/*,video/*,.mp3,.m4a,.aac,.wav,.ogg,.oga,.opus,.flac,.weba,.wma,.aif,.aiff,.mp4,.mov,.m4v,.webm,.3gp"
         hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) pick(f); e.target.value = '' }} />
     </div>
   )
@@ -99,7 +103,7 @@ export function AnthemPlayer({ url, title, start, accent = '#fff' }) {
   }
   return (
     <button onClick={toggle} className="flex items-center gap-2 min-w-0 active:scale-95 transition">
-      <audio ref={a} src={mediaUrl(url)} preload="none" onEnded={() => setPlaying(false)} />
+      <video ref={a} src={mediaUrl(url)} preload="none" playsInline style={{ display: 'none' }} onEnded={() => setPlaying(false)} />
       <span className="w-6 h-6 rounded-full flex items-center justify-center shrink-0" style={{ background: 'rgba(255,255,255,0.22)', backdropFilter: 'blur(4px)' }}>
         <i className={'ph-fill ' + (playing ? 'ph-pause' : 'ph-play') + ' text-[11px]'} style={{ color: accent }} />
       </span>
