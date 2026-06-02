@@ -330,7 +330,7 @@ async def verify_action(call: CallbackQuery):
     await call.message.reply(msg)
 
 
-@router.message(Command("stats"))
+@router.message(Command("adstats"))
 async def cmd_stats(message: Message):
     if not is_admin(message.from_user.id):
         return
