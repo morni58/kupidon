@@ -104,6 +104,8 @@ export const api = {
   deleteMedia: (slot) => req(`/api/media/slot/${slot}`, { method: 'DELETE' }),
   reorderMedia: (order) => req('/api/media/reorder', { method: 'POST', body: order }),
   myMediaSlots: () => req('/api/media/mine'),
+  uploadAnthem: (file) => { const fd = new FormData(); fd.append('file', file); return req('/api/media/anthem', { method: 'POST', raw: fd }) },
+  deleteAnthem: () => req('/api/media/anthem', { method: 'DELETE' }),
 
   // payments
   createInvoice: (product) => req(`/api/payments/create_invoice?product=${product}`, { method: 'POST' }),

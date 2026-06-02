@@ -80,6 +80,9 @@ class UserUpdate(BaseModel):
     is_18_mode_active: Optional[bool] = None
     is_anti_oligarch: Optional[bool] = None
     is_stealth_mode: Optional[bool] = None
+    anthem_title: Optional[str] = None
+    anthem_start: Optional[int] = None
+    prompts: Optional[dict] = None
 
     @field_validator("name")
     @classmethod

@@ -2,15 +2,21 @@
 import { useRef } from 'react'
 import { interestById } from './data'
 
-// Photo: real <img> if data.url present, else gradient + big emoji
+const isVideo = (url) => typeof url === 'string' && /\.(mp4|webm|mov|m4v)(\?|$)/i.test(url)
+
+// Photo: real <img>/<video> if data.url present, else gradient + big emoji
 export function Photo({ data, rounded = '2rem', className = '', emojiSize = 96, children, dim = false }) {
   if (!data) return null
   const hasUrl = !!data.url
+  const video = hasUrl && (data.video || isVideo(data.url))
   return (
     <div className={'relative overflow-hidden ' + className}
       style={{ borderRadius: rounded, background: hasUrl ? '#111' : `linear-gradient(150deg, ${data.from}, ${data.to})` }}>
-      {hasUrl ? (
-        <img src={data.url} alt="" className="absolute inset-0 w-full h-full" style={{ objectFit: 'cover' }} draggable={false} />
+      {video ? (
+        <video src={data.url} className="absolute inset-0 w-full h-full" style={{ objectFit: 'cover' }}
+          autoPlay muted loop playsInline preload="metadata" />
+      ) : hasUrl ? (
+        <img src={data.url} alt="" className="absolute inset-0 w-full h-full" style={{ objectFit: 'cover' }} draggable={false} loading="lazy" />
       ) : (
         <>
           <div className="absolute -top-10 -left-8 w-40 h-40 rounded-full" style={{ background: 'rgba(255,255,255,0.35)', filter: 'blur(28px)' }} />

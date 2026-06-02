@@ -47,6 +47,17 @@ export const useStore = create((set, get) => ({
     return me
   },
 
+  // ── Prefetch caches: filled right after auth so Feed/Profile render instantly ──
+  feedCache: null,        // array of raw API feed cards (verified_only=false)
+  meFullCache: null,      // enriched /profile/full
+  feedCacheAt: 0,
+  consumeFeedCache: () => { const c = get().feedCache; set({ feedCache: null }); return c },
+  prefetch: async () => {
+    // Fire both in parallel; ignore failures (cache is best-effort).
+    api.getFeed(false).then((cards) => set({ feedCache: cards, feedCacheAt: Date.now() })).catch(() => {})
+    api.getMeFull().then((full) => set({ meFullCache: full })).catch(() => {})
+  },
+
   // derive plan + theme + settings from API "me"
   plan: () => PLANS[get().me?.tier] || PLANS.free,
   theme: () => {

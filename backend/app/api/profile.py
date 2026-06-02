@@ -116,6 +116,8 @@ async def get_my_profile_full(
         "is_oligarch_mode": me.is_oligarch_mode, "is_anti_oligarch": me.is_anti_oligarch,
         "is_stealth_mode": me.is_stealth_mode, "streak_days": me.streak_days,
         "city_name": city_name, "media": media, "tag_ids": tag_ids,
+        "anthem_url": me.anthem_url, "anthem_title": me.anthem_title, "anthem_start": me.anthem_start,
+        "prompts": me.prompts or {},
     }
 
 

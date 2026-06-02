@@ -1,7 +1,7 @@
 import uuid
 from datetime import date, datetime, timezone
 from sqlalchemy import (
-    BigInteger, Boolean, Date, DateTime, Enum, Integer, SmallInteger,
+    JSON, BigInteger, Boolean, Date, DateTime, Enum, Integer, SmallInteger,
     String, Text, func
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -43,7 +43,13 @@ class User(Base):
     city_id: Mapped[int | None] = mapped_column(Integer)
     lat: Mapped[float | None] = mapped_column()
     lng: Mapped[float | None] = mapped_column()
-    bio: Mapped[str | None] = mapped_column(String(150))
+    bio: Mapped[str | None] = mapped_column(String(300))
+    # Profile anthem (uploaded audio): file url, display title, trim start (sec)
+    anthem_url: Mapped[str | None] = mapped_column(String(500))
+    anthem_title: Mapped[str | None] = mapped_column(String(120))
+    anthem_start: Mapped[int | None] = mapped_column(SmallInteger)
+    # Structured profile prompts (red/green flags, ideal date, etc.) as JSON
+    prompts: Mapped[dict | None] = mapped_column(JSON)
     profile_score: Mapped[int] = mapped_column(SmallInteger, default=0)
     trust_score: Mapped[int] = mapped_column(SmallInteger, default=50)
     streak_days: Mapped[int] = mapped_column(SmallInteger, default=0)

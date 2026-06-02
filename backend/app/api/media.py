@@ -16,10 +16,72 @@ router = APIRouter(prefix="/api/media", tags=["media"])
 MAX_SLOTS = 5
 MAX_PHOTO_MB = 5
 MAX_VIDEO_MB = 15
+MAX_AUDIO_MB = 8
 
 # Persistent media directory (Railway Volume mounted here in prod)
 MEDIA_ROOT = os.environ.get("MEDIA_ROOT", "/app/media")
 PUBLIC_BASE = os.environ.get("PUBLIC_MEDIA_URL", "")  # e.g. https://api.../media
+
+
+@router.post("/anthem")
+async def upload_anthem(
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    me: User = Depends(get_current_user),
+):
+    """Upload a profile anthem (short audio clip). Returns the public URL."""
+    ct = (file.content_type or "").lower()
+    if not (ct.startswith("audio") or ct in ("application/ogg", "video/mp4")):
+        raise HTTPException(status_code=400, detail="Нужен аудиофайл")
+    data = await file.read()
+    if len(data) > MAX_AUDIO_MB * 1024 * 1024:
+        raise HTTPException(status_code=413, detail=f"Файл больше {MAX_AUDIO_MB} МБ")
+
+    ext = "mp3"
+    if "ogg" in ct: ext = "ogg"
+    elif "wav" in ct: ext = "wav"
+    elif "mp4" in ct or "m4a" in ct or "aac" in ct: ext = "m4a"
+    user_dir = os.path.join(MEDIA_ROOT, str(me.id))
+    os.makedirs(user_dir, exist_ok=True)
+    filename = f"anthem_{uuid.uuid4().hex[:8]}.{ext}"
+    filepath = os.path.join(user_dir, filename)
+    async with aiofiles.open(filepath, "wb") as f:
+        await f.write(data)
+
+    # Remove a previous anthem file if any (keep storage tidy)
+    if me.anthem_url:
+        try:
+            old = me.anthem_url.split("/media/")[-1]
+            oldpath = os.path.join(MEDIA_ROOT, old)
+            if os.path.isfile(oldpath) and "anthem_" in oldpath:
+                os.remove(oldpath)
+        except Exception:
+            pass
+
+    url = f"{PUBLIC_BASE.rstrip('/')}/{me.id}/{filename}" if PUBLIC_BASE else f"/media/{me.id}/{filename}"
+    me.anthem_url = url
+    await db.commit()
+    return {"anthem_url": url}
+
+
+@router.delete("/anthem")
+async def delete_anthem(
+    db: AsyncSession = Depends(get_db),
+    me: User = Depends(get_current_user),
+):
+    if me.anthem_url:
+        try:
+            rel = me.anthem_url.split("/media/")[-1]
+            p = os.path.join(MEDIA_ROOT, rel)
+            if os.path.isfile(p) and "anthem_" in p:
+                os.remove(p)
+        except Exception:
+            pass
+    me.anthem_url = None
+    me.anthem_title = None
+    me.anthem_start = None
+    await db.commit()
+    return {"ok": True}
 
 
 @router.post("/upload/{slot_index}")

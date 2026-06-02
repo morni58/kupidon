@@ -3,6 +3,7 @@ import { MeshBG, THEME_MESH, VIBES, hexA, Grain } from '../design/fx'
 import { Photo, Pill, Badge, Button, Sheet, TabBar, Avatar, Confetti } from '../design/ui'
 import { apiCardToPerson, gradPhoto } from '../design/data'
 import { SkeletonFeed } from '../design/loaders'
+import { ArtNoCards } from '../design/illustrations'
 import { api, haptic } from '../lib/api'
 
 const INTENTS = [{ label: 'Без обязательств', emoji: '🎲' }, { label: 'Один вечер', emoji: '🌙' }]
@@ -53,12 +54,12 @@ function ProfileCard({ person, theme, front, drag = { x: 0, y: 0 }, photoIdx = 0
       </>)}
       <div className="absolute inset-x-3 bottom-3 z-20 rounded-[1.6rem] px-4 pt-3.5 pb-4 overflow-hidden"
         style={{ background: adult ? 'rgba(30,4,6,0.4)' : 'rgba(18,14,26,0.34)', backdropFilter: 'blur(18px) saturate(1.2)', border: '1px solid rgba(255,255,255,0.18)', boxShadow: '0 12px 30px -12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.22)' }}>
-        <div className="flex items-end justify-between gap-2">
-          <h2 className="text-[27px] font-black text-white leading-none whitespace-nowrap tracking-tight" style={{ textShadow: '0 2px 16px rgba(0,0,0,0.4)' }}>{person.name}, {person.age}</h2>
+        <div className="flex items-end justify-between gap-2 min-w-0">
+          <h2 className="flex-1 min-w-0 truncate text-[26px] font-black text-white leading-none tracking-tight" style={{ textShadow: '0 2px 16px rgba(0,0,0,0.4)' }}>{person.name}, {person.age}</h2>
           {person.dist && <span className="flex items-center gap-1 text-[12px] font-semibold mb-0.5 shrink-0" style={{ color: 'rgba(255,255,255,0.85)' }}><i className="ph-fill ph-map-pin" style={{ color: adult ? '#FF6B6B' : '#FF99DD' }} />{person.dist}</span>}
         </div>
-        <p className="mt-1 text-[12px] font-semibold" style={{ color: 'rgba(255,255,255,0.7)' }}>{person.city}</p>
-        <div className="mt-2.5 flex flex-wrap gap-1.5 items-center">
+        <p className="mt-1 text-[12px] font-semibold truncate" style={{ color: 'rgba(255,255,255,0.7)' }}>{person.city}</p>
+        <div className="mt-2.5 flex gap-1.5 items-center overflow-hidden" style={{ maxHeight: 30 }}>
           {(adult ? INTENTS : person.tags.slice(0, 3)).map((t, i) => adult ? (
             <span key={i} className="inline-flex items-center gap-1 rounded-full font-semibold text-white" style={{ height: 28, padding: '0 11px', fontSize: 11.5, background: 'rgba(255,45,45,0.22)', border: '1px solid rgba(255,80,80,0.6)' }}>{t.emoji} {t.label}</span>
           ) : (<Pill key={i} interest={t} glass small />))}
@@ -218,7 +219,16 @@ export function Feed({ theme, palette, accent: accentProp, dark, plan, me, refre
 
   const accent = accentProp || (adult ? '#FF3333' : theme === 'oligarch' ? '#FFD700' : '#FF00FF')
 
-  async function loadFeed() {
+  async function loadFeed(useCache = false) {
+    // Instant render from the prefetched cache (boot warm-up), then refresh silently.
+    if (useCache && !onlyVerified && !filterTags) {
+      const cached = useStore.getState().consumeFeedCache?.()
+      if (cached && cached.length) {
+        setDeck(cached.map((c) => apiCardToPerson(c)))
+        setIdx(0); setLoading(false)
+        return
+      }
+    }
     setLoading(true)
     try {
       const cards = await api.getFeed(onlyVerified, filterTags)
@@ -227,7 +237,9 @@ export function Feed({ theme, palette, accent: accentProp, dark, plan, me, refre
     } catch { setDeck([]) }
     setLoading(false)
   }
-  useEffect(() => { loadFeed() }, [onlyVerified, filterTags])
+  // First load tries the warm cache; filter changes always hit the network.
+  const firstLoad = useRef(true)
+  useEffect(() => { loadFeed(firstLoad.current); firstLoad.current = false }, [onlyVerified, filterTags])
   useEffect(() => { setSuperLeft(me?.superlikes_left || 0); setSwipesLeft(me?.swipes_left ?? 50) }, [me?.superlikes_left, me?.swipes_left])
 
   const person = deck[idx]
@@ -315,10 +327,10 @@ export function Feed({ theme, palette, accent: accentProp, dark, plan, me, refre
             <SkeletonFeed dark={dark} />
           ) : ended ? (
             <div className="h-full flex flex-col items-center justify-center text-center px-6">
-              <div className="text-[72px] floaty">🌎</div>
-              <h2 className="text-[24px] font-black mt-3" style={{ color: !dark ? '#0F0F13' : '#fff' }}>Анкеты закончились</h2>
-              <p className="mt-2 text-[15px] font-medium" style={{ color: !dark ? '#6b7280' : 'rgba(255,255,255,0.7)' }}>Возвращайся позже или расширь радиус поиска</p>
-              <div className="mt-6 w-full"><Button onClick={loadFeed} style={adult ? { background: 'linear-gradient(135deg,#FF3333,#FF00FF)' } : theme === 'oligarch' ? { background: 'linear-gradient(135deg,#FFE259,#FFA751)', color: '#0F0F13' } : {}}>Обновить</Button></div>
+              <div className="floaty"><ArtNoCards size={172} accent={accent} /></div>
+              <h2 className="text-[24px] font-black mt-1" style={{ color: !dark ? '#0F0F13' : '#fff' }}>Пока всё пересмотрено</h2>
+              <p className="mt-2 text-[15px] font-medium" style={{ color: !dark ? '#6b7280' : 'rgba(255,255,255,0.7)' }}>Новые анкеты появятся скоро. Загляни позже или расширь радиус поиска.</p>
+              <div className="mt-6 w-full"><Button onClick={loadFeed} style={adult ? { background: 'linear-gradient(135deg,#FF3333,#FF00FF)' } : theme === 'oligarch' ? { background: 'linear-gradient(135deg,#FFE259,#FFA751)', color: '#0F0F13' } : {}}>Обновить ленту</Button></div>
             </div>
           ) : (
             <div className="relative w-full h-full" style={{ filter: paywall ? 'blur(8px)' : 'none', transition: 'filter .3s' }}>

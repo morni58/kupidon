@@ -3,6 +3,7 @@ import { MeshBG, VIBES } from '../design/fx'
 import { Photo, Button, TabBar, VerifiedTick } from '../design/ui'
 import { gradPhoto } from '../design/data'
 import { SkeletonRows } from '../design/loaders'
+import { ArtNoLikes, ArtNoChats } from '../design/illustrations'
 import { api, createChatWS, haptic, mediaUrl, openInvoice } from '../lib/api'
 
 const pic = (urlOrNull, seedName = '?', emoji = '🙂') => urlOrNull ? { url: mediaUrl(urlOrNull) } : gradPhoto(seedName.charCodeAt(0), emoji)
@@ -72,10 +73,10 @@ export function Likes({ plan, me, palette, accent = '#FF00FF', dark = false, onO
         <div className="screen-pad space-y-3 pt-2">
           {loading && <SkeletonRows count={5} dark={dark} />}
           {!loading && items.length === 0 && (
-            <div className="text-center py-16">
-              <div className="text-[56px]">💔</div>
-              <h2 className="text-[18px] font-black mt-2" style={{ color: dark ? '#fff' : '#0F0F13' }}>Пока никто не лайкнул</h2>
-              <p className="text-[13px] text-[#6b7280] mt-1">Свайпай активнее — и симпатии появятся!</p>
+            <div className="text-center py-12 flex flex-col items-center">
+              <div className="floaty"><ArtNoLikes size={150} /></div>
+              <h2 className="text-[18px] font-black mt-1" style={{ color: dark ? '#fff' : '#0F0F13' }}>Пока никто не лайкнул</h2>
+              <p className="text-[13px] mt-1" style={{ color: dark ? '#9ca3af' : '#6b7280' }}>Свайпай активнее — и симпатии появятся!</p>
             </div>
           )}
 
@@ -159,9 +160,9 @@ export function Chats({ palette, accent = '#FF00FF', dark = false, onOpenChat, a
           <div className="screen-pad pt-2"><SkeletonRows count={6} dark={dark} /></div>
         ) : chats.length === 0 ? (
           <div className="h-[60vh] flex flex-col items-center justify-center text-center px-8">
-            <div className="text-[64px]">💬</div>
-            <h2 className="text-[20px] font-black mt-2" style={{ color: dark ? '#fff' : '#0F0F13' }}>Нет чатов</h2>
-            <p className="text-[14px] mt-1" style={{ color: dark ? '#9ca3af' : '#6b7280' }}>Свайпай — и они появятся!</p>
+            <div className="floaty"><ArtNoChats size={150} /></div>
+            <h2 className="text-[20px] font-black mt-1" style={{ color: dark ? '#fff' : '#0F0F13' }}>Пока нет чатов</h2>
+            <p className="text-[14px] mt-1" style={{ color: dark ? '#9ca3af' : '#6b7280' }}>Свайпни вправо — и совпадения окажутся здесь.</p>
           </div>
         ) : (
           <div className="screen-pad pt-2">

@@ -51,7 +51,7 @@ export default function App() {
         s.setActiveChat(null)
         useStore.setState({ me })
         if (!me.birth_date) s.setScreen('onboarding')
-        else s.setScreen('feed')
+        else { s.prefetch(); s.setScreen('feed') }   // warm feed + profile caches
       } catch {
         // Token invalid/expired: if we can re-auth via Telegram, onboarding,
         // otherwise show error rather than a dead onboarding shell.

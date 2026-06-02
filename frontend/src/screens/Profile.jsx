@@ -4,7 +4,9 @@ import { Photo, Button, Toggle, Pill, VerifiedTick, TabBar, Confetti } from '../
 import { ageFromBirth, birthFromAge, gradPhoto, interestById } from '../design/data'
 import { api, haptic, openInvoice, mediaUrl } from '../lib/api'
 import { SkeletonProfile } from '../design/loaders'
+import { useStore } from '../lib/store'
 import { AgeDial, PhotoGrid } from './Onboarding'
+import { AnthemEditor, AnthemPlayer, PromptsEditor, PromptsView } from './ProfileExtras'
 
 function Glass({ children, className = '', dark = false, style = {} }) {
   return (
@@ -34,7 +36,7 @@ function AnimNum({ value, className, style }) {
 }
 
 export function Profile({ theme, palette: paletteProp, accent: accentProp, dark: darkProp, plan, prefs, setPref, onVerify, onUpgrade, onMutate, onEdit, onDeleted, setToast, active, onTab, dots }) {
-  const [full, setFull] = useState(null)
+  const [full, setFull] = useState(() => useStore.getState().meFullCache || null)
   const [photoIdx, setPhotoIdx] = useState(0)
   const [scrollY, setScrollY] = useState(0)
   const [confirmDel, setConfirmDel] = useState(false)
@@ -54,7 +56,7 @@ export function Profile({ theme, palette: paletteProp, accent: accentProp, dark:
     catch { setToast('Не удалось удалить') }
   }
 
-  const load = () => api.getMeFull().then(setFull).catch(() => {})
+  const load = () => api.getMeFull().then((f) => { setFull(f); useStore.setState({ meFullCache: f }) }).catch(() => {})
   useEffect(() => { load() }, [])
 
   if (!full) return <SkeletonProfile dark={darkProp} />
@@ -109,7 +111,7 @@ export function Profile({ theme, palette: paletteProp, accent: accentProp, dark:
             </div>
             <div className="mt-1.5 flex items-center justify-between">
               <p className="text-[12.5px] font-semibold flex items-center gap-1" style={{ color: 'rgba(255,255,255,0.8)' }}><i className="ph-fill ph-map-pin" style={{ color: accent }} /> {full.city_name || 'Рядом'}</p>
-              {prefs.anthem && <div className="flex items-center gap-2 min-w-0"><Equalizer color="#fff" bars={4} height={14} /><span className="text-[11px] font-semibold truncate max-w-[160px]" style={{ color: 'rgba(255,255,255,0.75)' }}>{prefs.anthemTrack || 'Мой гимн'}</span></div>}
+              {full.anthem_url && <AnthemPlayer url={full.anthem_url} title={full.anthem_title} start={full.anthem_start} accent="#fff" />}
             </div>
           </div>
         </div>
@@ -205,7 +207,15 @@ export function Profile({ theme, palette: paletteProp, accent: accentProp, dark:
           {full.bio && (
             <div>
               <h3 className="text-[15px] font-bold mb-2 px-1" style={{ color: txt }}>О себе</h3>
-              <Glass dark={dark} className="p-4"><p className="text-[14px] font-medium leading-relaxed" style={{ color: dark ? '#ddd' : '#374151' }}>{full.bio}</p></Glass>
+              <Glass dark={dark} className="p-4"><p className="text-[14px] font-medium leading-relaxed whitespace-pre-wrap break-words" style={{ color: dark ? '#ddd' : '#374151' }}>{full.bio}</p></Glass>
+            </div>
+          )}
+
+          {/* prompts: red/green flags etc. */}
+          {full.prompts && Object.values(full.prompts).some((v) => (v || '').trim()) && (
+            <div>
+              <h3 className="text-[15px] font-bold mb-2 px-1" style={{ color: txt }}>Обо мне подробнее</h3>
+              <PromptsView prompts={full.prompts} dark={dark} />
             </div>
           )}
 
@@ -297,6 +307,8 @@ export function ProfileEdit({ onBack, onSaved, setToast }) {
   const [cityResults, setCityResults] = useState([])
   const [newTag, setNewTag] = useState('')
   const [busy, setBusy] = useState(false)
+  const [anthem, setAnthem] = useState(null)   // { url, title, start }
+  const [prompts, setPrompts] = useState({})
 
   async function proposeTag() {
     const name = newTag.trim()
@@ -327,6 +339,8 @@ export function ProfileEdit({ onBack, onSaved, setToast }) {
         setBio(full.bio || '')
         setTags(full.tag_ids || [])
         if (full.city_name) setCity({ name: full.city_name })
+        if (full.anthem_url) setAnthem({ url: full.anthem_url, title: full.anthem_title || '', start: full.anthem_start || 0 })
+        setPrompts(full.prompts || {})
       }
       setAllTags(tagList)
       const arr = [null, null, null, null, null]
@@ -365,6 +379,8 @@ export function ProfileEdit({ onBack, onSaved, setToast }) {
       const patch = { name: name.trim(), birth_date: birthFromAge(age), bio: bio || '' }
       if (gender) patch.gender = gender
       if (looking) patch.search_gender = looking === 'all' ? 'any' : looking
+      if (anthem) { patch.anthem_title = anthem.title || ''; patch.anthem_start = anthem.start || 0 }
+      patch.prompts = prompts || {}
       await api.updateProfile(patch)
       await api.setTags(tags)
       haptic('success'); setToast('✅ Профиль обновлён'); onSaved?.()
@@ -444,10 +460,21 @@ export function ProfileEdit({ onBack, onSaved, setToast }) {
 
         <Section title="О себе">
           <div className="relative">
-            <textarea value={bio} maxLength={150} onChange={(e) => setBio(e.target.value)} rows={4} placeholder="Расскажи о себе…"
+            <textarea value={bio} maxLength={300} onChange={(e) => setBio(e.target.value)} rows={5} placeholder="Расскажи о себе — чем живёшь, что любишь, какой ты…"
               className="w-full rounded-2xl bg-white border-2 border-[#e5e7eb] focus:border-[#FF00FF] outline-none p-4 text-[15px] font-medium text-[#0F0F13] resize-none transition" />
-            <span className="absolute bottom-3 right-4 text-[12px] font-bold text-[#9ca3af]">{bio.length}/150</span>
+            <span className="absolute bottom-3 right-4 text-[12px] font-bold text-[#9ca3af]">{bio.length}/300</span>
           </div>
+        </Section>
+
+        <Section title="Подробнее о тебе">
+          <p className="text-[12px] text-[#9ca3af] -mt-1 mb-2.5">Любые поля по желанию — так анкета живее и понятнее.</p>
+          <PromptsEditor prompts={prompts} onChange={setPrompts} />
+        </Section>
+
+        <Section title="Мой гимн">
+          <p className="text-[12px] text-[#9ca3af] -mt-1 mb-2.5">Загрузи короткий трек, выбери момент — он будет играть у тебя в профиле.</p>
+          <AnthemEditor url={anthem?.url} title={anthem?.title} start={anthem?.start || 0}
+            onChange={(a) => setAnthem(a ? { url: a.url, title: a.title, start: a.start } : null)} setToast={setToast} />
         </Section>
 
         <Section title={`Интересы (${tags.length}/5)`}>
