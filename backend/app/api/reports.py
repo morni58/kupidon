@@ -15,6 +15,8 @@ router = APIRouter(prefix="/api", tags=["safety"])
 class ReportRequest(BaseModel):
     target_id: uuid.UUID
     reason: ReportReasonEnum
+    note: str | None = None
+    match_id: uuid.UUID | None = None
 
 
 class BlockRequest(BaseModel):
@@ -40,7 +42,10 @@ async def report_user(
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=409, detail="Already reported")
 
-    report = Report(reporter_id=me.id, target_id=body.target_id, reason=body.reason)
+    report = Report(
+        reporter_id=me.id, target_id=body.target_id, reason=body.reason,
+        note=(body.note or "").strip()[:500] or None, match_id=body.match_id,
+    )
     db.add(report)
 
     # Auto-shadowban after 3 unique reports

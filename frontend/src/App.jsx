@@ -8,6 +8,7 @@ import { Onboarding } from './screens/Onboarding'
 import { Feed } from './screens/Feed'
 import { Likes, Chats, Dialog } from './screens/Social'
 import { Profile, ProfileEdit, Verification, Pricing } from './screens/Profile'
+import { UserProfile } from './screens/UserProfile'
 
 export default function App() {
   const s = useStore()
@@ -113,13 +114,13 @@ export default function App() {
       view = <Onboarding setToast={setToast} onDone={async () => { await s.refreshMe(); s.setScreen('feed') }} />; break
     case 'feed':
       view = <Feed {...themeProps} plan={plan} me={me} refreshMe={refreshMe} setToast={setToast} dots={dots} active="feed" onTab={onTab}
-        onMatch={(matchId) => s.openChat(matchId)} onUpgrade={(product) => s.setScreen('pricing')} />; break
+        onMatch={(matchId) => s.openChat(matchId)} onUpgrade={(product) => s.setScreen('pricing')} onOpenProfile={(id) => s.openUser(id)} />; break
     case 'likes':
-      view = <Likes {...themeProps} plan={plan} me={me} setToast={setToast} dots={dots} active="likes" onTab={onTab} onOpenChat={(id) => s.openChat(id)} />; break
+      view = <Likes {...themeProps} plan={plan} me={me} setToast={setToast} dots={dots} active="likes" onTab={onTab} onOpenChat={(id) => s.openChat(id)} onOpenProfile={(id) => s.openUser(id)} />; break
     case 'chats':
       view = <Chats {...themeProps} dots={dots} active="chats" onTab={onTab} onOpenChat={(id) => s.openChat(id)} />; break
     case 'dialog':
-      view = <Dialog {...themeProps} chatId={s.activeChat} me={me} plan={plan} setToast={setToast} onBack={() => s.setScreen('chats')} />; break
+      view = <Dialog {...themeProps} chatId={s.activeChat} me={me} plan={plan} setToast={setToast} onBack={() => s.setScreen('chats')} onOpenProfile={(id) => s.openUser(id)} />; break
     case 'profile':
       view = <Profile {...themeProps} plan={plan} prefs={prefs} setPref={s.setPref} setToast={setToast} dots={dots} active="profile" onTab={onTab}
         onVerify={() => s.setScreen('verify')} onUpgrade={() => s.setScreen('pricing')} onMutate={refreshMe} onEdit={() => s.setScreen('edit')}
@@ -130,6 +131,11 @@ export default function App() {
       view = <Verification setToast={setToast} onBack={() => s.setScreen('profile')} onSuccess={async () => { await s.refreshMe(); setToast('✓ Синяя галочка добавлена'); s.setScreen('profile') }} />; break
     case 'pricing':
       view = <Pricing palette={palette} currentTier={me?.tier} setToast={setToast} onMutate={refreshMe} onBack={() => s.setScreen('profile')} />; break
+    case 'user':
+      view = <UserProfile {...themeProps} userId={s.viewUserId} setToast={setToast}
+        onBack={() => s.setScreen(s.prevScreen || 'feed')}
+        onLike={async (p) => { try { const r = await api.swipe(p.id, 'right'); setToast(r.is_match ? '💕 Это мэтч!' : '❤️ Лайк отправлен'); if (r.is_match && r.match_id) s.openChat(r.match_id); else s.setScreen(s.prevScreen || 'feed') } catch (e) { setToast(e?.status === 429 ? 'Свайпы кончились' : 'Не удалось') } }}
+        onMessage={async (p) => { try { const r = await api.forceChat(p.id); s.openChat(r.match_id) } catch (e) { setToast(e?.data?.detail || 'Чат доступен после взаимного лайка') } }} />; break
     default: view = null
   }
 

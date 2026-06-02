@@ -19,7 +19,7 @@ function Stamp({ show, text, color, side }) {
   )
 }
 
-function ProfileCard({ person, theme, front, drag = { x: 0, y: 0 }, photoIdx = 0, onTapPhoto, dragging }) {
+function ProfileCard({ person, theme, front, drag = { x: 0, y: 0 }, photoIdx = 0, onTapPhoto, dragging, onOpenProfile }) {
   const adult = theme === 'adult'
   const ph = person.photos[photoIdx] || person.photos[0]
   const dx = drag.x, dy = drag.y
@@ -56,6 +56,11 @@ function ProfileCard({ person, theme, front, drag = { x: 0, y: 0 }, photoIdx = 0
         style={{ background: adult ? 'rgba(30,4,6,0.4)' : 'rgba(18,14,26,0.34)', backdropFilter: 'blur(18px) saturate(1.2)', border: '1px solid rgba(255,255,255,0.18)', boxShadow: '0 12px 30px -12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.22)' }}>
         <div className="flex items-end justify-between gap-2 min-w-0">
           <h2 className="flex-1 min-w-0 truncate text-[26px] font-black text-white leading-none tracking-tight" style={{ textShadow: '0 2px 16px rgba(0,0,0,0.4)' }}>{person.name}, {person.age}</h2>
+          {front && onOpenProfile && (
+            <button onClick={(e) => { e.stopPropagation(); onOpenProfile(person.id) }} className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center active:scale-90 transition" style={{ background: 'rgba(255,255,255,0.22)', backdropFilter: 'blur(6px)', border: '1px solid rgba(255,255,255,0.3)' }}>
+              <i className="ph-bold ph-info text-white text-[17px]" />
+            </button>
+          )}
           {person.dist && <span className="flex items-center gap-1 text-[12px] font-semibold mb-0.5 shrink-0" style={{ color: 'rgba(255,255,255,0.85)' }}><i className="ph-fill ph-map-pin" style={{ color: adult ? '#FF6B6B' : '#FF99DD' }} />{person.dist}</span>}
         </div>
         <p className="mt-1 text-[12px] font-semibold truncate" style={{ color: 'rgba(255,255,255,0.7)' }}>{person.city}</p>
@@ -76,7 +81,7 @@ function ProfileCard({ person, theme, front, drag = { x: 0, y: 0 }, photoIdx = 0
   )
 }
 
-function SwipeCard({ person, theme, onDecide, photoIdx, onTapPhoto, fling }) {
+function SwipeCard({ person, theme, onDecide, photoIdx, onTapPhoto, fling, onOpenProfile }) {
   const [drag, setDrag] = useState({ x: 0, y: 0 })
   const [dragging, setDragging] = useState(false)
   const [leaving, setLeaving] = useState(null)
@@ -100,7 +105,7 @@ function SwipeCard({ person, theme, onDecide, photoIdx, onTapPhoto, fling }) {
     <div className="absolute inset-0 touch-none cursor-grab active:cursor-grabbing"
       style={{ transform: `translate(${pos.x}px, ${pos.y}px) rotate(${rot}deg)`, transition: leaving ? 'transform .34s cubic-bezier(.4,0,.2,1)' : !dragging ? 'transform .42s cubic-bezier(.34,1.4,.5,1)' : 'none' }}
       onMouseDown={down} onMouseMove={move} onMouseUp={up} onMouseLeave={up} onTouchStart={down} onTouchMove={move} onTouchEnd={up}>
-      <ProfileCard person={person} theme={theme} front drag={drag} dragging={dragging} photoIdx={photoIdx} onTapPhoto={onTapPhoto} />
+      <ProfileCard person={person} theme={theme} front drag={drag} dragging={dragging} photoIdx={photoIdx} onTapPhoto={onTapPhoto} onOpenProfile={onOpenProfile} />
     </div>
   )
 }
@@ -195,7 +200,7 @@ function Paywall({ open, onClose, onUpgrade }) {
 
 const DIR_MAP = { like: 'right', nope: 'left', super: 'superlike' }
 
-export function Feed({ theme, palette, accent: accentProp, dark, plan, me, refreshMe, onMatch, onUpgrade, setToast, dots, active, onTab }) {
+export function Feed({ theme, palette, accent: accentProp, dark, plan, me, refreshMe, onMatch, onUpgrade, setToast, dots, active, onTab, onOpenProfile }) {
   const adult = theme === 'adult'
   const [deck, setDeck] = useState([])
   const [idx, setIdx] = useState(0)
@@ -336,7 +341,7 @@ export function Feed({ theme, palette, accent: accentProp, dark, plan, me, refre
             <div className="relative w-full h-full" style={{ filter: paywall ? 'blur(8px)' : 'none', transition: 'filter .3s' }}>
               {deck[idx + 2] && <div className="absolute inset-0" style={{ transform: 'scale(0.88) translateY(24px)', opacity: 0.45 }}><div className="absolute inset-0 rounded-[2rem] overflow-hidden"><Photo data={deck[idx + 2].photos[0]} rounded="2rem" className="w-full h-full" emojiSize={120} /></div></div>}
               {deck[idx + 1] && <div className="absolute inset-0" style={{ transform: 'scale(0.94) translateY(12px)', opacity: 0.85 }}><ProfileCard person={deck[idx + 1]} theme={theme} photoIdx={0} /></div>}
-              {person && <SwipeCard key={person.id + '-' + bump} person={person} theme={theme} onDecide={decide} photoIdx={photoIdx} onTapPhoto={tapPhoto} fling={fling} />}
+              {person && <SwipeCard key={person.id + '-' + bump} person={person} theme={theme} onDecide={decide} photoIdx={photoIdx} onTapPhoto={tapPhoto} fling={fling} onOpenProfile={onOpenProfile} />}
             </div>
           )}
         </div>

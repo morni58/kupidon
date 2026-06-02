@@ -21,9 +21,12 @@ export const useStore = create((set, get) => ({
   uiTheme: prefs.uiTheme || 'light',   // light | dark (visual; separate from 18+ mode)
   anthemTrack: prefs.anthemTrack || null, // {name, url} chosen profile anthem
 
+  viewUserId: null,
+  prevScreen: 'feed',
   setScreen: (screen) => set({ screen }),
   setActiveChat: (activeChat) => set({ activeChat }),
   openChat: (id) => set({ activeChat: id, screen: 'dialog' }),
+  openUser: (id) => set((s) => ({ viewUserId: id, prevScreen: s.screen === 'user' ? s.prevScreen : s.screen, screen: 'user' })),
 
   setToast: (toast) => {
     set({ toast })

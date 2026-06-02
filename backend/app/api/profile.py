@@ -80,6 +80,72 @@ async def get_my_profile(me: User = Depends(get_current_user)):
     return me
 
 
+@router.get("/profile/{user_id}")
+async def get_public_profile(
+    user_id: str,
+    db: AsyncSession = Depends(get_db),
+    me: User = Depends(get_current_user),
+):
+    """Read-only public profile of another user (opened from a feed card/chat)."""
+    import uuid as _uuid
+    from app.models.media import MediaSlot
+    from app.models.tag import UserTag
+    from app.models.city import City
+    from app.models.safety import Block
+    from sqlalchemy import or_, and_
+
+    try:
+        uid = _uuid.UUID(user_id)
+    except Exception:
+        raise HTTPException(status_code=404, detail="Not found")
+    if uid == me.id:
+        raise HTTPException(status_code=400, detail="self")
+
+    r = await db.execute(select(User).where(User.id == uid))
+    u = r.scalar_one_or_none()
+    if not u or u.is_banned or u.is_deleted:
+        raise HTTPException(status_code=404, detail="Профиль недоступен")
+
+    # Respect blocks both ways.
+    blk = await db.execute(select(Block).where(or_(
+        and_(Block.blocker_id == me.id, Block.blocked_id == uid),
+        and_(Block.blocker_id == uid, Block.blocked_id == me.id),
+    )))
+    if blk.first():
+        raise HTTPException(status_code=403, detail="Недоступно")
+
+    from app.core.media import to_public_url
+    media_r = await db.execute(select(MediaSlot.media_url).where(MediaSlot.user_id == uid).order_by(MediaSlot.slot_index))
+    media = [to_public_url(x) for x in media_r.scalars().all() if x]
+    tags_r = await db.execute(select(UserTag.tag_id).where(UserTag.user_id == uid))
+    tag_ids = [t[0] for t in tags_r.all()]
+    city_name = None
+    if u.city_id:
+        c_r = await db.execute(select(City.name).where(City.id == u.city_id))
+        city_name = c_r.scalar_one_or_none()
+
+    # Did this person already like me? (so the UI can show "лайкнул тебя")
+    from app.models.swipe import Swipe
+    liked_r = await db.execute(select(Swipe.id).where(
+        Swipe.actor_id == uid, Swipe.target_id == me.id, Swipe.action_type.in_(["right", "superlike"])
+    ))
+    likes_me = liked_r.first() is not None
+
+    from datetime import date
+    age = None
+    if u.birth_date:
+        t = date.today()
+        age = t.year - u.birth_date.year - ((t.month, t.day) < (u.birth_date.month, u.birth_date.day))
+
+    return {
+        "id": str(u.id), "name": u.name, "age": age, "gender": u.gender.value if u.gender else None,
+        "city_name": city_name, "bio": u.bio, "is_verified": u.is_verified, "tier": u.tier.value,
+        "media": media, "tag_ids": tag_ids, "prompts": u.prompts or {},
+        "anthem_url": u.anthem_url, "anthem_title": u.anthem_title, "anthem_start": u.anthem_start,
+        "likes_me": likes_me,
+    }
+
+
 @router.get("/profile/full")
 async def get_my_profile_full(
     db: AsyncSession = Depends(get_db),

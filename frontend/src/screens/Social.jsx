@@ -4,6 +4,7 @@ import { Photo, Button, TabBar, VerifiedTick } from '../design/ui'
 import { gradPhoto } from '../design/data'
 import { SkeletonRows } from '../design/loaders'
 import { ArtNoLikes, ArtNoChats } from '../design/illustrations'
+import { ReportSheet } from '../components/ReportSheet'
 import { api, createChatWS, haptic, mediaUrl, openInvoice, openTelegramContact, tg } from '../lib/api'
 
 // Make @usernames, t.me links and URLs in chat tappable.
@@ -43,7 +44,7 @@ const surfaceStyle = (dark) => dark
   : { background: 'rgba(255,255,255,0.85)', border: '1px solid rgba(255,255,255,0.6)', backdropFilter: 'blur(12px)', boxShadow: '0 8px 24px -14px rgba(0,0,0,0.12)' }
 
 /* ---------------- LIKES ---------------- */
-export function Likes({ plan, me, palette, accent = '#FF00FF', dark = false, onOpenChat, setToast, dots, active, onTab }) {
+export function Likes({ plan, me, palette, accent = '#FF00FF', dark = false, onOpenChat, onOpenProfile, setToast, dots, active, onTab }) {
   const [items, setItems] = useState([])
   const [views, setViews] = useState({ count: 0, items: [], is_premium: false })
   const [loading, setLoading] = useState(true)
@@ -117,13 +118,15 @@ export function Likes({ plan, me, palette, accent = '#FF00FF', dark = false, onO
             </div>
           ) : (
             <div key={l.user_id} className="rounded-3xl p-3 flex items-center gap-3" style={surfaceStyle(dark)}>
-              <Photo data={pic(l.photo, l.name, '💃')} rounded="16px" className="w-16 h-16 shrink-0" emojiSize={34} />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1">
-                  <span className="text-[16px] font-bold" style={{ color: dark ? '#fff' : '#0F0F13' }}>{l.name}{l.age ? `, ${l.age}` : ''}</span>
-                  {l.is_verified && <VerifiedTick size={16} />}
+              <div className="flex items-center gap-3 flex-1 min-w-0 active:opacity-80" onClick={() => onOpenProfile?.(l.user_id)}>
+                <Photo data={pic(l.photo, l.name, '💃')} rounded="16px" className="w-16 h-16 shrink-0" emojiSize={34} />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1">
+                    <span className="text-[16px] font-bold truncate" style={{ color: dark ? '#fff' : '#0F0F13' }}>{l.name}{l.age ? `, ${l.age}` : ''}</span>
+                    {l.is_verified && <VerifiedTick size={16} />}
+                  </div>
+                  <div className="text-[12px] font-medium text-[#9ca3af] mt-0.5">Лайкнул(а) недавно · нажми, чтобы открыть</div>
                 </div>
-                <div className="text-[12px] font-medium text-[#9ca3af] mt-0.5">Лайкнул(а) недавно</div>
               </div>
               {plan.id === 'kupidon' && (
                 <button onClick={() => goldenKey(l)} title="Выкупить контакт (1000⭐)" className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90 transition shrink-0" style={{ background: 'linear-gradient(135deg,#FFE259,#FFA751)' }}>
@@ -214,13 +217,14 @@ export function Chats({ palette, accent = '#FF00FF', dark = false, onOpenChat, a
 }
 
 /* ---------------- DIALOG ---------------- */
-export function Dialog({ chatId, me, plan, theme, accent: accentProp, onBack, setToast }) {
+export function Dialog({ chatId, me, plan, theme, accent: accentProp, onBack, setToast, onOpenProfile }) {
   const [info, setInfo] = useState(null)
   const [msgs, setMsgs] = useState([])
   const [text, setText] = useState('')
   const [ices, setIces] = useState([])
   const [consentFrom, setConsentFrom] = useState(null)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [reportOpen, setReportOpen] = useState(false)
   const [revealed, setRevealed] = useState({})
   const [sending, setSending] = useState(false)
   const [typing, setTyping] = useState(false)
@@ -275,11 +279,7 @@ export function Dialog({ chatId, me, plan, theme, accent: accentProp, onBack, se
   async function approveTg() { try { await api.approveTg(chatId); setConsentFrom(null); setToast('✈️ Контакты открыты'); api.chatInfo(chatId).then(setInfo) } catch {} }
   async function declineTg() { try { await api.declineTg(chatId) } catch {} setConsentFrom(null) }
 
-  async function reportUser() {
-    setMenuOpen(false)
-    if (!info?.partner_id) return
-    try { await api.report(info.partner_id); setToast('⚠️ Жалоба отправлена') } catch (e) { setToast(e?.data?.detail === 'Already reported' ? 'Уже отправлено' : 'Не удалось') }
-  }
+  function reportUser() { setMenuOpen(false); setReportOpen(true) }
   async function blockUser() {
     setMenuOpen(false)
     if (!info?.partner_id) return
@@ -307,6 +307,7 @@ export function Dialog({ chatId, me, plan, theme, accent: accentProp, onBack, se
       <div className="safe-top shrink-0" style={{ background: adult ? 'rgba(20,0,0,0.85)' : 'rgba(255,255,255,0.85)', backdropFilter: 'blur(12px)', borderBottom: adult ? '1px solid #4A0000' : '1px solid #f3f4f6' }}>
         <div className="flex items-center gap-2.5 px-3 pb-2.5 pt-1">
           <button onClick={onBack} className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90 transition shrink-0"><i className="ph-bold ph-arrow-left text-[20px]" style={{ color: adult ? '#fff' : '#0F0F13' }} /></button>
+          <div className="flex items-center gap-2.5 flex-1 min-w-0 active:opacity-80" onClick={() => info?.partner_id && onOpenProfile?.(info.partner_id)}>
           <Photo data={pic(info?.photo, info?.name || '?', '💞')} rounded="9999px" className="w-9 h-9 shrink-0" emojiSize={20} />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1">
@@ -315,6 +316,7 @@ export function Dialog({ chatId, me, plan, theme, accent: accentProp, onBack, se
             </div>
             {typing ? <span className="text-[11px] font-semibold" style={{ color: accent }}>печатает…</span>
               : info?.online && <span className="text-[11px] font-semibold text-[#10B981]">в сети</span>}
+          </div>
           </div>
           <button onClick={() => setMenuOpen((v) => !v)} className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"><i className="ph-bold ph-dots-three-vertical text-[20px]" style={{ color: adult ? '#fff' : '#9ca3af' }} /></button>
           <div className="flex flex-col items-center shrink-0">
@@ -413,6 +415,8 @@ export function Dialog({ chatId, me, plan, theme, accent: accentProp, onBack, se
           <i className="ph-fill ph-paper-plane-right text-[18px] text-white" />
         </button>
       </div>
+
+      <ReportSheet open={reportOpen} targetId={info?.partner_id} matchId={chatId} onClose={() => setReportOpen(false)} setToast={setToast} />
     </div>
   )
 }

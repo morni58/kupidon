@@ -39,6 +39,7 @@ export const api = {
   authTelegram: (init_data) => req('/api/auth/telegram', { method: 'POST', body: { init_data } }),
   getMe: () => req('/api/profile/me'),
   getMeFull: () => req('/api/profile/full'),
+  publicProfile: (userId) => req(`/api/profile/${userId}`),
   myMedia: () => req('/api/media/mine'),
   onboarding: (data) => req('/api/onboarding', { method: 'POST', body: data }),
   updateProfile: (patch) => req('/api/profile/me', { method: 'PATCH', body: patch }),
@@ -66,7 +67,7 @@ export const api = {
   recordView: (target_id) => req(`/api/views/${target_id}`, { method: 'POST' }),
 
   // safety
-  report: (target_id, reason = 'abuse') => req('/api/report', { method: 'POST', body: { target_id, reason } }),
+  report: (target_id, reason = 'abuse', note = null, match_id = null) => req('/api/report', { method: 'POST', body: { target_id, reason, note, match_id } }),
   block: (target_id) => req('/api/block', { method: 'POST', body: { target_id } }),
 
   // chats

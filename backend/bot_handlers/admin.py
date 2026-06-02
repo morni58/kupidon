@@ -205,7 +205,7 @@ async def cmd_economy(message: Message):
 async def cmd_reports(message: Message):
     if not is_admin(message.from_user.id):
         return
-    from sqlalchemy import select
+    from sqlalchemy import select, func
     from app.models.safety import Report, ReportStatusEnum
     async with async_session_maker() as db:
         reports = (await db.execute(
@@ -213,14 +213,48 @@ async def cmd_reports(message: Message):
             .order_by(Report.created_at.desc()).limit(10)
         )).scalars().all()
     if not reports:
-        await message.answer("No open reports.")
+        await message.answer("Нет открытых жалоб.")
         return
-    for r in reports:
-        kb = InlineKeyboardMarkup(inline_keyboard=[[
-            InlineKeyboardButton(text="🚫 Ban", callback_data=f"admin:ban:{r.target_id}"),
-            InlineKeyboardButton(text="✅ Dismiss", callback_data=f"report:dismiss:{r.id}"),
-        ]])
-        await message.answer(f"Report {r.id}\nTarget: {r.target_id}\nReason: {r.reason.value}", reply_markup=kb)
+    from app.models.user import User
+    from app.models.message import Message
+    from app.models.media import MediaSlot
+    REASON_RU = {"fake": "Фейк", "spam": "Спам/реклама", "abuse": "Оскорбления", "nsfw": "NSFW", "underage": "Несовершеннолетний", "fraud": "Мошенничество"}
+    async with async_session_maker() as db:
+        for r in reports:
+            tgt = (await db.execute(select(User).where(User.id == r.target_id))).scalar_one_or_none()
+            rep = (await db.execute(select(User).where(User.id == r.reporter_id))).scalar_one_or_none()
+            n_reports = (await db.execute(select(func.count(Report.id)).where(Report.target_id == r.target_id))).scalar_one()
+            txt = (
+                f"⚠️ *Жалоба* {str(r.id)[:8]}\n"
+                f"Причина: *{REASON_RU.get(r.reason.value, r.reason.value)}*\n"
+            )
+            if r.note:
+                txt += f"💬 Текст: _{r.note}_\n"
+            if tgt:
+                txt += (f"\n👤 *На кого:* {tgt.name} (@{tgt.username or '—'}) `{tgt.tg_id}`\n"
+                        f"Жалоб всего: {n_reports} · {'👻 shadow' if tgt.is_shadowbanned else 'активен'}\n")
+            if rep:
+                txt += f"🙋 *Кто пожаловался:* {rep.name} (@{rep.username or '—'}) `{rep.tg_id}`\n"
+            # last messages from the reported chat
+            if r.match_id:
+                msgs = (await db.execute(
+                    select(Message).where(Message.match_id == r.match_id).order_by(Message.created_at.desc()).limit(5)
+                )).scalars().all()
+                if msgs:
+                    txt += "\n🗨 *Последние сообщения:*\n"
+                    for m in reversed(msgs):
+                        who = "violator" if m.sender_id == r.target_id else ("reporter" if m.sender_id == r.reporter_id else "?")
+                        body_t = (m.content or ("[медиа]" if m.media_url else "[—]"))[:80]
+                        txt += f"  • _{who}_: {body_t}\n"
+            kb = InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="🚫 Бан", callback_data=f"admin:ban:{r.target_id}"),
+                InlineKeyboardButton(text="👻 Shadow", callback_data=f"admin:shadow:{r.target_id}"),
+                InlineKeyboardButton(text="✅ Отклонить", callback_data=f"report:dismiss:{r.id}"),
+            ]])
+            try:
+                await message.answer(txt, reply_markup=kb, parse_mode="Markdown")
+            except Exception:
+                await message.answer(txt.replace("*", "").replace("_", "").replace("`", ""), reply_markup=kb)
 
 
 @router.callback_query(F.data.startswith("report:dismiss:"))
