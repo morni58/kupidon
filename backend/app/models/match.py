@@ -19,6 +19,10 @@ class Match(Base):
     tg_unlocked_user1: Mapped[bool] = mapped_column(Boolean, default=False)
     tg_unlocked_user2: Mapped[bool] = mapped_column(Boolean, default=False)
     messages_count: Mapped[int] = mapped_column(Integer, default=0)
+    # Blind Date: identity hidden until BOTH reveal (killer feature).
+    is_blind: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    blind_reveal_user1: Mapped[bool] = mapped_column(Boolean, default=False)
+    blind_reveal_user2: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     messages: Mapped[list["Message"]] = relationship("Message", back_populates="match", cascade="all, delete-orphan")

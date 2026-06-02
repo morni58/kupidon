@@ -35,7 +35,7 @@ function AnimNum({ value, className, style }) {
   return <span className={className} style={style}>{n}</span>
 }
 
-export function Profile({ theme, palette: paletteProp, accent: accentProp, dark: darkProp, plan, prefs, setPref, onVerify, onUpgrade, onMutate, onEdit, onDeleted, setToast, active, onTab, dots }) {
+export function Profile({ theme, palette: paletteProp, accent: accentProp, dark: darkProp, plan, prefs, setPref, onVerify, onUpgrade, onMutate, onEdit, onStats, onDeleted, setToast, active, onTab, dots }) {
   const [full, setFull] = useState(() => useStore.getState().meFullCache || null)
   const [photoIdx, setPhotoIdx] = useState(0)
   const [scrollY, setScrollY] = useState(0)
@@ -185,6 +185,13 @@ export function Profile({ theme, palette: paletteProp, accent: accentProp, dark:
               </Glass>
             ))}
           </div>
+
+          {/* full stats dashboard */}
+          <button onClick={onStats} className="w-full rounded-3xl p-3.5 flex items-center gap-3 active:scale-[0.99] transition" style={{ background: dark ? 'rgba(255,255,255,0.06)' : '#fff', border: `1px solid ${dark ? 'rgba(255,255,255,0.08)' : '#f0f1f5'}` }}>
+            <div className="w-9 h-9 rounded-2xl flex items-center justify-center" style={{ background: hexA(accent, 0.14) }}><i className="ph-fill ph-chart-line-up text-[18px]" style={{ color: accent }} /></div>
+            <span className="text-[14px] font-bold flex-1 text-left" style={{ color: txt }}>Моя статистика и данные</span>
+            <i className="ph-bold ph-caret-right" style={{ color: sub }} />
+          </button>
 
           {/* verification CTA */}
           {!verified && (

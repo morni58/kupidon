@@ -203,6 +203,12 @@ async def update_profile(
     new_gender = data.get("gender", me.gender)
     new_birth = data.get("birth_date", me.birth_date)
 
+    # Anti-troll: count identity reshuffles (gender / city changes).
+    if "gender" in data and me.gender is not None and data["gender"] != getattr(me.gender, "value", me.gender):
+        me.gender_changes = (me.gender_changes or 0) + 1
+    if "city_id" in data and me.city_id and data["city_id"] != me.city_id:
+        me.city_changes = (me.city_changes or 0) + 1
+
     if "birth_date" in data:
         min_age = int(await get_config_value(db, "min_reg_age", "16"))
         if (calc_age(data["birth_date"]) or 0) < min_age:

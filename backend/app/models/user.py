@@ -53,6 +53,9 @@ class User(Base):
     profile_score: Mapped[int] = mapped_column(SmallInteger, default=0)
     trust_score: Mapped[int] = mapped_column(SmallInteger, default=50)
     streak_days: Mapped[int] = mapped_column(SmallInteger, default=0)
+    # Anti-troll signals: how often the user reshuffled identity fields.
+    city_changes: Mapped[int] = mapped_column(SmallInteger, default=0)
+    gender_changes: Mapped[int] = mapped_column(SmallInteger, default=0)
 
     tier: Mapped[TierEnum] = mapped_column(Enum(TierEnum), default=TierEnum.free)
     tier_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

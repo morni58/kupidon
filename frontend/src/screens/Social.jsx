@@ -252,6 +252,8 @@ export function Dialog({ chatId, me, plan, theme, accent: accentProp, onBack, se
         clearTimeout(typingTimer.current)
         typingTimer.current = setTimeout(() => setTyping(false), 2500)
       }
+      else if (data.type === 'blind_revealed') { setToast('🎉 Вы раскрылись!'); api.chatInfo(chatId).then(setInfo) }
+      else if (data.type === 'blind_reveal_one' && data.from_id !== me?.id) setToast('👀 Собеседник раскрылся! Твой ход')
       else if (data.type === 'poll') setMsgs(data.messages)
     })
     wsRef.current = ws
@@ -354,6 +356,14 @@ export function Dialog({ chatId, me, plan, theme, accent: accentProp, onBack, se
         </>
       )}
 
+      {info?.is_blind && (
+        <div className="shrink-0 mx-3 mt-2 rounded-2xl px-3.5 py-2.5 flex items-center gap-2.5" style={{ background: 'linear-gradient(135deg, rgba(168,85,247,0.16), rgba(236,72,153,0.16))', border: '1px solid rgba(168,85,247,0.4)' }}>
+          <span className="text-[20px]">🎭</span>
+          <div className="flex-1 min-w-0"><div className="text-[12.5px] font-bold" style={{ color: '#0F0F13' }}>Свидание вслепую</div><div className="text-[11px]" style={{ color: '#6b7280' }}>Фото скрыты, пока оба не раскроются</div></div>
+          <button onClick={() => api.blindReveal().then((r) => { if (r.both) { setToast('🎉 Раскрыты!'); api.chatInfo(chatId).then(setInfo) } else setToast('Ждём собеседника…') }).catch((e) => setToast(e?.data?.detail || 'Ошибка'))}
+            className="shrink-0 px-3 h-8 rounded-full text-[12px] font-bold text-white active:scale-95 transition" style={{ background: 'linear-gradient(135deg,#A855F7,#EC4899)' }}>❤️ Раскрыться</button>
+        </div>
+      )}
       <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto noscroll px-4 py-4 space-y-2">
         {msgs.map((m) => {
           if (m.msg_type === 'consent' || m.msg_type === 'system') return null

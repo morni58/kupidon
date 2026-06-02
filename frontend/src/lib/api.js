@@ -113,6 +113,12 @@ export const api = {
 
   // account
   exportData: () => req('/api/account/export'),
+  accountStats: () => req('/api/account/stats'),
+
+  // blind date
+  blindToday: () => req('/api/blind/today'),
+  blindJoin: () => req('/api/blind/join', { method: 'POST' }),
+  blindReveal: () => req('/api/blind/reveal', { method: 'POST' }),
   deleteAccount: () => req('/api/account', { method: 'DELETE' }),
 }
 

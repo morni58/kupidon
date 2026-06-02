@@ -82,13 +82,15 @@ async def list_chats(
         last_active = partner.last_active_at.replace(tzinfo=timezone.utc) if partner.last_active_at else None
 
         from app.core.media import to_public_url
+        blind = bool(getattr(m, "is_blind", False))
         out.append({
             "id": str(m.id),
             "partner_id": str(partner_id),
-            "name": partner.name,
-            "verified": partner.is_verified,
-            "photo": to_public_url(photo),
+            "name": ("Незнакомец 🎭" if blind else partner.name),
+            "verified": (False if blind else partner.is_verified),
+            "photo": (None if blind else to_public_url(photo)),
             "online": bool(last_active and last_active >= online_cutoff),
+            "is_blind": blind,
             "is_18_room": m.is_18_room,
             "messages_count": m.messages_count,
             "tg_unlocked": tg_unlocked,
@@ -152,13 +154,15 @@ async def chat_info(
     can_request = total_msgs >= threshold
 
     from app.core.media import to_public_url
+    blind = bool(getattr(match, "is_blind", False))
     return {
         "id": str(match.id),
         "partner_id": str(partner_id),
-        "name": partner.name,
-        "verified": partner.is_verified,
-        "photo": to_public_url(photo),
+        "name": ("Незнакомец 🎭" if blind else partner.name),
+        "verified": (False if blind else partner.is_verified),
+        "photo": (None if blind else to_public_url(photo)),
         "online": bool(last_active and last_active >= online_cutoff),
+        "is_blind": blind,
         "is_18_room": match.is_18_room,
         "messages_count": match.messages_count,
         "tg_unlocked": mutual,          # reveal only on mutual consent

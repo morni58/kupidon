@@ -44,6 +44,9 @@ async def find_or_create_city(db: AsyncSession, name: str, region: Optional[str]
 
 
 def _set_user_city(me: User, city: City, lat: float, lng: float) -> None:
+    # Count a real city change (anti-troll signal), ignore first set / same city.
+    if me.city_id and me.city_id != city.id:
+        me.city_changes = (me.city_changes or 0) + 1
     me.city_id = city.id
     me.lat = lat
     me.lng = lng

@@ -200,7 +200,7 @@ function Paywall({ open, onClose, onUpgrade }) {
 
 const DIR_MAP = { like: 'right', nope: 'left', super: 'superlike' }
 
-export function Feed({ theme, palette, accent: accentProp, dark, plan, me, refreshMe, onMatch, onUpgrade, setToast, dots, active, onTab, onOpenProfile }) {
+export function Feed({ theme, palette, accent: accentProp, dark, plan, me, refreshMe, onMatch, onUpgrade, setToast, dots, active, onTab, onOpenProfile, onOpenBlind }) {
   const adult = theme === 'adult'
   const [deck, setDeck] = useState([])
   const [idx, setIdx] = useState(0)
@@ -312,6 +312,12 @@ export function Feed({ theme, palette, accent: accentProp, dark, plan, me, refre
           <div className="flex items-center justify-between pt-1 pb-2">
             <span className="text-[22px] font-black tracking-tight" style={{ color: accent, textShadow: !dark ? 'none' : `0 0 16px ${hexA(accent, 0.6)}` }}>CupidBot</span>
             <div className="flex items-center gap-2">
+              {onOpenBlind && (
+                <button onClick={onOpenBlind} className="inline-flex items-center gap-1 rounded-full font-bold transition active:scale-95"
+                  style={{ height: 30, padding: '0 10px', fontSize: 11.5, background: 'linear-gradient(135deg,#A855F7,#EC4899)', color: '#fff', boxShadow: '0 6px 16px -6px rgba(168,85,247,0.7)' }}>
+                  🎭 Вслепую
+                </button>
+              )}
               <button onClick={openFilter} className="inline-flex items-center gap-1 rounded-full font-bold transition"
                 style={{ height: 30, padding: '0 11px', fontSize: 11.5, background: filterTags.length ? hexA(accent, 0.18) : (!dark ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.08)'),
                   color: filterTags.length ? accent : (!dark ? '#6b7280' : '#bbb'), border: `1.5px solid ${filterTags.length ? accent : (!dark ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.12)')}`, backdropFilter: 'blur(8px)' }}>
