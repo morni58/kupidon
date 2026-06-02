@@ -35,21 +35,65 @@ function AnimNum({ value, className, style }) {
   return <span className={className} style={style}>{n}</span>
 }
 
+// Real anthem control INSIDE the profile (upload a file, trim, autosave) —
+// not just a text field. Persists title/start to the backend on change.
+function ProfileAnthem({ full, reload, setToast, dark, txt }) {
+  const [anthem, setAnthem] = useState(full.anthem_url ? { url: full.anthem_url, title: full.anthem_title || '', start: full.anthem_start || 0 } : null)
+  const saveT = useRef(null)
+
+  const persist = (patch) => {
+    clearTimeout(saveT.current)
+    saveT.current = setTimeout(async () => {
+      try { await api.updateProfile(patch); reload?.() } catch {}
+    }, 500)
+  }
+
+  async function onChange(a) {
+    if (!a) {                          // removed (deleteAnthem already fired inside editor)
+      setAnthem(null)
+      try { await api.updateProfile({ anthem_title: '', anthem_start: 0 }) } catch {}
+      reload?.(); return
+    }
+    const next = { url: a.url, title: a.title || '', start: a.start || 0 }
+    const isNew = !anthem || anthem.url !== next.url
+    setAnthem(next)
+    if (isNew) { try { await api.updateProfile({ anthem_title: next.title, anthem_start: next.start }) } catch {}; reload?.() }
+    else persist({ anthem_title: next.title, anthem_start: next.start })
+  }
+
+  return (
+    <div className="mt-1">
+      <div className="flex items-center gap-2 mb-2">
+        <i className="ph-fill ph-music-notes text-[16px]" style={{ color: '#FF00FF' }} />
+        <span className="text-[13.5px] font-semibold" style={{ color: txt }}>Мой гимн</span>
+        <span className="text-[11px] font-medium ml-auto" style={{ color: dark ? 'rgba(255,255,255,0.45)' : '#9ca3af' }}>играет в профиле</span>
+      </div>
+      <AnthemEditor url={anthem?.url} title={anthem?.title} start={anthem?.start || 0} onChange={onChange} setToast={setToast} />
+    </div>
+  )
+}
+
 export function Profile({ theme, palette: paletteProp, accent: accentProp, dark: darkProp, plan, prefs, setPref, onVerify, onUpgrade, onMutate, onEdit, onStats, onDeleted, setToast, active, onTab, dots }) {
   const [full, setFull] = useState(() => useStore.getState().meFullCache || null)
   const [photoIdx, setPhotoIdx] = useState(0)
   const [scrollY, setScrollY] = useState(0)
   const [confirmDel, setConfirmDel] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const scrollRef = useRef(null)
 
   async function exportData() {
+    if (exporting) return
+    setExporting(true)
+    setToast('🎨 Готовим красивую выгрузку…')
     try {
-      const data = await api.exportData()
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a'); a.href = url; a.download = 'cupidbot_data.json'; a.click()
-      URL.revokeObjectURL(url); setToast('📦 Данные выгружены')
-    } catch { setToast('Не удалось выгрузить') }
+      const f = full || (await api.getMeFull())
+      const stats = await api.accountStats().catch(() => null)
+      const tagNames = (f.tag_ids || []).map((t) => interestById(t)?.label).filter(Boolean)
+      const { downloadProfilePdf } = await import('../lib/pdf')   // lazy: keep jspdf out of the main bundle
+      await downloadProfilePdf({ full: f, stats, tagNames }, `cupidbot_${(f.name || 'profile').toLowerCase()}.pdf`)
+      haptic('success'); setToast('📄 Профиль сохранён в PDF')
+    } catch (e) { setToast('Не удалось выгрузить') }
+    setExporting(false)
   }
   async function deleteAccount() {
     try { await api.deleteAccount(); haptic('warning'); onDeleted?.() }
@@ -158,16 +202,7 @@ export function Profile({ theme, palette: paletteProp, accent: accentProp, dark:
               <div className="flex items-center gap-2"><i className="ph-fill ph-sparkle text-[16px]" style={{ color: accent }} /><span className="text-[13.5px] font-semibold" style={{ color: txt }}>Свечение рамки фото</span></div>
               <Toggle on={prefs.frame === 'glow'} color={accent} onChange={(v) => setPref({ frame: v ? 'glow' : 'flat' })} />
             </div>
-            <div className="flex items-center justify-between py-1">
-              <div className="flex items-center gap-2"><i className="ph-fill ph-music-notes text-[16px]" style={{ color: accent }} /><span className="text-[13.5px] font-semibold" style={{ color: txt }}>Мой гимн (любимый трек)</span></div>
-              <Toggle on={prefs.anthem} color={accent} onChange={(v) => setPref({ anthem: v })} />
-            </div>
-            {prefs.anthem && (
-              <input value={prefs.anthemTrack || ''} onChange={(e) => setPref({ anthemTrack: e.target.value })} maxLength={60}
-                placeholder="Исполнитель — Название трека"
-                className="w-full mt-1 rounded-xl outline-none px-3 py-2.5 text-[13px] font-semibold"
-                style={{ background: dark ? 'rgba(255,255,255,0.06)' : '#fff', border: `1.5px solid ${dark ? 'rgba(255,255,255,0.12)' : '#e5e7eb'}`, color: txt }} />
-            )}
+            <ProfileAnthem full={full} reload={load} setToast={setToast} dark={dark} txt={txt} />
           </Glass>
 
           {/* streak */}
@@ -274,8 +309,8 @@ export function Profile({ theme, palette: paletteProp, accent: accentProp, dark:
           {/* данные и приватность */}
           <Glass dark={dark} className="p-4">
             <div className="text-[14px] font-black mb-3" style={{ color: txt }}>Данные и приватность</div>
-            <button onClick={exportData} className="w-full flex items-center gap-2.5 py-2.5 text-[14px] font-semibold" style={{ color: txt }}>
-              <i className="ph-bold ph-download-simple" style={{ color: accent }} /> Скачать мои данные
+            <button onClick={exportData} disabled={exporting} className="w-full flex items-center gap-2.5 py-2.5 text-[14px] font-semibold" style={{ color: txt, opacity: exporting ? 0.6 : 1 }}>
+              <i className={'ph-bold ' + (exporting ? 'ph-spinner animate-spin' : 'ph-file-pdf')} style={{ color: accent }} /> {exporting ? 'Готовим PDF…' : 'Скачать мой профиль (PDF)'}
             </button>
             {!confirmDel ? (
               <button onClick={() => setConfirmDel(true)} className="w-full flex items-center gap-2.5 py-2.5 text-[14px] font-semibold text-[#EF4444]">
