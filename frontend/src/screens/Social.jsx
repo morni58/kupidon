@@ -4,7 +4,27 @@ import { Photo, Button, TabBar, VerifiedTick } from '../design/ui'
 import { gradPhoto } from '../design/data'
 import { SkeletonRows } from '../design/loaders'
 import { ArtNoLikes, ArtNoChats } from '../design/illustrations'
-import { api, createChatWS, haptic, mediaUrl, openInvoice } from '../lib/api'
+import { api, createChatWS, haptic, mediaUrl, openInvoice, openTelegramContact, tg } from '../lib/api'
+
+// Make @usernames, t.me links and URLs in chat tappable.
+function linkify(text) {
+  if (!text) return text
+  const parts = []
+  const re = /(@[a-zA-Z0-9_]{4,})|((?:https?:\/\/|t\.me\/)[^\s]+)/g
+  let last = 0, m
+  while ((m = re.exec(text))) {
+    if (m.index > last) parts.push(text.slice(last, m.index))
+    const tok = m[0]
+    const href = tok.startsWith('@') ? `https://t.me/${tok.slice(1)}` : (tok.startsWith('http') ? tok : `https://${tok}`)
+    parts.push(
+      <a key={m.index} onClick={(e) => { e.stopPropagation(); try { tg?.openLink ? tg.openLink(href) : window.open(href, '_blank') } catch { window.open(href, '_blank') } }}
+        style={{ color: 'inherit', textDecoration: 'underline', cursor: 'pointer', fontWeight: 700 }}>{tok}</a>
+    )
+    last = m.index + tok.length
+  }
+  if (last < text.length) parts.push(text.slice(last))
+  return parts
+}
 
 const pic = (urlOrNull, seedName = '?', emoji = '🙂') => urlOrNull ? { url: mediaUrl(urlOrNull) } : gradPhoto(seedName.charCodeAt(0), emoji)
 
@@ -298,7 +318,11 @@ export function Dialog({ chatId, me, plan, theme, accent: accentProp, onBack, se
           </div>
           <button onClick={() => setMenuOpen((v) => !v)} className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"><i className="ph-bold ph-dots-three-vertical text-[20px]" style={{ color: adult ? '#fff' : '#9ca3af' }} /></button>
           <div className="flex flex-col items-center shrink-0">
-            <button onClick={() => tgUnlocked ? setToast('✈️ Telegram открыт') : api.requestTg(chatId).then(() => setToast('Запрос отправлен')).catch(() => {})} className="w-9 h-9 rounded-full flex items-center justify-center transition" style={{ background: tgUnlocked ? 'linear-gradient(135deg,#3B82F6,#6366F1)' : '#e5e7eb' }}>
+            <button onClick={() => {
+                if (!tgUnlocked) { api.requestTg(chatId).then(() => setToast('Запрос на обмен отправлен')).catch(() => {}); return }
+                const ok = openTelegramContact({ username: info?.partner_username, tgId: info?.partner_tg_id })
+                if (!ok) setToast('У собеседника нет @username — напишите здесь')
+              }} className="w-9 h-9 rounded-full flex items-center justify-center transition" style={{ background: tgUnlocked ? 'linear-gradient(135deg,#3B82F6,#6366F1)' : '#e5e7eb' }}>
               <i className="ph-fill ph-telegram-logo text-[18px]" style={{ color: tgUnlocked ? '#fff' : '#9ca3af' }} />
             </button>
             {!tgUnlocked && <span className="text-[8px] font-bold text-[#9ca3af] mt-0.5 whitespace-nowrap">ещё {remainTg} смс</span>}
@@ -349,8 +373,8 @@ export function Dialog({ chatId, me, plan, theme, accent: accentProp, onBack, se
           return (
             <div key={m.id} className={'flex ' + (mine ? 'justify-end' : 'justify-start')}>
               <div className={'max-w-[75%] px-3.5 py-2.5 text-[14px] font-medium leading-snug ' + (mine ? 'rounded-2xl rounded-tr-none text-white' : 'rounded-2xl rounded-tl-none')}
-                style={mine ? { background: adult ? 'linear-gradient(135deg,#FF3333,#FF00FF)' : 'linear-gradient(135deg,#FF00FF,#FF66CC)' } : { background: adult ? '#2a1010' : '#f3f4f6', color: adult ? '#fff' : '#0F0F13' }}>
-                {m.content}
+                style={{ wordBreak: 'break-word', ...(mine ? { background: adult ? 'linear-gradient(135deg,#FF3333,#FF00FF)' : 'linear-gradient(135deg,#FF00FF,#FF66CC)' } : { background: adult ? '#2a1010' : '#f3f4f6', color: adult ? '#fff' : '#0F0F13' }) }}>
+                {linkify(m.content)}
               </div>
             </div>
           )

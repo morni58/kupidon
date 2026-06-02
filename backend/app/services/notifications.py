@@ -55,6 +55,10 @@ async def notify_superlike(tg_id: int) -> None:
     await send_push(tg_id, "⭐ Тебя суперлайкнули! Проверь Симпатии.")
 
 
+async def notify_like(tg_id: int) -> None:
+    await send_push(tg_id, "❤️ Кто-то лайкнул тебя! Загляни в «Симпатии».")
+
+
 async def notify_new_message(tg_id: int, sender_name: str) -> None:
     await send_push(tg_id, f"💬 {sender_name} написал(а) тебе в CupidBot")
 

@@ -29,8 +29,8 @@ class OnboardingCreate(BaseModel):
         today = d.today()
         age = today.year - v.year - ((today.month, today.day) < (v.month, v.day))
         # Hard floor only; the exact minimum is enforced per-config in the endpoint.
-        if age < 14:
-            raise ValueError("Too young")
+        if age < 1:
+            raise ValueError("Invalid age")
         return v
 
     @field_validator("bio")
@@ -103,8 +103,8 @@ class UserUpdate(BaseModel):
         today = d.today()
         age = today.year - v.year - ((today.month, today.day) < (v.month, v.day))
         # Hard floor only; the exact minimum is enforced per-config in the endpoint.
-        if age < 14:
-            raise ValueError("Too young")
+        if age < 1:
+            raise ValueError("Invalid age")
         return v
 
 

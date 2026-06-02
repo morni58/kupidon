@@ -165,3 +165,15 @@ export function openInvoice(link) {
     else { window.open(link, '_blank'); resolve('unknown') }
   })
 }
+
+// Open a real Telegram chat with a person (by @username or numeric id).
+export function openTelegramContact({ username, tgId }) {
+  const link = username ? `https://t.me/${username.replace(/^@/, '')}` : (tgId ? `tg://user?id=${tgId}` : null)
+  if (!link) return false
+  try {
+    if (tg?.openTelegramLink && username) tg.openTelegramLink(link)
+    else if (tg?.openLink) tg.openLink(link)
+    else window.open(link, '_blank')
+  } catch { window.open(link, '_blank') }
+  return true
+}

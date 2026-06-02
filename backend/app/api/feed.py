@@ -156,6 +156,11 @@ async def swipe(
                 asyncio.create_task(notif.notify_vip_like(target.tg_id, body.vip_message))
             elif body.action_type == "superlike":
                 asyncio.create_task(notif.notify_superlike(target.tg_id))
+            else:
+                # Regular like — notify the target, throttled to once / 30 min so
+                # a popular profile isn't spammed (so new likes are always noticed).
+                if await redis.set(f"likepush:{target.id}", "1", ex=1800, nx=True):
+                    asyncio.create_task(notif.notify_like(target.tg_id))
 
     return SwipeResponse(is_match=result["is_match"], match_id=result.get("match_id"))
 

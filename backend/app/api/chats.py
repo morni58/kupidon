@@ -162,6 +162,9 @@ async def chat_info(
         "tg_unlocked": tg_unlocked,
         "tg_threshold": threshold,
         "my_messages": my_count,
+        # Only expose the real Telegram handle once contact is unlocked (privacy).
+        "partner_username": (partner.username if tg_unlocked and partner.username else None),
+        "partner_tg_id": (str(partner.tg_id) if tg_unlocked else None),
     }
 
 
