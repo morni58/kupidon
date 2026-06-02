@@ -80,6 +80,10 @@ class User(Base):
     needs_review: Mapped[bool] = mapped_column(Boolean, default=False)
     last_streak_date: Mapped[date | None] = mapped_column(Date)
 
+    # Staff role: "user" | "moderator" | "admin". Env ADMIN_IDS are implicit
+    # owners (outrank everyone, can grant/revoke admin). See bot_handlers/perms.py.
+    role: Mapped[str] = mapped_column(String(20), default="user", server_default="user")
+
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     last_active_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 

@@ -1,4 +1,8 @@
-"""God Mode admin handlers — only for ADMIN_IDS."""
+"""Staff handlers — moderation + admin god-mode, gated by role level.
+
+Permission levels come from bot_handlers/perms.py (owner > admin > moderator).
+Moderators get safety tools (reports, verify queue, view/ban/shadow). Admins
+get everything (donations, economy, tags, broadcast — see staff.py)."""
 import os
 import uuid
 from aiogram import Router, F
@@ -6,18 +10,14 @@ from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKe
 from aiogram.filters import Command
 
 from app.db.database import async_session_maker
+from bot_handlers.perms import require, is_admin_tg, is_mod, level_of, MOD, ADMIN, OWNER
 
 router = Router()
-ADMIN_IDS = [int(x) for x in os.environ.get("ADMIN_IDS", "").split(",") if x.strip()]
-
-
-def is_admin(user_id: int) -> bool:
-    return user_id in ADMIN_IDS
 
 
 @router.message(Command("user"))
 async def cmd_user(message: Message):
-    if not is_admin(message.from_user.id):
+    if not await require(message, MOD):
         return
     args = message.text.split(maxsplit=1)
     if len(args) < 2:
@@ -38,39 +38,52 @@ async def cmd_user(message: Message):
         await message.answer("User not found.")
         return
 
+    from bot_handlers.perms import ROLE_RU, role_level_of_user
+    role_badge = ROLE_RU.get(user.role or "user", "Пользователь") if (user.role and user.role != "user") else ""
     text = (
-        f"👤 *{user.name}* (@{user.username or 'none'})\n"
+        f"👤 *{user.name}* (@{user.username or 'none'})  {role_badge}\n"
         f"ID: `{user.id}`  TG: `{user.tg_id}`\n"
         f"Tier: *{user.tier.value}*  Stars: {user.stars_balance}\n"
         f"Verified: {'✅' if user.is_verified else '❌'}  18+: {'🔞' if user.is_18_mode_active else '—'}\n"
         f"Shadow: {'👻' if user.is_shadowbanned else '—'}  Banned: {'🚫' if user.is_banned else '—'}\n"
         f"Score: {user.profile_score}  Trust: {user.trust_score}  Streak: {user.streak_days}"
     )
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="💎 Kupidon", callback_data=f"admin:kupidon:{user.id}"),
-         InlineKeyboardButton(text="🌟 +100 Stars", callback_data=f"admin:stars:{user.id}")],
+    lvl = await level_of(message.from_user.id)
+    rows = []
+    if lvl >= ADMIN:
+        rows += [
+            [InlineKeyboardButton(text="💎 Kupidon", callback_data=f"admin:kupidon:{user.id}"),
+             InlineKeyboardButton(text="🌟 +100 Stars", callback_data=f"admin:stars:{user.id}")],
+            [InlineKeyboardButton(text="👑 Oligarch", callback_data=f"admin:oligarch:{user.id}")],
+        ]
+    rows += [
         [InlineKeyboardButton(text="✅ Verified", callback_data=f"admin:verify:{user.id}"),
          InlineKeyboardButton(text="🔞 18+", callback_data=f"admin:18plus:{user.id}")],
         [InlineKeyboardButton(text="👻 Shadow", callback_data=f"admin:shadow:{user.id}"),
-         InlineKeyboardButton(text="👑 Oligarch", callback_data=f"admin:oligarch:{user.id}")],
-        [InlineKeyboardButton(text="🚫 Ban", callback_data=f"admin:ban:{user.id}")],
-    ])
-    await message.answer(text, reply_markup=kb)
+         InlineKeyboardButton(text="🚫 Ban", callback_data=f"admin:ban:{user.id}")],
+    ]
+    await message.answer(text, reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
 
 
 @router.callback_query(F.data.startswith("admin:"))
 async def admin_action(call: CallbackQuery):
-    if not is_admin(call.from_user.id):
-        await call.answer("Access denied")
-        return
     _, action, user_id = call.data.split(":", 2)
+    # Donations & power toggles → admin; safety actions → moderator.
+    need = ADMIN if action in ("kupidon", "stars", "oligarch") else MOD
+    if not await require(call, need):
+        return
 
     from sqlalchemy import select
     from app.models.user import User, TierEnum
+    from bot_handlers.perms import role_level_of_user, level_of as _lvl
     async with async_session_maker() as db:
         user = (await db.execute(select(User).where(User.id == uuid.UUID(user_id)))).scalar_one_or_none()
         if not user:
             await call.answer("User not found")
+            return
+        # Never let staff act on someone of equal/higher rank than themselves.
+        if action in ("ban", "shadow") and await role_level_of_user(user) >= await _lvl(call.from_user.id):
+            await call.answer("⛔️ Нельзя применить к равному/старшему по роли", show_alert=True)
             return
         msg = ""
         if action == "kupidon":
@@ -95,7 +108,7 @@ async def admin_action(call: CallbackQuery):
 
 @router.message(Command("tags"))
 async def cmd_tags(message: Message):
-    if not is_admin(message.from_user.id):
+    if not await require(message, ADMIN):
         return
     parts = message.text.split("|")
     if len(parts) < 2:
@@ -113,7 +126,7 @@ async def cmd_tags(message: Message):
 
 @router.message(Command("tags18"))
 async def cmd_tags18(message: Message):
-    if not is_admin(message.from_user.id):
+    if not await require(message, ADMIN):
         return
     parts = message.text.split("|")
     if len(parts) < 2:
@@ -132,7 +145,7 @@ async def cmd_tags18(message: Message):
 @router.message(Command("tagreqs"))
 async def cmd_tagreqs(message: Message):
     """Review paid user-submitted tag requests (U-TAGS-ADMIN)."""
-    if not is_admin(message.from_user.id):
+    if not await require(message, ADMIN):
         return
     from sqlalchemy import select
     from app.models.tag import TagRequest, TagRequestStatusEnum
@@ -156,8 +169,7 @@ async def cmd_tagreqs(message: Message):
 
 @router.callback_query(F.data.startswith("tagreq:"))
 async def tagreq_action(call: CallbackQuery):
-    if not is_admin(call.from_user.id):
-        await call.answer("Access denied")
+    if not await require(call, ADMIN):
         return
     _, action, req_id = call.data.split(":", 2)
     from sqlalchemy import select
@@ -189,7 +201,7 @@ async def tagreq_action(call: CallbackQuery):
 
 @router.message(Command("economy"))
 async def cmd_economy(message: Message):
-    if not is_admin(message.from_user.id):
+    if not await require(message, ADMIN):
         return
     parts = message.text.split(maxsplit=2)
     if len(parts) < 3:
@@ -203,7 +215,7 @@ async def cmd_economy(message: Message):
 
 @router.message(Command("reports"))
 async def cmd_reports(message: Message):
-    if not is_admin(message.from_user.id):
+    if not await require(message, MOD):
         return
     from sqlalchemy import select, func
     from app.models.safety import Report, ReportStatusEnum
@@ -259,7 +271,7 @@ async def cmd_reports(message: Message):
 
 @router.callback_query(F.data.startswith("report:dismiss:"))
 async def dismiss_report(call: CallbackQuery):
-    if not is_admin(call.from_user.id):
+    if not await require(call, MOD):
         return
     report_id = call.data.split(":", 2)[2]
     from sqlalchemy import select
@@ -274,7 +286,7 @@ async def dismiss_report(call: CallbackQuery):
 
 @router.message(Command("verifyqueue"))
 async def cmd_verifyqueue(message: Message):
-    if not is_admin(message.from_user.id):
+    if not await require(message, MOD):
         return
     from sqlalchemy import select
     from app.models.user import User
@@ -299,8 +311,8 @@ async def cmd_verifyqueue(message: Message):
 
 @router.callback_query(F.data.startswith("verify:"))
 async def verify_action(call: CallbackQuery):
-    if not is_admin(call.from_user.id):
-        await call.answer("denied"); return
+    if not await require(call, MOD):
+        return
     _, action, uid = call.data.split(":", 2)
     from sqlalchemy import select
     from app.models.user import User
@@ -332,7 +344,7 @@ async def verify_action(call: CallbackQuery):
 
 @router.message(Command("adstats"))
 async def cmd_stats(message: Message):
-    if not is_admin(message.from_user.id):
+    if not await require(message, MOD):
         return
     from sqlalchemy import select, func
     from datetime import datetime, timezone, timedelta
@@ -354,20 +366,22 @@ async def cmd_stats(message: Message):
 
 @router.message(Command("ban"))
 async def cmd_ban(message: Message):
-    if not is_admin(message.from_user.id):
+    if not await require(message, MOD):
         return
     parts = message.text.split(maxsplit=2)
     if len(parts) < 2:
-        await message.answer("Usage: /ban <tg_id> [reason]")
+        await message.answer("Usage: /ban <tg_id|@username> [reason]")
         return
-    tg_id = int(parts[1]); reason = parts[2] if len(parts) > 2 else "Admin ban"
-    from sqlalchemy import select
-    from app.models.user import User
+    reason = parts[2] if len(parts) > 2 else "Admin ban"
+    from bot_handlers.perms import resolve_user, role_level_of_user, level_of as _lvl
     async with async_session_maker() as db:
-        user = (await db.execute(select(User).where(User.tg_id == tg_id))).scalar_one_or_none()
+        user = await resolve_user(db, parts[1])
         if not user:
             await message.answer("User not found.")
             return
+        if await role_level_of_user(user) >= await _lvl(message.from_user.id):
+            await message.answer("⛔️ Нельзя забанить равного/старшего по роли.")
+            return
         user.is_banned = True; user.ban_reason = reason
         await db.commit()
-    await message.answer(f"🚫 Banned {user.name} ({tg_id}): {reason}")
+    await message.answer(f"🚫 Забанен {user.name} ({user.tg_id}): {reason}")

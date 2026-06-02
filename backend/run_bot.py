@@ -11,6 +11,7 @@ from aiogram.types import BotCommand
 
 from bot_handlers.user import router as user_router
 from bot_handlers.admin import router as admin_router
+from bot_handlers.staff import router as staff_router
 from bot_handlers.payments import router as payments_router
 
 logging.basicConfig(level=logging.INFO)
@@ -26,6 +27,7 @@ async def main():
     dp = Dispatcher(storage=storage)
     dp.include_router(user_router)
     dp.include_router(admin_router)
+    dp.include_router(staff_router)
     dp.include_router(payments_router)
 
     # Public command menu (shown to everyone).
@@ -47,13 +49,21 @@ async def main():
     if admin_ids:
         from aiogram.types import BotCommandScopeChat
         admin_cmds = [
-            BotCommand(command="adstats", description="[Admin] Статистика бота"),
-            BotCommand(command="reports", description="[Admin] Очередь репортов"),
-            BotCommand(command="verifyqueue", description="[Admin] Заявки на галочку"),
-            BotCommand(command="tagreqs", description="[Admin] Заявки на теги"),
-            BotCommand(command="user", description="[Admin] Инфо о пользователе"),
-            BotCommand(command="economy", description="[Admin] Экономика"),
-            BotCommand(command="ban", description="[Admin] Бан"),
+            BotCommand(command="staffhelp", description="🛠 Все команды персонала"),
+            BotCommand(command="reports", description="🛡 Очередь жалоб"),
+            BotCommand(command="verifyqueue", description="🛡 Заявки на галочку"),
+            BotCommand(command="user", description="🛡 Инфо о пользователе"),
+            BotCommand(command="find", description="🛡 Поиск пользователей"),
+            BotCommand(command="recent", description="🛡 Последние регистрации"),
+            BotCommand(command="ban", description="🛡 Бан / unban"),
+            BotCommand(command="give", description="⭐ Выдать донат/премиум"),
+            BotCommand(command="stars", description="⭐ Изменить Stars"),
+            BotCommand(command="broadcast", description="⭐ Рассылка всем"),
+            BotCommand(command="grant", description="⭐ Выдать роль"),
+            BotCommand(command="revoke", description="⭐ Снять роль"),
+            BotCommand(command="staff", description="⭐ Список персонала"),
+            BotCommand(command="adstats", description="📊 Статистика бота"),
+            BotCommand(command="economy", description="⭐ Экономика"),
         ]
         for aid in admin_ids:
             try:
