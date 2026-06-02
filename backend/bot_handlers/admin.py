@@ -272,6 +272,64 @@ async def dismiss_report(call: CallbackQuery):
     await call.answer("Dismissed")
 
 
+@router.message(Command("verifyqueue"))
+async def cmd_verifyqueue(message: Message):
+    if not is_admin(message.from_user.id):
+        return
+    from sqlalchemy import select
+    from app.models.user import User
+    async with async_session_maker() as db:
+        pending = (await db.execute(
+            select(User).where(User.verify_requested_at.isnot(None), User.is_verified == False, User.is_banned == False)
+            .order_by(User.verify_requested_at.desc()).limit(10)
+        )).scalars().all()
+    if not pending:
+        await message.answer("Очередь верификации пуста.")
+        return
+    for u in pending:
+        kb = InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text="✅ Выдать галочку", callback_data=f"verify:grant:{u.id}"),
+            InlineKeyboardButton(text="❌ Отклонить", callback_data=f"verify:deny:{u.id}"),
+        ]])
+        cap = f"🔵 {u.name} (@{u.username or '—'}) `{u.tg_id}`\nЗаявка: {u.verify_requested_at:%d.%m %H:%M}"
+        if u.verify_selfie_url:
+            cap += f"\nСелфи: {u.verify_selfie_url}"
+        await message.answer(cap, reply_markup=kb, parse_mode="Markdown")
+
+
+@router.callback_query(F.data.startswith("verify:"))
+async def verify_action(call: CallbackQuery):
+    if not is_admin(call.from_user.id):
+        await call.answer("denied"); return
+    _, action, uid = call.data.split(":", 2)
+    from sqlalchemy import select
+    from app.models.user import User
+    async with async_session_maker() as db:
+        u = (await db.execute(select(User).where(User.id == uuid.UUID(uid)))).scalar_one_or_none()
+        if not u:
+            await call.answer("not found"); return
+        if action == "grant":
+            u.is_verified = True
+            u.verify_requested_at = None
+            try:
+                from app.api.profile import recalc_profile_score
+                u.profile_score = await recalc_profile_score(db, u)
+            except Exception:
+                pass
+            msg = f"✅ {u.name} верифицирован"
+            try:
+                from app.services import notifications as notif
+                await notif.send_push(u.tg_id, "🔵 Тебе выдали синюю галочку! Поздравляем 🎉")
+            except Exception:
+                pass
+        else:
+            u.verify_requested_at = None
+            msg = f"❌ Заявка {u.name} отклонена"
+        await db.commit()
+    await call.answer(msg)
+    await call.message.reply(msg)
+
+
 @router.message(Command("stats"))
 async def cmd_stats(message: Message):
     if not is_admin(message.from_user.id):

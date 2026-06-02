@@ -124,30 +124,32 @@ async def chat_info(
     online_cutoff = datetime.now(timezone.utc) - timedelta(minutes=5)
     last_active = partner.last_active_at.replace(tzinfo=timezone.utc) if partner.last_active_at else None
 
-    # messages I sent (for TG unlock counter)
-    my_msgs_r = await db.execute(
+    # SHARED message counter (both people's messages) — safer gate to even
+    # offer the contact exchange (U-TG / safety request).
+    total_r = await db.execute(
         select(func.count(Message.id)).where(
             Message.match_id == match_id,
-            Message.sender_id == me.id,
             Message.msg_type.in_([MsgTypeEnum.text, MsgTypeEnum.media]),
         )
     )
-    my_count = my_msgs_r.scalar_one()
+    total_msgs = total_r.scalar_one()
 
-    # Single source of truth for the TG unlock state (L5):
-    # - mutual consent always unlocks
-    # - Kupidon unlocks instantly
-    # - otherwise unlock after a tier-based message threshold
     from app.models.user import TierEnum
     from app.services.economy import get_config_value
-    mutual = bool(match.tg_unlocked_user1 and match.tg_unlocked_user2)
     if me.tier == TierEnum.kupidon:
         threshold = 0
     elif me.tier == TierEnum.premium:
         threshold = int(await get_config_value(db, "tg_unlock_premium_msgs", "5"))
     else:
         threshold = int(await get_config_value(db, "tg_unlock_free_msgs", "15"))
-    tg_unlocked = mutual or my_count >= threshold
+
+    # Username is revealed ONLY when BOTH sides explicitly agree (mutual consent).
+    # The shared message counter merely enables the "request exchange" button.
+    i_am_user1 = (match.user1_id == me.id)
+    my_consent = match.tg_unlocked_user1 if i_am_user1 else match.tg_unlocked_user2
+    partner_consent = match.tg_unlocked_user2 if i_am_user1 else match.tg_unlocked_user1
+    mutual = bool(match.tg_unlocked_user1 and match.tg_unlocked_user2)
+    can_request = total_msgs >= threshold
 
     from app.core.media import to_public_url
     return {
@@ -159,12 +161,15 @@ async def chat_info(
         "online": bool(last_active and last_active >= online_cutoff),
         "is_18_room": match.is_18_room,
         "messages_count": match.messages_count,
-        "tg_unlocked": tg_unlocked,
+        "tg_unlocked": mutual,          # reveal only on mutual consent
         "tg_threshold": threshold,
-        "my_messages": my_count,
-        # Only expose the real Telegram handle once contact is unlocked (privacy).
-        "partner_username": (partner.username if tg_unlocked and partner.username else None),
-        "partner_tg_id": (str(partner.tg_id) if tg_unlocked else None),
+        "total_messages": total_msgs,   # shared counter
+        "can_request": can_request,
+        "my_consent": bool(my_consent),
+        "partner_consent": bool(partner_consent),
+        # Real handle only after mutual consent (privacy & safety).
+        "partner_username": (partner.username if mutual and partner.username else None),
+        "partner_tg_id": (str(partner.tg_id) if mutual else None),
     }
 
 
@@ -325,25 +330,36 @@ async def request_tg(
     match = await _check_match_access(db, match_id, me)
     partner_id = match.user2_id if match.user1_id == me.id else match.user1_id
 
-    # Broadcast consent request
+    # Requesting = giving my own consent to reveal my @username.
+    if match.user1_id == me.id:
+        match.tg_unlocked_user1 = True
+    else:
+        match.tg_unlocked_user2 = True
+    mutual = bool(match.tg_unlocked_user1 and match.tg_unlocked_user2)
+
     from app.ws.manager import ws_manager
     import asyncio
     asyncio.create_task(ws_manager.broadcast(str(match_id), {
-        "type": "tg_consent_request",
+        "type": ("tg_consent_approved" if mutual else "tg_consent_request"),
         "from_id": str(me.id),
         "match_id": str(match_id),
     }))
 
-    # System message
     sys_msg = Message(
-        match_id=match_id,
-        sender_id=me.id,
-        content="Запрос на обмен Telegram-контактами",
+        match_id=match_id, sender_id=me.id,
+        content=("Telegram-контакты открыты ✅" if mutual else "Хочу обменяться Telegram — подтвердишь?"),
         msg_type=MsgTypeEnum.consent,
     )
     db.add(sys_msg)
     await db.commit()
-    return {"ok": True}
+    # Push the other side so they actually notice the request.
+    if not mutual:
+        partner_r = await db.execute(select(User).where(User.id == partner_id))
+        partner = partner_r.scalar_one_or_none()
+        if partner:
+            from app.services import notifications as notif
+            asyncio.create_task(notif.send_push(partner.tg_id, f"🔑 {me.name} предлагает обменяться Telegram. Подтверди в чате."))
+    return {"ok": True, "mutual": mutual}
 
 
 @router.post("/chats/{match_id}/approve_tg")

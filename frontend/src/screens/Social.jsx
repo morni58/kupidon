@@ -260,9 +260,14 @@ export function Dialog({ chatId, me, plan, theme, accent: accentProp, onBack, se
 
   useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight }, [msgs])
 
-  const myCount = info?.my_messages || msgs.filter((m) => m.sender_id === me?.id).length
-  const tgUnlocked = info?.tg_unlocked || plan.tgMsgs === 0 || myCount >= plan.tgMsgs
-  const remainTg = Math.max(0, plan.tgMsgs - myCount)
+  // Shared-counter + mutual-consent TG model (safety): username revealed only
+  // when BOTH agree; the shared message count just enables the request.
+  const totalMsgs = info?.total_messages ?? msgs.filter((m) => m.msg_type === 'text' || m.msg_type === 'media').length
+  const threshold = info?.tg_threshold ?? plan.tgMsgs
+  const tgUnlocked = !!info?.tg_unlocked                 // mutual consent done
+  const canRequest = info?.can_request ?? (totalMsgs >= threshold)
+  const myConsent = !!info?.my_consent
+  const remainTg = Math.max(0, threshold - totalMsgs)
   // Icebreakers show until there's a real (text/media) message — system/consent don't count.
   const noMsgsYet = !msgs.some((m) => m.msg_type === 'text' || m.msg_type === 'media' || (m.content && m.msg_type !== 'system' && m.msg_type !== 'consent'))
 
@@ -321,13 +326,20 @@ export function Dialog({ chatId, me, plan, theme, accent: accentProp, onBack, se
           <button onClick={() => setMenuOpen((v) => !v)} className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"><i className="ph-bold ph-dots-three-vertical text-[20px]" style={{ color: adult ? '#fff' : '#9ca3af' }} /></button>
           <div className="flex flex-col items-center shrink-0">
             <button onClick={() => {
-                if (!tgUnlocked) { api.requestTg(chatId).then(() => setToast('Запрос на обмен отправлен')).catch(() => {}); return }
-                const ok = openTelegramContact({ username: info?.partner_username, tgId: info?.partner_tg_id })
-                if (!ok) setToast('У собеседника нет @username — напишите здесь')
-              }} className="w-9 h-9 rounded-full flex items-center justify-center transition" style={{ background: tgUnlocked ? 'linear-gradient(135deg,#3B82F6,#6366F1)' : '#e5e7eb' }}>
-              <i className="ph-fill ph-telegram-logo text-[18px]" style={{ color: tgUnlocked ? '#fff' : '#9ca3af' }} />
+                if (tgUnlocked) {
+                  const ok = openTelegramContact({ username: info?.partner_username, tgId: info?.partner_tg_id })
+                  if (!ok) setToast('У собеседника нет @username — напишите здесь')
+                } else if (myConsent) {
+                  setToast('Ты согласился — ждём подтверждения собеседника')
+                } else if (!canRequest) {
+                  setToast(`Откроется после ${threshold} сообщений в чате (ещё ${remainTg})`)
+                } else {
+                  api.requestTg(chatId).then((r) => { setInfo((i) => ({ ...i, my_consent: true, tg_unlocked: r?.mutual || i?.tg_unlocked })); setToast(r?.mutual ? '✈️ Контакты открыты!' : 'Согласие отправлено — ждём собеседника') }).catch(() => {})
+                }
+              }} className="w-9 h-9 rounded-full flex items-center justify-center transition" style={{ background: tgUnlocked ? 'linear-gradient(135deg,#3B82F6,#6366F1)' : (myConsent ? 'rgba(59,130,246,0.18)' : '#e5e7eb') }}>
+              <i className={'ph-fill ' + (myConsent && !tgUnlocked ? 'ph-hourglass-medium' : 'ph-telegram-logo') + ' text-[18px]'} style={{ color: tgUnlocked ? '#fff' : (myConsent ? '#3B82F6' : '#9ca3af') }} />
             </button>
-            {!tgUnlocked && <span className="text-[8px] font-bold text-[#9ca3af] mt-0.5 whitespace-nowrap">ещё {remainTg} смс</span>}
+            {!tgUnlocked && <span className="text-[8px] font-bold text-[#9ca3af] mt-0.5 whitespace-nowrap">{myConsent ? 'ждём…' : (canRequest ? 'обмен ТГ' : `ещё ${remainTg}`)}</span>}
           </div>
         </div>
       </div>

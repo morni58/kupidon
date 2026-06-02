@@ -504,13 +504,16 @@ export function ProfileEdit({ onBack, onSaved, setToast }) {
 const GESTURES = ['Коснись щеки 👆', 'Повернись влево ←', 'Улыбнись 😊', 'Подними руку ✋']
 export function Verification({ onBack, onSuccess, setToast }) {
   const [phase, setPhase] = useState('intro')
+  const [busy, setBusy] = useState(false)
   const [gesture] = useState(GESTURES[Math.floor(Math.random() * GESTURES.length)])
-  async function start() {
-    setPhase('rec')
-    await new Promise((r) => setTimeout(r, 2200))
-    try { await api.verifySelfie(); haptic('success'); setPhase('ok') }
-    catch { setPhase('err') }
+  const fileRef = useRef(null)
+
+  async function submit(file) {
+    setBusy(true)
+    try { await api.verifySelfie(file); haptic('success'); setPhase('ok') }
+    catch { setToast('Не удалось отправить, попробуй ещё раз'); setBusy(false) }
   }
+
   return (
     <div className="w-full h-full flex flex-col" style={{ background: 'linear-gradient(180deg,#EFF6FF,#FAFAFC)' }}>
       <div className="safe-top screen-pad shrink-0 pt-1">
@@ -523,36 +526,21 @@ export function Verification({ onBack, onSuccess, setToast }) {
             <div className="text-[80px]">🤳</div>
             <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap px-4 py-2 rounded-full text-[14px] font-bold text-white" style={{ background: 'linear-gradient(135deg,#3B82F6,#6366F1)', boxShadow: '0 8px 20px -6px rgba(59,130,246,0.5)' }}>{gesture}</div>
           </div>
-          <h1 className="text-[28px] font-black text-[#0F0F13] tracking-tight">Подтверди, что это ты</h1>
-          <p className="mt-2 text-[14px] font-medium text-[#6b7280] px-4">Повтори жест. Кадры не сохраняются — только разовая сверка</p>
-          <div className="w-full mt-8"><Button variant="blue" onClick={start}>📷 Начать</Button></div>
-          <p className="mt-4 text-[13px] font-bold text-[#3B82F6]">✓ Получишь синюю галочку +15 к анкете</p>
-        </>)}
-        {phase === 'rec' && (<>
-          <div className="relative flex items-center justify-center mb-7" style={{ width: 200, height: 200 }}>
-            <div className="absolute inset-0 rounded-full" style={{ border: '3px solid #3B82F6', animation: 'pulseRing 1.5s infinite' }} />
-            <div className="text-[80px]">🤳</div>
-            <div className="absolute top-4 right-6 flex items-center gap-1.5 px-2.5 py-1 rounded-full" style={{ background: 'rgba(239,68,68,0.15)' }}>
-              <span className="w-2.5 h-2.5 rounded-full bg-[#EF4444] animate-pulse" /><span className="text-[11px] font-bold text-[#EF4444]">REC</span>
-            </div>
+          <h1 className="text-[28px] font-black text-[#0F0F13] tracking-tight">Заявка на галочку</h1>
+          <p className="mt-2 text-[14px] font-medium text-[#6b7280] px-4">Сделай селфи, повторив жест выше — модерация лично проверит, что это ты, и выдаст синюю галочку избранным.</p>
+          <div className="w-full mt-8 space-y-3">
+            <Button variant="blue" disabled={busy} onClick={() => fileRef.current?.click()}>{busy ? 'Отправляем…' : '📷 Сделать селфи с жестом'}</Button>
+            <Button variant="ghost" disabled={busy} onClick={() => submit(null)} className="w-full">Отправить заявку без фото</Button>
           </div>
-          <h1 className="text-[24px] font-black text-[#0F0F13]">Идёт проверка…</h1>
-          <p className="mt-2 text-[14px] font-medium text-[#6b7280]">{gesture}</p>
+          <p className="mt-4 text-[12px] font-medium text-[#9ca3af]">Галочка повышает доверие и поднимает анкету в ленте.</p>
+          <input ref={fileRef} type="file" accept="image/*,video/*" capture="user" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) submit(f) }} />
         </>)}
         {phase === 'ok' && (
           <div className="anim-pop"><Confetti />
-            <div className="text-[88px]">✅</div>
-            <h1 className="text-[30px] font-black text-[#0F0F13] mt-2">Верифицирован!</h1>
-            <p className="mt-2 text-[15px] font-medium text-[#6b7280]">Синяя галочка добавлена</p>
+            <div className="text-[88px]">📨</div>
+            <h1 className="text-[28px] font-black text-[#0F0F13] mt-2">Заявка отправлена!</h1>
+            <p className="mt-2 text-[15px] font-medium text-[#6b7280] px-6">Модерация проверит её вручную. Если всё ок — придёт уведомление с галочкой 🔵</p>
             <div className="w-full mt-8"><Button variant="blue" onClick={onSuccess}>В профиль</Button></div>
-          </div>
-        )}
-        {phase === 'err' && (
-          <div className="anim-pop">
-            <div className="text-[88px]">❌</div>
-            <h1 className="text-[28px] font-black text-[#0F0F13] mt-2">Не удалось</h1>
-            <p className="mt-2 text-[15px] font-medium text-[#6b7280]">Попробуй снова</p>
-            <div className="w-full mt-8"><Button variant="blue" onClick={() => setPhase('intro')}>Повторить</Button></div>
           </div>
         )}
       </div>

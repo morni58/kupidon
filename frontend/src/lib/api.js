@@ -94,7 +94,7 @@ export const api = {
   setPlace: (place) => req('/api/geo/set_place', { method: 'POST', body: place }),
 
   // verify
-  verifySelfie: () => req('/api/verify/selfie', { method: 'POST' }),
+  verifySelfie: (file) => { if (!file) return req('/api/verify/selfie', { method: 'POST' }); const fd = new FormData(); fd.append('file', file); return req('/api/verify/selfie', { method: 'POST', raw: fd }) },
 
   // media
   uploadMedia: (slot, file) => {

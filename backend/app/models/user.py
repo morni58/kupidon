@@ -63,6 +63,8 @@ class User(Base):
     stars_balance: Mapped[int] = mapped_column(Integer, default=0)
 
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
+    verify_requested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    verify_selfie_url: Mapped[str | None] = mapped_column(String(500))
     is_18_mode_active: Mapped[bool] = mapped_column(Boolean, default=False)
     is_stealth_mode: Mapped[bool] = mapped_column(Boolean, default=False)
     is_oligarch_mode: Mapped[bool] = mapped_column(Boolean, default=False)
