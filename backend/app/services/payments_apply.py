@@ -21,6 +21,16 @@ def _extend(user: User, days: int = 30) -> None:
 
 
 async def apply_payment_effect(user: User, product: str, stars: int) -> None:
+    if product.startswith("stats_unlock:"):
+        # Grant a 60-day "scout" unlock to view one specific person's stats.
+        target = product.split(":", 1)[1]
+        try:
+            from app.core.redis import get_redis
+            redis = await get_redis()
+            await redis.set(f"statsunlock:{user.id}:{target}", "1", ex=60 * 24 * 3600)
+        except Exception:
+            pass
+        return
     if product == "force_chat":
         # Grant one Force Chat ticket; consumed by the /force_chat endpoint (C2).
         await grant_ticket("force_chat", user.id)

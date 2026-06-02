@@ -114,6 +114,7 @@ export const api = {
   // account
   exportData: () => req('/api/account/export'),
   accountStats: () => req('/api/account/stats'),
+  userStats: (userId) => req(`/api/profile/${userId}/stats`),
 
   // blind date
   blindToday: () => req('/api/blind/today'),

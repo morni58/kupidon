@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { MeshBG, VIBES, Grain, hexA } from '../design/fx'
 import { Photo, Pill, VerifiedTick, Button } from '../design/ui'
 import { gradPhoto, interestById } from '../design/data'
-import { api, mediaUrl, haptic } from '../lib/api'
+import { api, mediaUrl, haptic, openInvoice } from '../lib/api'
 import { SkeletonProfile } from '../design/loaders'
 import { AnthemPlayer, PromptsView } from './ProfileExtras'
 
@@ -14,6 +14,7 @@ export function UserProfile({ userId, palette, accent = '#FF00FF', dark = false,
   const [photoIdx, setPhotoIdx] = useState(0)
   const [scrollY, setScrollY] = useState(0)
   const [err, setErr] = useState(false)
+  const [scout, setScout] = useState(false)
 
   useEffect(() => {
     setP(null); setErr(false)
@@ -89,8 +90,20 @@ export function UserProfile({ userId, palette, accent = '#FF00FF', dark = false,
               <PromptsView prompts={p.prompts} dark={dark} />
             </div>
           )}
+
+          {/* Scout: peek at this person's stats (paid / Kupidon perk) */}
+          <button onClick={() => { haptic('light'); setScout(true) }} className="w-full rounded-3xl p-4 flex items-center gap-3 active:scale-[0.99] transition" style={{ background: 'linear-gradient(135deg, rgba(168,85,247,0.14), rgba(236,72,153,0.14))', border: '1px solid rgba(168,85,247,0.3)' }}>
+            <div className="w-11 h-11 rounded-2xl flex items-center justify-center text-[22px] shrink-0" style={{ background: 'linear-gradient(135deg,#A855F7,#EC4899)' }}>🕵️</div>
+            <div className="text-left min-w-0">
+              <div className="text-[14.5px] font-black" style={{ color: dark ? '#fff' : '#0F0F13' }}>Разведка профиля</div>
+              <div className="text-[12px] font-medium" style={{ color: dark ? 'rgba(255,255,255,0.65)' : '#6b7280' }}>Активность, мэтч-рейт и анти-тролль сигналы</div>
+            </div>
+            <i className="ph-bold ph-caret-right ml-auto text-[16px]" style={{ color: '#A855F7' }} />
+          </button>
         </div>
       </div>
+
+      {scout && <StatsScout userId={userId} name={p.name} onClose={() => setScout(false)} setToast={setToast} />}
 
       {/* action bar */}
       {(onLike || onMessage) && (
@@ -99,6 +112,97 @@ export function UserProfile({ userId, palette, accent = '#FF00FF', dark = false,
           {onLike && <button onClick={() => { haptic('medium'); onLike(p) }} className="flex-1 max-w-[220px] h-14 rounded-full flex items-center justify-center gap-2 text-white font-bold shadow-lg active:scale-95 transition" style={{ background: 'linear-gradient(135deg,#FF00FF,#FF66CC)', boxShadow: '0 10px 30px -8px rgba(255,0,255,0.6)' }}><i className="ph-fill ph-heart text-[22px]" /> Лайк</button>}
         </div>
       )}
+    </div>
+  )
+}
+
+// Bottom sheet: scout another person's stats. Locked → paywall (Stars / Kupidon).
+function StatsScout({ userId, name, onClose, setToast }) {
+  const [data, setData] = useState(null)
+  const [err, setErr] = useState(false)
+  const [buying, setBuying] = useState(false)
+
+  const load = () => { setData(null); setErr(false); api.userStats(userId).then(setData).catch(() => setErr(true)) }
+  useEffect(() => { load() }, [userId])
+
+  async function unlock() {
+    if (!data?.product) return
+    setBuying(true)
+    try {
+      const inv = await api.createInvoice(data.product)
+      if (!inv.invoice_link) throw new Error('no link')
+      const status = await openInvoice(inv.invoice_link)
+      if (status === 'paid') { setToast?.('🕵️ Доступ открыт!'); setTimeout(load, 1200) }
+      else if (status === 'cancelled') setToast?.('Оплата отменена')
+    } catch { setToast?.('Не удалось открыть оплату') }
+    setBuying(false)
+  }
+
+  const S = data?.stats
+  const ROWS = S ? [
+    ['ph-heart', 'Лайков отправлено', S.likes_given],
+    ['ph-sparkle', 'Лайков получено', S.likes_received],
+    ['ph-fire', 'Мэтчей', S.matches],
+    ['ph-target', 'Мэтч-рейт', `${S.match_rate}%`],
+    ['ph-eye', 'Просмотров профиля', S.views_received],
+    ['ph-lightning', 'Серия дней', S.streak_days],
+    ['ph-calendar-heart', 'Дней с нами', S.days_with_us],
+    ['ph-gauge', 'Рейтинг анкеты', `${S.profile_score}/100`],
+  ] : []
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={onClose} style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}>
+      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-t-[2rem] p-5 pb-8 animate-[slideUp_.25s_ease]" style={{ background: '#120C1C', border: '1px solid rgba(168,85,247,0.3)', maxHeight: '82vh', overflowY: 'auto' }}>
+        <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: 'rgba(255,255,255,0.2)' }} />
+        <div className="flex items-center gap-2 mb-4">
+          <span className="text-[22px]">🕵️</span>
+          <h2 className="text-[19px] font-black text-white">Разведка{name ? ` · ${name}` : ''}</h2>
+        </div>
+
+        {err && <p className="text-center text-[14px] text-white/70 py-8">Статистика недоступна.</p>}
+        {!data && !err && <div className="py-10 flex justify-center"><div className="w-7 h-7 rounded-full border-2 border-white/20 border-t-white/80 animate-spin" /></div>}
+
+        {data?.locked && (
+          <div className="text-center">
+            <div className="text-[64px]">🔒</div>
+            <p className="text-[15px] font-semibold text-white mt-2 px-2">Открой активность, мэтч-рейт и анти-тролль сигналы этого человека до того, как лайкнуть.</p>
+            <div className="mt-5 space-y-2">
+              <Button disabled={buying} onClick={unlock} style={{ background: 'linear-gradient(135deg,#A855F7,#EC4899)', color: '#fff' }}>{buying ? 'Открываем…' : `⭐ Открыть за ${data.price_stars} Stars`}</Button>
+              <p className="text-[12px] text-white/55">или бесплатно с подпиской <span className="font-bold text-[#FFD36B]">Kupidon 👑</span> — смотри статистику кого угодно</p>
+            </div>
+          </div>
+        )}
+
+        {data && !data.locked && S && (
+          <>
+            {data.via_subscription && <div className="mb-3 text-[11px] font-bold inline-flex items-center gap-1 px-2.5 py-1 rounded-full" style={{ background: 'linear-gradient(135deg,#FFE259,#FFA751)', color: '#0F0F13' }}>👑 Доступ по подписке Kupidon</div>}
+            <div className="grid grid-cols-2 gap-2.5">
+              {ROWS.map(([ic, label, val], i) => (
+                <div key={i} className="rounded-2xl p-3" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <i className={'ph-fill ' + ic + ' text-[16px]'} style={{ color: '#C084FC' }} />
+                  <div className="text-[20px] font-black text-white mt-1 leading-none">{val}</div>
+                  <div className="text-[11px] font-medium text-white/55 mt-1">{label}</div>
+                </div>
+              ))}
+            </div>
+            {/* Anti-troll signals */}
+            <div className="mt-3 rounded-2xl p-3.5" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
+              <div className="text-[12.5px] font-black text-white mb-2 flex items-center gap-1.5"><i className="ph-fill ph-shield-warning text-[#F87171]" /> Анти-тролль</div>
+              <div className="flex gap-2">
+                <div className="flex-1 text-center rounded-xl py-2" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                  <div className="text-[18px] font-black text-white">{S.city_changes ?? 0}</div>
+                  <div className="text-[10.5px] text-white/55">смен города</div>
+                </div>
+                <div className="flex-1 text-center rounded-xl py-2" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                  <div className="text-[18px] font-black text-white">{S.gender_changes ?? 0}</div>
+                  <div className="text-[10.5px] text-white/55">смен пола</div>
+                </div>
+              </div>
+              {((S.city_changes ?? 0) + (S.gender_changes ?? 0)) >= 4 && <p className="text-[11px] text-[#F87171] font-semibold mt-2 text-center">⚠️ Часто меняет данные — будь осторожнее</p>}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   )
 }

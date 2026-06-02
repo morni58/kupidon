@@ -40,14 +40,20 @@ async def create_invoice(
     db: AsyncSession = Depends(get_db),
     me: User = Depends(get_current_user),
 ):
-    if product not in PRODUCTS:
+    # "Scout" unlock to view a specific person's stats: product carries target id.
+    is_stats_unlock = product.startswith("stats_unlock:")
+    if not is_stats_unlock and product not in PRODUCTS:
         raise HTTPException(status_code=400, detail="Unknown product")
 
-    stars_key = PRODUCTS.get(product)
-    if stars_key:
-        stars = int(await get_config_value(db, stars_key, "50"))
+    if is_stats_unlock:
+        from app.api.profile import STATS_UNLOCK_STARS
+        stars = int(await get_config_value(db, "stats_unlock_stars", str(STATS_UNLOCK_STARS)))
     else:
-        stars = int(await get_config_value(db, f"{product}_stars", SUB_STARS.get(product, "199")))
+        stars_key = PRODUCTS.get(product)
+        if stars_key:
+            stars = int(await get_config_value(db, stars_key, "50"))
+        else:
+            stars = int(await get_config_value(db, f"{product}_stars", SUB_STARS.get(product, "199")))
 
     payload = f"{me.id}:{product}:{uuid.uuid4()}"
 
@@ -62,7 +68,10 @@ async def create_invoice(
     await db.commit()
 
     # Create a real Telegram Stars invoice link via Bot API (currency XTR).
-    title, description = PRODUCT_META.get(product, (product, product))
+    if is_stats_unlock:
+        title, description = ("Разведка профиля", "Открыть статистику и анти-тролль сигналы этого человека")
+    else:
+        title, description = PRODUCT_META.get(product, (product, product))
     invoice_link = None
     try:
         import httpx
