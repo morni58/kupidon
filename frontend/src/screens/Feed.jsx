@@ -394,30 +394,39 @@ export function Feed({ theme, palette, accent: accentProp, dark, plan, me, refre
           <div className="flex items-center justify-between pt-1 pb-2">
             <span className="text-[22px] font-black tracking-tight" style={{ color: accent, textShadow: !dark ? 'none' : `0 0 16px ${hexA(accent, 0.6)}` }}>CupidBot</span>
             <div className="flex items-center gap-2">
-              <button onClick={() => setMode(viewMode === 'swipe' ? 'list' : 'swipe')} className="inline-flex items-center justify-center rounded-full transition active:scale-90"
-                style={{ width: 30, height: 30, background: !dark ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.08)', color: accent, border: `1.5px solid ${!dark ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.12)'}`, backdropFilter: 'blur(8px)' }}
-                title={viewMode === 'swipe' ? 'Лента листанием' : 'Свайпы'}>
-                <i className={'ph-bold ' + (viewMode === 'swipe' ? 'ph-rows' : 'ph-cards')} style={{ fontSize: 15 }} />
-              </button>
               {onOpenBlind && (
-                <button onClick={onOpenBlind} className="inline-flex items-center gap-1 rounded-full font-bold transition active:scale-95"
-                  style={{ height: 30, padding: '0 10px', fontSize: 11.5, background: 'linear-gradient(135deg,#A855F7,#EC4899)', color: '#fff', boxShadow: '0 6px 16px -6px rgba(168,85,247,0.7)' }}>
-                  🎭 Вслепую
+                <button onClick={onOpenBlind} className="inline-flex items-center gap-1.5 rounded-full font-bold transition active:scale-95"
+                  style={{ height: 32, padding: '0 12px', fontSize: 12, background: 'linear-gradient(135deg,#A855F7,#EC4899)', color: '#fff', boxShadow: '0 6px 16px -6px rgba(168,85,247,0.7)' }}>
+                  <i className="ph-fill ph-mask-happy text-[15px]" /> Вслепую
                 </button>
               )}
               <button onClick={openFilter} className="inline-flex items-center gap-1 rounded-full font-bold transition"
-                style={{ height: 30, padding: '0 11px', fontSize: 11.5, background: filterTags.length ? hexA(accent, 0.18) : (!dark ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.08)'),
+                style={{ height: 32, padding: '0 12px', fontSize: 12, background: filterTags.length ? hexA(accent, 0.18) : (!dark ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.08)'),
                   color: filterTags.length ? accent : (!dark ? '#6b7280' : '#bbb'), border: `1.5px solid ${filterTags.length ? accent : (!dark ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.12)')}`, backdropFilter: 'blur(8px)' }}>
-                <i className="ph-fill ph-funnel" /> {filterTags.length ? `Теги ${filterTags.length}` : 'Теги'}
+                <i className="ph-fill ph-funnel" /> {filterTags.length ? filterTags.length : 'Теги'}
               </button>
-              <button onClick={() => setOnlyVerified((v) => !v)} className="inline-flex items-center gap-1 rounded-full font-bold transition"
-                style={{ height: 30, padding: '0 11px', fontSize: 11.5, background: onlyVerified ? 'rgba(59,130,246,0.18)' : (!dark ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.08)'),
+              <button onClick={() => setOnlyVerified((v) => !v)} className="inline-flex items-center justify-center rounded-full transition active:scale-90"
+                style={{ width: 32, height: 32, background: onlyVerified ? 'rgba(59,130,246,0.18)' : (!dark ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.08)'),
                   color: onlyVerified ? '#3B82F6' : (!dark ? '#6b7280' : '#bbb'), border: `1.5px solid ${onlyVerified ? '#3B82F6' : (!dark ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.12)')}`, backdropFilter: 'blur(8px)' }}>
-                <i className="ph-fill ph-seal-check" /> Verified
+                <i className="ph-fill ph-seal-check text-[15px]" />
               </button>
             </div>
           </div>
-          <div className="text-right -mt-1 mb-1"><span className="text-[12px] font-bold" style={{ color: !dark ? '#9ca3af' : 'rgba(255,255,255,0.6)' }}>{me ? `${swipesLeft} свайпов` : '…'}</span></div>
+          {/* Prominent segmented browse-mode switch + swipes left */}
+          <div className="flex items-center justify-between mb-1.5">
+            <div className="inline-flex rounded-full p-1" style={{ background: !dark ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.07)', border: `1px solid ${!dark ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.1)'}`, backdropFilter: 'blur(8px)' }}>
+              {[{ id: 'swipe', icon: 'ph-cards-three', label: 'Свайпы' }, { id: 'list', icon: 'ph-rows', label: 'Лента' }].map((m) => {
+                const on = viewMode === m.id
+                return (
+                  <button key={m.id} onClick={() => setMode(m.id)} className="inline-flex items-center gap-1.5 rounded-full font-bold transition active:scale-95"
+                    style={{ height: 28, padding: '0 14px', fontSize: 12.5, background: on ? 'var(--cupid-grad)' : 'transparent', color: on ? '#fff' : (!dark ? '#6b7280' : 'rgba(255,255,255,0.6)'), boxShadow: on ? '0 4px 12px -4px var(--cupid-accent)' : 'none' }}>
+                    <i className={'ph-fill ' + m.icon} style={{ fontSize: 15 }} /> {m.label}
+                  </button>
+                )
+              })}
+            </div>
+            <span className="text-[12px] font-bold" style={{ color: !dark ? '#9ca3af' : 'rgba(255,255,255,0.6)' }}>{me ? `${swipesLeft} свайпов` : '…'}</span>
+          </div>
         </div>
 
         <div className="flex-1 min-h-0 screen-pad relative" style={{ paddingBottom: 8 }}>

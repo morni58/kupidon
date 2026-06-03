@@ -74,6 +74,8 @@ class UserUpdate(BaseModel):
     gender: Optional[GenderEnum] = None
     bio: Optional[str] = None
     search_gender: Optional[SearchGenderEnum] = None
+    search_age_min: Optional[int] = None
+    search_age_max: Optional[int] = None
     city_id: Optional[int] = None
     lat: Optional[float] = None
     lng: Optional[float] = None

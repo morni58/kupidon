@@ -19,11 +19,20 @@ function Glass({ children, className = '', dark = false, style = {} }) {
   )
 }
 
-const PLAN_BADGE = { free: 'Free', premium: 'Premium 💎', kupidon: 'Kupidon 👑' }
+const PLAN_BADGE = {
+  free: { label: 'Free', icon: null },
+  premium: { label: 'Premium', icon: 'ph-diamond' },
+  kupidon: { label: 'Kupidon', icon: 'ph-crown' },
+}
 function PlanTag({ tier }) {
-  const map = { free: { bg: 'rgba(255,255,255,0.25)', fg: '#fff' }, premium: { bg: 'rgba(255,0,255,0.9)', fg: '#fff' }, kupidon: { bg: 'linear-gradient(135deg,#FFE259,#FFA751)', fg: '#0F0F13' } }
+  const map = { free: { bg: 'rgba(255,255,255,0.22)', fg: '#fff' }, premium: { bg: 'linear-gradient(135deg,#FF00FF,#FF66CC)', fg: '#fff' }, kupidon: { bg: 'linear-gradient(135deg,#FFE259,#FFA751)', fg: '#0F0F13' } }
   const m = map[tier] || map.free
-  return <span className="inline-flex items-center rounded-full font-bold" style={{ background: m.bg, color: m.fg, fontSize: 11.5, padding: '3px 10px', backdropFilter: 'blur(6px)' }}>{PLAN_BADGE[tier]}</span>
+  const b = PLAN_BADGE[tier] || PLAN_BADGE.free
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full font-bold" style={{ background: m.bg, color: m.fg, fontSize: 11.5, padding: '4px 11px', backdropFilter: 'blur(6px)' }}>
+      {b.icon && <i className={'ph-fill ' + b.icon} style={{ fontSize: 12 }} />}{b.label}
+    </span>
+  )
 }
 
 function AnimNum({ value, className, style }) {
@@ -132,31 +141,33 @@ export function Profile({ theme, palette: paletteProp, accent: accentProp, dark:
     <div className="w-full h-full relative overflow-hidden">
       <MeshBG palette={palette} />
       <div ref={scrollRef} onScroll={(e) => setScrollY(e.target.scrollTop)} className="relative z-10 w-full h-full overflow-y-auto noscroll" style={{ paddingBottom: 'calc(64px + env(safe-area-inset-bottom) + 16px)' }}>
-        {/* cover carousel */}
-        <div className="relative" style={{ height: 'clamp(360px, 54vh, 460px)' }}>
-          <div className="absolute inset-0 overflow-hidden" style={{ borderRadius: '0 0 2rem 2rem', transform: `translateY(${scrollY * 0.3}px) scale(${1 + scrollY * 0.0004})`, transformOrigin: 'top' }}>
-            <Photo data={photos[photoIdx]} rounded="0 0 2rem 2rem" className="w-full h-full" emojiSize={172} />
-            <Grain opacity={0.08} blend="overlay" />
-          </div>
-          {frameGlow && <div className="absolute inset-0 pointer-events-none" style={{ borderRadius: '0 0 2rem 2rem', boxShadow: `inset 0 0 80px ${hexA(accent, 0.45)}, inset 0 -2px 0 ${hexA(accent, 0.5)}` }} />}
-          <div className="absolute top-3 left-3 right-3 flex gap-1.5" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-            {photos.map((_, i) => <div key={i} className="flex-1 rounded-full" style={{ height: 3, background: i === photoIdx ? '#fff' : 'rgba(255,255,255,0.4)', boxShadow: i === photoIdx ? '0 0 8px #fff' : 'none' }} />)}
-          </div>
-          <button onClick={onEdit} className="absolute z-20 right-3 flex items-center gap-1.5 px-3 h-9 rounded-full font-bold text-[13px] active:scale-95 transition"
-            style={{ top: 'calc(env(safe-area-inset-top) + 12px)', background: 'rgba(255,255,255,0.92)', color: '#0F0F13', boxShadow: '0 4px 14px rgba(0,0,0,0.18)' }}>
-            <i className="ph-bold ph-pencil-simple" /> Изменить
-          </button>
-          <div className="absolute left-0 top-20 bottom-24 w-1/2" onClick={() => setPhotoIdx((p) => Math.max(0, p - 1))} />
-          <div className="absolute right-0 top-20 bottom-24 w-1/2" onClick={() => setPhotoIdx((p) => Math.min(photos.length - 1, p + 1))} />
-          <div className="absolute inset-x-3 bottom-3 rounded-[1.5rem] px-4 py-3.5 overflow-hidden" style={{ background: 'rgba(16,12,22,0.36)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.18)' }}>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-[28px] font-black text-white leading-none tracking-tight">{full.name}, {age}</h1>
-              {verified && <VerifiedTick size={22} />}
-              <span className="ml-auto"><PlanTag tier={full.tier} /></span>
+        {/* cover carousel — framed card so the photo never bleeds under the header */}
+        <div className="px-3" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 8px)' }}>
+          <div className="relative overflow-hidden" style={{ height: 'clamp(340px, 52vh, 440px)', borderRadius: '1.75rem', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 26px 60px -26px rgba(0,0,0,0.65)' }}>
+            <div className="absolute inset-0 overflow-hidden" style={{ transform: `translateY(${scrollY * 0.18}px) scale(${1 + scrollY * 0.0003})`, transformOrigin: 'top' }}>
+              <Photo data={photos[photoIdx]} rounded="0" className="w-full h-full" emojiSize={172} />
+              <Grain opacity={0.08} blend="overlay" />
             </div>
-            <div className="mt-1.5 flex items-center justify-between">
-              <p className="text-[12.5px] font-semibold flex items-center gap-1" style={{ color: 'rgba(255,255,255,0.8)' }}><i className="ph-fill ph-map-pin" style={{ color: accent }} /> {full.city_name || 'Рядом'}</p>
-              {full.anthem_url && <AnthemPlayer url={full.anthem_url} title={full.anthem_title} start={full.anthem_start} accent="#fff" />}
+            {frameGlow && <div className="absolute inset-0 pointer-events-none" style={{ borderRadius: '1.75rem', boxShadow: `inset 0 0 80px ${hexA(accent, 0.45)}` }} />}
+            <div className="absolute top-3 left-3 right-3 flex gap-1.5 z-20">
+              {photos.map((_, i) => <div key={i} className="flex-1 rounded-full" style={{ height: 3, background: i === photoIdx ? '#fff' : 'rgba(255,255,255,0.4)', boxShadow: i === photoIdx ? '0 0 8px #fff' : 'none' }} />)}
+            </div>
+            <button onClick={onEdit} className="absolute z-20 top-6 right-3 flex items-center gap-1.5 px-3 h-9 rounded-full font-bold text-[13px] active:scale-95 transition"
+              style={{ background: 'rgba(255,255,255,0.92)', color: '#0F0F13', boxShadow: '0 4px 14px rgba(0,0,0,0.18)' }}>
+              <i className="ph-bold ph-pencil-simple" /> Изменить
+            </button>
+            <div className="absolute left-0 top-12 bottom-24 w-1/2 z-10" onClick={() => setPhotoIdx((p) => Math.max(0, p - 1))} />
+            <div className="absolute right-0 top-12 bottom-24 w-1/2 z-10" onClick={() => setPhotoIdx((p) => Math.min(photos.length - 1, p + 1))} />
+            <div className="absolute inset-x-2.5 bottom-2.5 z-20 rounded-[1.4rem] px-4 py-3.5 overflow-hidden" style={{ background: 'rgba(16,12,22,0.4)', backdropFilter: 'blur(18px)', border: '1px solid rgba(255,255,255,0.18)' }}>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-[27px] font-black text-white leading-none tracking-tight">{full.name}, {age}</h1>
+                {verified && <VerifiedTick size={22} />}
+                <span className="ml-auto"><PlanTag tier={full.tier} /></span>
+              </div>
+              <div className="mt-1.5 flex items-center justify-between">
+                <p className="text-[12.5px] font-semibold flex items-center gap-1" style={{ color: 'rgba(255,255,255,0.8)' }}><i className="ph-fill ph-map-pin" style={{ color: accent }} /> {full.city_name || 'Рядом'}</p>
+                {full.anthem_url && <AnthemPlayer url={full.anthem_url} title={full.anthem_title} start={full.anthem_start} accent="#fff" />}
+              </div>
             </div>
           </div>
         </div>
@@ -179,12 +190,12 @@ export function Profile({ theme, palette: paletteProp, accent: accentProp, dark:
             {/* Тема (визуальная, не зависит от 18+) */}
             <div className="text-[11px] font-bold uppercase tracking-wider mb-2" style={{ color: sub }}>Тема</div>
             <div className="flex gap-2.5 mb-4">
-              {[{ id: 'dark', label: 'Тёмная', emoji: '🌙' }, { id: 'light', label: 'Светлая', emoji: '☀️' }].map((th) => {
+              {[{ id: 'dark', label: 'Тёмная', icon: 'ph-moon-stars' }, { id: 'light', label: 'Светлая', icon: 'ph-sun' }].map((th) => {
                 const on = (prefs.uiTheme || 'dark') === th.id
                 return (
                   <button key={th.id} onClick={() => setPref({ uiTheme: th.id })} className="flex-1 rounded-2xl flex items-center justify-center gap-1.5 py-2.5 transition active:scale-95"
                     style={{ background: on ? hexA(accent, 0.14) : (dark ? 'rgba(255,255,255,0.05)' : '#fff'), border: `2px solid ${on ? accent : (dark ? 'rgba(255,255,255,0.12)' : '#e5e7eb')}`, color: txt, fontWeight: 700, fontSize: 13 }}>
-                    <span>{th.emoji}</span>{th.label}
+                    <i className={'ph-fill ' + th.icon} style={{ fontSize: 15 }} />{th.label}
                   </button>
                 )
               })}
@@ -213,7 +224,7 @@ export function Profile({ theme, palette: paletteProp, accent: accentProp, dark:
 
           {/* streak */}
           <Glass dark={dark} className="p-4 flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl flex items-center justify-center text-[24px]" style={{ background: hexA('#FF7849', 0.16) }}>🔥</div>
+            <div className="w-11 h-11 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#FF7849,#FF3D6E)' }}><i className="ph-fill ph-flame text-white text-[22px]" /></div>
             <div className="flex-1"><div className="text-[16px] font-black" style={{ color: txt }}>{full.streak_days} дней подряд</div><div className="text-[12px] font-medium" style={{ color: sub }}>Заходи каждый день за наградами</div></div>
           </Glass>
 
@@ -261,55 +272,57 @@ export function Profile({ theme, palette: paletteProp, accent: accentProp, dark:
           {/* interests */}
           {full.tag_ids?.length > 0 && (
             <div>
-              <h3 className="text-[15px] font-bold mb-2 px-1" style={{ color: txt }}>Интересы</h3>
-              <div className="flex flex-wrap gap-2">{full.tag_ids.map((t) => interestById(t) && <Pill key={t} interest={interestById(t)} selected small />)}</div>
+              <h3 className="text-[16px] font-black mb-2.5 px-1 flex items-center gap-2" style={{ color: txt }}><i className="ph-fill ph-sparkle" style={{ color: accent }} /> Интересы</h3>
+              <div className="flex flex-wrap gap-2">{full.tag_ids.map((t) => interestById(t) && <Pill key={t} interest={interestById(t)} selected />)}</div>
             </div>
           )}
 
           {/* about */}
           {full.bio && (
             <div>
-              <h3 className="text-[15px] font-bold mb-2 px-1" style={{ color: txt }}>О себе</h3>
-              <Glass dark={dark} className="p-4"><p className="text-[14px] font-medium leading-relaxed whitespace-pre-wrap break-words" style={{ color: dark ? '#ddd' : '#374151' }}>{full.bio}</p></Glass>
+              <h3 className="text-[16px] font-black mb-2.5 px-1 flex items-center gap-2" style={{ color: txt }}><i className="ph-fill ph-user-circle" style={{ color: accent }} /> О себе</h3>
+              <Glass dark={dark} className="p-4.5" style={{ borderLeft: `3px solid ${accent}` }}><p className="text-[15px] font-medium leading-relaxed whitespace-pre-wrap break-words" style={{ color: dark ? '#e5e7eb' : '#374151', padding: '2px 0' }}>{full.bio}</p></Glass>
             </div>
           )}
 
           {/* prompts: red/green flags etc. */}
           {full.prompts && Object.values(full.prompts).some((v) => (v || '').trim()) && (
             <div>
-              <h3 className="text-[15px] font-bold mb-2 px-1" style={{ color: txt }}>Обо мне подробнее</h3>
+              <h3 className="text-[16px] font-black mb-2.5 px-1 flex items-center gap-2" style={{ color: txt }}><i className="ph-fill ph-cards" style={{ color: accent }} /> Обо мне подробнее</h3>
               <PromptsView prompts={full.prompts} dark={dark} />
             </div>
           )}
 
-          {/* toggles */}
-          <Glass dark={dark} className="p-1 divide-y" style={{ borderColor: dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }}>
-            <div className="flex items-center gap-3 p-3.5">
-              <span className="text-[22px]">🔞</span>
-              <div className="flex-1"><div className="text-[15px] font-bold" style={{ color: txt }}>Комната 18+</div><div className="text-[12px] font-medium" style={{ color: sub }}>Только для verified</div></div>
-              <Toggle on={full.is_18_mode_active} color="#FF3333" onChange={(v) => toggle('is_18_mode_active', v, (val) => val && age < 18 ? 'Режим 18+ доступен с 18 лет' : val && !verified ? '🔵 Сначала пройди верификацию' : null)} />
-            </div>
-            {full.gender === 'female' && (
-              <div className="flex items-center gap-3 p-3.5">
-                <span className="text-[22px]">🛡️</span>
-                <div className="flex-1"><div className="text-[15px] font-bold" style={{ color: txt }}>Анти-Олигарх щит</div><div className="text-[12px] font-medium" style={{ color: sub }}>Бесплатно ♀ · невидимость для VIP</div></div>
-                <Toggle on={full.is_anti_oligarch} color="#10B981" onChange={(v) => toggle('is_anti_oligarch', v)} />
-              </div>
-            )}
-          </Glass>
+          {/* 18+ room — prominent card */}
+          <div className="rounded-3xl p-4 flex items-center gap-3.5" style={{ background: full.is_18_mode_active ? 'linear-gradient(135deg, rgba(255,51,51,0.18), rgba(255,0,102,0.14))' : (dark ? 'rgba(255,255,255,0.05)' : '#fff'), border: `1px solid ${full.is_18_mode_active ? 'rgba(255,51,51,0.4)' : (dark ? 'rgba(255,255,255,0.08)' : '#f0f1f5')}` }}>
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg,#FF3333,#FF0066)' }}><i className="ph-fill ph-fire text-white text-[24px]" /></div>
+            <div className="flex-1"><div className="text-[16px] font-black" style={{ color: txt }}>Комната 18+</div><div className="text-[12.5px] font-medium" style={{ color: sub }}>Откровенные знакомства · только для verified</div></div>
+            <Toggle on={full.is_18_mode_active} color="#FF3333" onChange={(v) => toggle('is_18_mode_active', v, (val) => val && age < 18 ? 'Режим 18+ доступен с 18 лет' : val && !verified ? 'Сначала пройди верификацию' : null)} />
+          </div>
 
-          {/* oligarch panel */}
+          {full.gender === 'female' && (
+            <div className="rounded-3xl p-4 flex items-center gap-3.5" style={{ background: full.is_anti_oligarch ? 'rgba(16,185,129,0.14)' : (dark ? 'rgba(255,255,255,0.05)' : '#fff'), border: `1px solid ${full.is_anti_oligarch ? 'rgba(16,185,129,0.4)' : (dark ? 'rgba(255,255,255,0.08)' : '#f0f1f5')}` }}>
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg,#10B981,#059669)' }}><i className="ph-fill ph-shield-check text-white text-[24px]" /></div>
+              <div className="flex-1"><div className="text-[16px] font-black" style={{ color: txt }}>Анти-Олигарх щит</div><div className="text-[12.5px] font-medium" style={{ color: sub }}>Бесплатно для девушек · невидимость для VIP</div></div>
+              <Toggle on={full.is_anti_oligarch} color="#10B981" onChange={(v) => toggle('is_anti_oligarch', v)} />
+            </div>
+          )}
+
+          {/* oligarch panel — bigger, graphic */}
           {full.is_oligarch_mode && (
-            <div className="rounded-3xl p-4 relative overflow-hidden" style={{ background: 'linear-gradient(150deg,#1c1708,#0c0c0c)', border: '1px solid rgba(255,215,0,0.4)', boxShadow: '0 10px 34px -12px rgba(255,215,0,0.3)' }}>
-              <div className="flex items-center gap-2 mb-3 relative"><span className="text-[20px]">👑</span><span className="text-[16px] font-black" style={{ color: '#FFD700' }}>Режим Олигарх</span></div>
+            <div className="rounded-3xl p-5 relative overflow-hidden" style={{ background: 'linear-gradient(150deg,#221a08,#0c0c0c)', border: '1px solid rgba(255,215,0,0.45)', boxShadow: '0 14px 40px -14px rgba(255,215,0,0.35)' }}>
+              <div className="flex items-center gap-2.5 mb-4 relative">
+                <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#FFE259,#FFA751)' }}><i className="ph-fill ph-crown text-[#0F0F13] text-[20px]" /></div>
+                <span className="text-[18px] font-black" style={{ color: '#FFD700' }}>Режим Олигарх</span>
+              </div>
               <div className="flex items-center gap-3 mb-3 relative">
-                <span className="text-[20px]">🕵️</span>
-                <div className="flex-1"><div className="text-[14px] font-bold text-white">Стелс-режим</div><div className="text-[11px]" style={{ color: '#9a8a5a' }}>Невидим в общей ленте</div></div>
+                <div className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0" style={{ background: 'rgba(255,215,0,0.12)' }}><i className="ph-fill ph-eye-slash text-[#FFD700] text-[20px]" /></div>
+                <div className="flex-1"><div className="text-[15px] font-bold text-white">Стелс-режим</div><div className="text-[12px]" style={{ color: '#9a8a5a' }}>Невидим в общей ленте</div></div>
                 <Toggle on={full.is_stealth_mode} color="#FFD700" onChange={(v) => toggle('is_stealth_mode', v)} />
               </div>
-              <div className="rounded-2xl px-3 py-2.5 flex items-center justify-between relative" style={{ background: 'rgba(255,215,0,0.08)' }}>
-                <span className="text-[12px] font-semibold" style={{ color: '#c9b870' }}>VIP-сигналов сегодня</span>
-                <span className="text-[14px] font-black" style={{ color: '#FFD700' }}>{full.vip_signals_used} / 20</span>
+              <div className="rounded-2xl px-4 py-3 flex items-center justify-between relative" style={{ background: 'rgba(255,215,0,0.1)' }}>
+                <span className="text-[13px] font-semibold flex items-center gap-1.5" style={{ color: '#c9b870' }}><i className="ph-fill ph-lightning" /> VIP-сигналов сегодня</span>
+                <span className="text-[15px] font-black" style={{ color: '#FFD700' }}>{full.vip_signals_used} / 20</span>
               </div>
             </div>
           )}
@@ -372,6 +385,7 @@ export function ProfileEdit({ onBack, onSaved, setToast }) {
   const [busy, setBusy] = useState(false)
   const [anthem, setAnthem] = useState(null)   // { url, title, start }
   const [prompts, setPrompts] = useState({})
+  const [ageRange, setAgeRange] = useState({ min: '', max: '' })
 
   async function proposeTag() {
     const name = newTag.trim()
@@ -404,6 +418,7 @@ export function ProfileEdit({ onBack, onSaved, setToast }) {
         if (full.city_name) setCity({ name: full.city_name })
         if (full.anthem_url) setAnthem({ url: full.anthem_url, title: full.anthem_title || '', start: full.anthem_start || 0 })
         setPrompts(full.prompts || {})
+        setAgeRange({ min: full.search_age_min || '', max: full.search_age_max || '' })
       }
       setAllTags(tagList)
       const arr = [null, null, null, null, null]
@@ -442,6 +457,9 @@ export function ProfileEdit({ onBack, onSaved, setToast }) {
       const patch = { name: name.trim(), birth_date: birthFromAge(age), bio: bio || '' }
       if (gender) patch.gender = gender
       if (looking) patch.search_gender = looking === 'all' ? 'any' : looking
+      // Optional preferred age range (0 = clear → nearest ages).
+      patch.search_age_min = Math.max(0, parseInt(ageRange.min) || 0)
+      patch.search_age_max = Math.max(0, parseInt(ageRange.max) || 0)
       if (anthem) { patch.anthem_title = anthem.title || ''; patch.anthem_start = anthem.start || 0 }
       patch.prompts = prompts || {}
       await api.updateProfile(patch)
@@ -478,10 +496,10 @@ export function ProfileEdit({ onBack, onSaved, setToast }) {
 
         <Section title="Пол">
           <div className="grid grid-cols-2 gap-3">
-            {[{ id: 'male', label: 'Парень', emoji: '👨' }, { id: 'female', label: 'Девушка', emoji: '👩' }].map((g) => (
+            {[{ id: 'male', label: 'Парень', icon: 'ph-gender-male', c: '#3B82F6' }, { id: 'female', label: 'Девушка', icon: 'ph-gender-female', c: '#EC4899' }].map((g) => (
               <button key={g.id} onClick={() => setGender(g.id)} className="rounded-2xl flex items-center justify-center gap-2 transition active:scale-95"
                 style={{ height: 60, background: gender === g.id ? 'rgba(168,85,247,0.18)' : 'rgba(255,255,255,0.05)', border: `2px solid ${gender === g.id ? 'var(--cupid-accent)' : 'rgba(255,255,255,0.12)'}` }}>
-                <span className="text-[24px]">{g.emoji}</span><span className="text-[15px] font-bold text-white">{g.label}</span>
+                <i className={'ph-fill ' + g.icon} style={{ fontSize: 24, color: gender === g.id ? '#fff' : g.c }} /><span className="text-[15px] font-bold text-white">{g.label}</span>
               </button>
             ))}
           </div>
@@ -489,20 +507,40 @@ export function ProfileEdit({ onBack, onSaved, setToast }) {
 
         <Section title="Кого ищешь">
           <div className="grid grid-cols-3 gap-2.5">
-            {[{ id: 'male', label: 'Парня', emoji: '👨' }, { id: 'female', label: 'Девушку', emoji: '👩' }, { id: 'all', label: 'Всех', emoji: '💞' }].map((o) => {
+            {[{ id: 'male', label: 'Парня', icon: 'ph-gender-male', c: '#3B82F6' }, { id: 'female', label: 'Девушку', icon: 'ph-gender-female', c: '#EC4899' }, { id: 'all', label: 'Всех', icon: 'ph-heart', c: '#FF3D6E' }].map((o) => {
               const sel = looking === o.id || (looking === 'any' && o.id === 'all')
               return (
                 <button key={o.id} onClick={() => setLooking(o.id)} className="rounded-2xl flex flex-col items-center justify-center gap-1 transition active:scale-95"
                   style={{ height: 64, background: sel ? 'rgba(168,85,247,0.18)' : 'rgba(255,255,255,0.05)', border: `2px solid ${sel ? 'var(--cupid-accent)' : 'rgba(255,255,255,0.12)'}` }}>
-                  <span className="text-[22px]">{o.emoji}</span><span className="text-[12px] font-bold text-white">{o.label}</span>
+                  <i className={'ph-fill ' + o.icon} style={{ fontSize: 22, color: sel ? '#fff' : o.c }} /><span className="text-[12px] font-bold text-white">{o.label}</span>
                 </button>
               )
             })}
           </div>
         </Section>
 
+        <Section title="Возраст тех, кого ищешь">
+          <p className="text-[12px] text-[#9ca3af] -mt-1 mb-2.5">Необязательно. Оставь пустым — покажем ближайших по возрасту.</p>
+          <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <input type="number" inputMode="numeric" min={14} max={99} value={ageRange.min}
+                onChange={(e) => setAgeRange((r) => ({ ...r, min: e.target.value.replace(/\D/g, '').slice(0, 2) }))} placeholder="от"
+                className="w-full h-12 rounded-2xl bg-white border-2 border-[#e5e7eb] outline-none px-4 text-[16px] font-bold text-center text-[#0F0F13] transition" />
+            </div>
+            <span className="text-white/40 font-black">—</span>
+            <div className="flex-1">
+              <input type="number" inputMode="numeric" min={14} max={99} value={ageRange.max}
+                onChange={(e) => setAgeRange((r) => ({ ...r, max: e.target.value.replace(/\D/g, '').slice(0, 2) }))} placeholder="до"
+                className="w-full h-12 rounded-2xl bg-white border-2 border-[#e5e7eb] outline-none px-4 text-[16px] font-bold text-center text-[#0F0F13] transition" />
+            </div>
+            {(ageRange.min || ageRange.max) && (
+              <button onClick={() => setAgeRange({ min: '', max: '' })} className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)' }}><i className="ph-bold ph-x text-white/60" /></button>
+            )}
+          </div>
+        </Section>
+
         <Section title="Город">
-          <button onClick={useGPS} className="w-full h-12 rounded-2xl flex items-center justify-center gap-2 font-bold text-white mb-2.5" style={{ background: 'linear-gradient(135deg,#FF00FF,#FF66CC)' }}><i className="ph-fill ph-map-pin" /> Найти меня по GPS</button>
+          <button onClick={useGPS} className="w-full h-12 rounded-2xl flex items-center justify-center gap-2 font-bold text-white mb-2.5" style={{ background: 'var(--cupid-grad)' }}><i className="ph-fill ph-map-pin" /> Найти меня по GPS</button>
           <div className="relative">
             <i className="ph-bold ph-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-[#9ca3af]" />
             <input value={citySearch} onChange={(e) => searchCity(e.target.value)} placeholder="Введи город…"

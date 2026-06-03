@@ -96,6 +96,8 @@ async def ensure_schema() -> None:
                 await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) NOT NULL DEFAULT 'user'"))
                 await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS warns SMALLINT NOT NULL DEFAULT 0"))
                 await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS muted_until TIMESTAMPTZ"))
+                await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS search_age_min SMALLINT"))
+                await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS search_age_max SMALLINT"))
     except Exception as e:
         logger.warning("ensure_schema: %s", e)
 

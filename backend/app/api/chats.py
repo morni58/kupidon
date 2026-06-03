@@ -342,31 +342,43 @@ async def request_tg(
     partner_id = match.user2_id if match.user1_id == me.id else match.user1_id
 
     # Requesting = giving my own consent to reveal my @username.
+    was_mine = match.tg_unlocked_user1 if match.user1_id == me.id else match.tg_unlocked_user2
     if match.user1_id == me.id:
         match.tg_unlocked_user1 = True
     else:
         match.tg_unlocked_user2 = True
     mutual = bool(match.tg_unlocked_user1 and match.tg_unlocked_user2)
 
-    from app.ws.manager import ws_manager
-    import asyncio
-    asyncio.create_task(ws_manager.broadcast(str(match_id), {
-        "type": ("tg_consent_approved" if mutual else "tg_consent_request"),
-        "from_id": str(me.id),
-        "match_id": str(match_id),
-    }))
+    # Anti-spam: a system message + push should fire only on a real transition
+    # (first request / the moment it becomes mutual) — never on repeated taps —
+    # and a given person can't be re-pinged about the same chat more than once
+    # every 2 days.
+    notify_event = None
+    if mutual and was_mine is False:
+        notify_event = "approved"
+    elif not mutual and not was_mine:
+        from app.core.redis import get_redis
+        redis = await get_redis()
+        if await redis.set(f"tgreq:{me.id}:{partner_id}", "1", ex=172800, nx=True):
+            notify_event = "request"
 
-    sys_msg = Message(
-        match_id=match_id, sender_id=me.id,
-        content=("Telegram-контакты открыты ✅" if mutual else "Хочу обменяться Telegram — подтвердишь?"),
-        msg_type=MsgTypeEnum.consent,
-    )
-    db.add(sys_msg)
+    import asyncio
+    if notify_event:
+        from app.ws.manager import ws_manager
+        asyncio.create_task(ws_manager.broadcast(str(match_id), {
+            "type": ("tg_consent_approved" if mutual else "tg_consent_request"),
+            "from_id": str(me.id), "match_id": str(match_id),
+        }))
+        db.add(Message(
+            match_id=match_id, sender_id=me.id,
+            content=("Telegram-контакты открыты ✅" if mutual else "Хочу обменяться Telegram — подтвердишь?"),
+            msg_type=MsgTypeEnum.consent,
+        ))
+
     await db.commit()
-    # Push the other side so they actually notice the request.
-    if not mutual:
-        partner_r = await db.execute(select(User).where(User.id == partner_id))
-        partner = partner_r.scalar_one_or_none()
+
+    if notify_event == "request":
+        partner = (await db.execute(select(User).where(User.id == partner_id))).scalar_one_or_none()
         if partner:
             from app.services import notifications as notif
             asyncio.create_task(notif.send_push(partner.tg_id, f"🔑 {me.name} предлагает обменяться Telegram. Подтверди в чате."))

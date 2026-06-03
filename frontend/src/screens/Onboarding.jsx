@@ -198,10 +198,10 @@ export function Onboarding({ onDone, setToast }) {
         <StepHead title="Кто ты?" />
         <div className="flex-1 flex items-center">
           <div className="grid grid-cols-2 gap-3 w-full">
-            {[{ id: 'male', label: 'Парень', emoji: '👨' }, { id: 'female', label: 'Девушка', emoji: '👩' }].map((g) => (
-              <button key={g.id} onClick={() => { setGender(g.id); setTimeout(next, 180) }} className="rounded-3xl flex flex-col items-center justify-center gap-2 transition active:scale-95"
-                style={{ height: 150, background: gender === g.id ? 'rgba(255,0,255,0.06)' : '#fff', border: `2px solid ${gender === g.id ? '#FF00FF' : '#e5e7eb'}` }}>
-                <span className="text-[52px]">{g.emoji}</span><span className="text-[17px] font-bold text-[#0F0F13]">{g.label}</span>
+            {[{ id: 'male', label: 'Парень', icon: 'ph-gender-male', c: '#3B82F6' }, { id: 'female', label: 'Девушка', icon: 'ph-gender-female', c: '#EC4899' }].map((g) => (
+              <button key={g.id} onClick={() => { setGender(g.id); setTimeout(next, 180) }} className="rounded-3xl flex flex-col items-center justify-center gap-3 transition active:scale-95"
+                style={{ height: 150, background: gender === g.id ? 'rgba(168,85,247,0.18)' : 'rgba(255,255,255,0.05)', border: `2px solid ${gender === g.id ? 'var(--cupid-accent)' : 'rgba(255,255,255,0.12)'}` }}>
+                <i className={'ph-fill ' + g.icon} style={{ fontSize: 52, color: gender === g.id ? '#fff' : g.c }} /><span className="text-[17px] font-bold text-white">{g.label}</span>
               </button>
             ))}
           </div>
@@ -210,11 +210,11 @@ export function Onboarding({ onDone, setToast }) {
       case 4: return (<>
         <StepHead title="Кого ищешь?" />
         <div className="flex-1 flex flex-col justify-center gap-3">
-          {[{ id: 'male', label: 'Парня', emoji: '👨' }, { id: 'female', label: 'Девушку', emoji: '👩' }, { id: 'all', label: 'Всех', emoji: '💞' }].map((o) => (
+          {[{ id: 'male', label: 'Парня', icon: 'ph-gender-male', c: '#3B82F6' }, { id: 'female', label: 'Девушку', icon: 'ph-gender-female', c: '#EC4899' }, { id: 'all', label: 'Всех', icon: 'ph-heart', c: '#FF3D6E' }].map((o) => (
             <button key={o.id} onClick={() => { setLooking(o.id); setTimeout(next, 180) }} className="w-full rounded-2xl flex items-center gap-4 px-5 transition active:scale-[0.98]"
-              style={{ height: 72, background: looking === o.id ? 'rgba(255,0,255,0.06)' : '#fff', border: `2px solid ${looking === o.id ? '#FF00FF' : '#e5e7eb'}` }}>
-              <span className="text-[30px]">{o.emoji}</span><span className="text-[18px] font-bold text-[#0F0F13]">{o.label}</span>
-              <i className="ph-bold ph-arrow-right ml-auto text-[#d1d5db]" />
+              style={{ height: 72, background: looking === o.id ? 'rgba(168,85,247,0.18)' : 'rgba(255,255,255,0.05)', border: `2px solid ${looking === o.id ? 'var(--cupid-accent)' : 'rgba(255,255,255,0.12)'}` }}>
+              <i className={'ph-fill ' + o.icon} style={{ fontSize: 30, color: looking === o.id ? '#fff' : o.c }} /><span className="text-[18px] font-bold text-white">{o.label}</span>
+              <i className="ph-bold ph-arrow-right ml-auto text-white/30" />
             </button>
           ))}
         </div>

@@ -94,6 +94,12 @@ async def get_feed(
     if verified_only:
         q = q.where(User.is_verified == True)
 
+    # Optional preferred age range. Unset → no hard filter (nearest ages shown).
+    if me.search_age_min:
+        q = q.where(User.birth_date <= birthdate_n_years_ago(int(me.search_age_min)))
+    if me.search_age_max:
+        q = q.where(User.birth_date >= birthdate_n_years_ago(int(me.search_age_max) + 1))
+
     # Optional interest filter: only show people who share a selected tag (U-TAGS).
     if tag_ids:
         tagged = select(UserTag.user_id).where(UserTag.tag_id.in_(tag_ids))
@@ -107,22 +113,21 @@ async def get_feed(
     if me.is_anti_oligarch:
         q = q.where(User.is_oligarch_mode == False)
 
-    # Exclude already swiped
-    swiped_sq = select(Swipe.target_id).where(Swipe.actor_id == me.id)
-    q = q.where(User.id.not_in(swiped_sq))
-
-    # Exclude blocks (bilateral)
+    # Exclude blocks (bilateral) — applies to both fresh and recycled passes.
     blocked_by_me = select(Block.blocked_id).where(Block.blocker_id == me.id)
     blocking_me = select(Block.blocker_id).where(Block.blocked_id == me.id)
-    q = q.where(User.id.not_in(blocked_by_me)).where(User.id.not_in(blocking_me))
+    base_q = q.where(User.id.not_in(blocked_by_me)).where(User.id.not_in(blocking_me))
 
-    result = await db.execute(q.limit(200))
+    # Fresh pass: people not yet swiped.
+    swiped_sq = select(Swipe.target_id).where(Swipe.actor_id == me.id)
+    result = await db.execute(base_q.where(User.id.not_in(swiped_sq)).limit(200))
     candidates = result.scalars().all()
 
     my_tags = await get_my_tag_ids(db, me.id)
 
     # Active paid boosts bump candidates to the top for 2h (L3).
     from app.services.tickets import boosted_ids
+    import random
     boosted = await boosted_ids([c.id for c in candidates])
 
     scored = []
@@ -131,10 +136,31 @@ async def get_feed(
         s = await score_candidate(me, c, my_tags, c_tags)
         if c.id in boosted:
             s += 1.0  # dominates the 0..~1.05 base score
+        s += random.uniform(0, 0.18)  # jitter so the order varies between loads
         scored.append((s, c))
 
     scored.sort(key=lambda x: x[0], reverse=True)
-    return [c for _, c in scored[:limit]]
+    fresh = [c for _, c in scored[:limit]]
+
+    # Recycle pass: when fresh candidates run out, let people reappear — but never
+    # someone swiped in the last 12h, and in random order so it doesn't feel stale.
+    if len(fresh) < limit:
+        from datetime import datetime, timezone, timedelta
+        recent = select(Swipe.target_id).where(
+            Swipe.actor_id == me.id,
+            Swipe.created_at >= datetime.now(timezone.utc) - timedelta(hours=12),
+        )
+        have = {c.id for c in fresh}
+        rec = (await db.execute(
+            base_q.where(User.id.not_in(recent)).order_by(func.random()).limit(limit * 2)
+        )).scalars().all()
+        for c in rec:
+            if c.id not in have:
+                fresh.append(c); have.add(c.id)
+            if len(fresh) >= limit:
+                break
+
+    return fresh
 
 
 async def handle_swipe(

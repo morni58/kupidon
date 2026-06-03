@@ -109,6 +109,7 @@ async def get_my_profile_full(
         "gender": me.gender.value if me.gender else None,
         "search_gender": me.search_gender.value if me.search_gender else None,
         "bio": me.bio, "profile_score": me.profile_score, "trust_score": me.trust_score,
+        "search_age_min": me.search_age_min, "search_age_max": me.search_age_max,
         "tier": me.tier.value, "tier_until": me.tier_until.isoformat() if me.tier_until else None,
         "swipes_left": me.swipes_left, "superlikes_left": me.superlikes_left,
         "force_chats_used": me.force_chats_used, "vip_signals_used": me.vip_signals_used,

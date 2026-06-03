@@ -40,6 +40,9 @@ class User(Base):
     birth_date: Mapped[date | None] = mapped_column(Date)
     gender: Mapped[GenderEnum | None] = mapped_column(Enum(GenderEnum))
     search_gender: Mapped[SearchGenderEnum | None] = mapped_column(Enum(SearchGenderEnum))
+    # Optional preferred age range for the feed. If unset, nearest ages are shown.
+    search_age_min: Mapped[int | None] = mapped_column(SmallInteger)
+    search_age_max: Mapped[int | None] = mapped_column(SmallInteger)
     city_id: Mapped[int | None] = mapped_column(Integer)
     lat: Mapped[float | None] = mapped_column()
     lng: Mapped[float | None] = mapped_column()

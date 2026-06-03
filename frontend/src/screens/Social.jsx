@@ -90,7 +90,7 @@ export function Likes({ plan, me, palette, accent = '#FF00FF', dark = false, onO
     <div className="w-full h-full relative overflow-hidden">
       <MeshBG palette={palette || VIBES.neon} grainOpacity={0.05} />
       <div className="relative z-10 h-full overflow-y-auto noscroll" style={{ paddingBottom: 'calc(64px + env(safe-area-inset-bottom) + 16px)' }}>
-        <ScreenHead title="Симпатии ❤️" sub="Они лайкнули тебя" dark={dark} />
+        <ScreenHead title="Симпатии" sub="Они лайкнули тебя" dark={dark} />
         <div className="screen-pad space-y-3 pt-2">
           {loading && <SkeletonRows count={5} dark={dark} />}
           {!loading && items.length === 0 && (
@@ -140,8 +140,8 @@ export function Likes({ plan, me, palette, accent = '#FF00FF', dark = false, onO
           {/* who viewed you */}
           <div className="pt-2">
             <div className="flex items-center justify-between mb-2 px-1">
-              <h3 className="text-[15px] font-bold" style={{ color: dark ? '#fff' : '#0F0F13' }}>👁 Кто смотрел тебя</h3>
-              {views.count > 0 && <span className="text-[12px] font-bold" style={{ color: accent }}>{views.count}{views.liked_count ? ` · ❤️ ${views.liked_count}` : ''}</span>}
+              <h3 className="text-[15px] font-bold flex items-center gap-1.5" style={{ color: dark ? '#fff' : '#0F0F13' }}><i className="ph-fill ph-eye" style={{ color: accent }} /> Кто смотрел тебя</h3>
+              {views.count > 0 && <span className="text-[12px] font-bold inline-flex items-center gap-1" style={{ color: accent }}>{views.count}{views.liked_count ? <><span style={{ opacity: 0.5 }}>·</span><i className="ph-fill ph-heart" style={{ color: '#FF3D6E' }} />{views.liked_count}</> : null}</span>}
             </div>
             {views.is_premium ? (
               views.items.length === 0
