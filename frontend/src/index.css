@@ -5,9 +5,14 @@
 :root {
   --sat: env(safe-area-inset-top, 0px);
   --sab: env(safe-area-inset-bottom, 0px);
+  /* Vibe-driven accents — App.jsx rewrites these whenever theme/vibe changes,
+     so the chosen vibe colours buttons, rings and glows app-wide. */
+  --cupid-accent: #FF00FF;
+  --cupid-accent2: #FF66CC;
+  --cupid-grad: linear-gradient(135deg, #FF00FF, #FF66CC);
 }
 
-* { -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
+* { -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 /* Lock the whole app viewport so swipe/drag gestures don't rubber-band or
    "shake" the page like a normal web page (U-SCROLL). The app behaves like a
    native screen; only explicitly-scrollable containers (.noscroll) pan. */
@@ -16,10 +21,14 @@ html, body, #root {
   position: fixed; inset: 0;
   overflow: hidden;
   overscroll-behavior: none;
+  overscroll-behavior-x: none;
   -webkit-overflow-scrolling: touch;
   touch-action: none;
+  overflow-anchor: none;
 }
-body { background: #FAFAFC; }
+/* Dark is the primary theme — base background is dark so there is never a white
+   flash between screens or behind translucent surfaces. */
+html, body { background: #0A0A0F; }
 input, textarea { -webkit-user-select: text; user-select: text; }
 /* Images never overflow their rounded containers (U-PHOTOOUT). */
 img { max-width: 100%; display: block; }
@@ -29,6 +38,26 @@ img { max-width: 100%; display: block; }
    never propagates to the page / Telegram drag-to-close. */
 .noscroll { -ms-overflow-style: none; scrollbar-width: none; touch-action: pan-y; overscroll-behavior: contain; }
 .noscroll::-webkit-scrollbar { display: none; }
+
+/* Dark form scope: any screen with .form-dark gets dark inputs/labels without
+   rewriting every field inline (keeps the dark theme consistent everywhere). */
+.form-dark { background: #0A0A0F !important; }
+.form-dark input, .form-dark textarea {
+  background: rgba(255,255,255,0.06) !important;
+  border-color: rgba(255,255,255,0.12) !important;
+  color: #fff !important;
+}
+.form-dark input:focus, .form-dark textarea:focus { border-color: var(--cupid-accent) !important; }
+.form-dark input::placeholder, .form-dark textarea::placeholder { color: rgba(255,255,255,0.4) !important; }
+.form-dark h1, .form-dark h3 { color: #fff !important; }
+/* White inner cards (prompts editor, etc.) → translucent dark for consistency. */
+.form-dark .bg-white { background: rgba(255,255,255,0.05) !important; border-color: rgba(255,255,255,0.1) !important; }
+.form-dark .text-\[\#0F0F13\] { color: #fff !important; }
+
+/* Vibe-driven helpers usable anywhere. */
+.vibe-grad { background-image: var(--cupid-grad) !important; }
+.vibe-accent { color: var(--cupid-accent) !important; }
+.vibe-glow { box-shadow: 0 10px 30px -10px var(--cupid-accent); }
 
 .safe-top { padding-top: calc(var(--sat) + 8px); }
 .safe-bottom { padding-bottom: var(--sab); }

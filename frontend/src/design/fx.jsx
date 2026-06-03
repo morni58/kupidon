@@ -39,13 +39,15 @@ export const THEME_MESH = {
 export function darkVibe(vibe) {
   const v = vibe || VIBES.neon
   return {
-    id: v.id + '-dark', name: v.name, accent: v.accent, base: '#0C0C10', dark: true,
-    blobs: v.blobs.map((b) => [b[0], b[1], b[2], b[3], Math.min(0.5, b[4] + 0.06), b[5]]),
+    id: v.id + '-dark', name: v.name, accent: v.accent, base: '#0A0A0F', dark: true,
+    // Bigger, brighter blobs so the vibe reads clearly against the dark base.
+    blobs: v.blobs.map((b) => [b[0], b[1], b[2], b[3] + 6, Math.min(0.6, b[4] + 0.14), b[5]]),
   }
 }
 
 export function MeshBG({ palette, className = '', style = {}, grain = true, grainOpacity, drift = true }) {
   const p = palette || VIBES.neon
+  const acc = p.accent || '#FF00FF'
   return (
     <div className={'absolute inset-0 overflow-hidden ' + className} style={{ background: p.base, ...style }}>
       {p.blobs.map((b, i) => {
@@ -53,13 +55,21 @@ export function MeshBG({ palette, className = '', style = {}, grain = true, grai
         return (
           <div key={i} className={drift ? anim : ''} style={{
             position: 'absolute', left: x + '%', top: y + '%', width: s + 'vw', height: s + 'vw',
-            maxWidth: 520, maxHeight: 520, transform: 'translate(-50%,-50%)',
-            background: `radial-gradient(circle at center, ${c}, transparent 68%)`,
-            opacity: op, filter: 'blur(8px)', borderRadius: '50%', willChange: 'transform',
+            maxWidth: 560, maxHeight: 560, transform: 'translate(-50%,-50%)',
+            background: `radial-gradient(circle at center, ${c}, transparent 70%)`,
+            opacity: op, filter: 'blur(10px)', borderRadius: '50%', willChange: 'transform',
           }} />
         )
       })}
-      {grain && <Grain opacity={grainOpacity != null ? grainOpacity : (p.dark ? 0.10 : 0.06)} blend={p.dark ? 'soft-light' : 'overlay'} />}
+      {/* Soft top light + accent glow from below → more depth, vibe-coloured. */}
+      <div className="absolute inset-0 pointer-events-none" style={{
+        background: p.dark
+          ? `radial-gradient(120% 70% at 50% -10%, ${hexA(acc, 0.18)}, transparent 55%), radial-gradient(140% 80% at 50% 115%, ${hexA(acc, 0.14)}, transparent 60%)`
+          : `radial-gradient(120% 70% at 50% -8%, rgba(255,255,255,0.6), transparent 50%)` }} />
+      {/* Vignette to keep edges calm and content readable. */}
+      <div className="absolute inset-0 pointer-events-none" style={{
+        boxShadow: p.dark ? 'inset 0 0 160px 40px rgba(0,0,0,0.55)' : 'inset 0 0 120px 30px rgba(0,0,0,0.06)' }} />
+      {grain && <Grain opacity={grainOpacity != null ? grainOpacity : (p.dark ? 0.11 : 0.06)} blend={p.dark ? 'soft-light' : 'overlay'} />}
     </div>
   )
 }

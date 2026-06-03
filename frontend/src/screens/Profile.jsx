@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
-import { MeshBG, THEME_MESH, VIBES, VIBE_LIST, ScoreRing, Equalizer, Grain, hexA } from '../design/fx'
+import { MeshBG, THEME_MESH, VIBES, VIBE_LIST, ScoreRing, Equalizer, Grain, hexA, darkVibe } from '../design/fx'
 import { Photo, Button, Toggle, Pill, VerifiedTick, TabBar, Confetti } from '../design/ui'
 import { ageFromBirth, birthFromAge, gradPhoto, interestById } from '../design/data'
 import { api, haptic, openInvoice, mediaUrl } from '../lib/api'
 import { SkeletonProfile } from '../design/loaders'
+import { ArtVerify } from '../design/illustrations'
 import { useStore } from '../lib/store'
 import { AgeDial, PhotoGrid } from './Onboarding'
 import { AnthemEditor, AnthemPlayer, PromptsEditor, PromptsView } from './ProfileExtras'
@@ -178,8 +179,8 @@ export function Profile({ theme, palette: paletteProp, accent: accentProp, dark:
             {/* Тема (визуальная, не зависит от 18+) */}
             <div className="text-[11px] font-bold uppercase tracking-wider mb-2" style={{ color: sub }}>Тема</div>
             <div className="flex gap-2.5 mb-4">
-              {[{ id: 'light', label: 'Светлая', emoji: '☀️' }, { id: 'dark', label: 'Тёмная', emoji: '🌙' }].map((th) => {
-                const on = (prefs.uiTheme || 'light') === th.id
+              {[{ id: 'dark', label: 'Тёмная', emoji: '🌙' }, { id: 'light', label: 'Светлая', emoji: '☀️' }].map((th) => {
+                const on = (prefs.uiTheme || 'dark') === th.id
                 return (
                   <button key={th.id} onClick={() => setPref({ uiTheme: th.id })} className="flex-1 rounded-2xl flex items-center justify-center gap-1.5 py-2.5 transition active:scale-95"
                     style={{ background: on ? hexA(accent, 0.14) : (dark ? 'rgba(255,255,255,0.05)' : '#fff'), border: `2px solid ${on ? accent : (dark ? 'rgba(255,255,255,0.12)' : '#e5e7eb')}`, color: txt, fontWeight: 700, fontSize: 13 }}>
@@ -189,14 +190,19 @@ export function Profile({ theme, palette: paletteProp, accent: accentProp, dark:
               })}
             </div>
 
-            <div className="text-[11px] font-bold uppercase tracking-wider mb-2" style={{ color: sub }}>Вайб</div>
-            <div className="flex gap-2.5 mb-4">
-              {VIBE_LIST.map((v) => (
-                <button key={v.id} onClick={() => setPref({ vibe: v.id })} className="relative rounded-full transition active:scale-90 shrink-0" style={{ width: 38, height: 38 }}>
-                  <span className="block w-full h-full rounded-full" style={{ background: `linear-gradient(135deg, ${v.blobs[0][0]}, ${v.blobs[1][0]})`, boxShadow: prefs.vibe === v.id ? `0 0 0 2px ${dark ? '#141416' : '#fff'}, 0 0 0 4px ${v.accent}` : 'inset 0 0 0 1px rgba(0,0,0,0.06)' }} />
-                  {prefs.vibe === v.id && <i className="ph-bold ph-check absolute inset-0 flex items-center justify-center text-white text-[15px]" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }} />}
-                </button>
-              ))}
+            <div className="text-[11px] font-bold uppercase tracking-wider mb-2" style={{ color: sub }}>Вайб — задаёт цвет всему приложению</div>
+            <div className="grid grid-cols-6 gap-2 mb-4">
+              {VIBE_LIST.map((v) => {
+                const on = prefs.vibe === v.id
+                return (
+                  <button key={v.id} onClick={() => { setPref({ vibe: v.id }); haptic('light') }} className="flex flex-col items-center gap-1 active:scale-90 transition">
+                    <span className="relative rounded-full" style={{ width: 40, height: 40, background: `linear-gradient(135deg, ${v.blobs[0][0]}, ${v.blobs[1][0]})`, boxShadow: on ? `0 0 0 2px ${dark ? '#0A0A0F' : '#fff'}, 0 0 0 4px ${v.accent}, 0 6px 16px -4px ${v.accent}` : 'inset 0 0 0 1px rgba(255,255,255,0.12)' }}>
+                      {on && <i className="ph-bold ph-check absolute inset-0 flex items-center justify-center text-white text-[16px]" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.5)' }} />}
+                    </span>
+                    <span className="text-[9.5px] font-bold leading-none" style={{ color: on ? v.accent : sub }}>{v.name}</span>
+                  </button>
+                )
+              })}
             </div>
             <div className="flex items-center justify-between py-1">
               <div className="flex items-center gap-2"><i className="ph-fill ph-sparkle text-[16px]" style={{ color: accent }} /><span className="text-[13.5px] font-semibold" style={{ color: txt }}>Свечение рамки фото</span></div>
@@ -211,13 +217,15 @@ export function Profile({ theme, palette: paletteProp, accent: accentProp, dark:
             <div className="flex-1"><div className="text-[16px] font-black" style={{ color: txt }}>{full.streak_days} дней подряд</div><div className="text-[12px] font-medium" style={{ color: sub }}>Заходи каждый день за наградами</div></div>
           </Glass>
 
-          {/* stats */}
+          {/* stats — tap any tile to open the full dashboard */}
           <div className="grid grid-cols-3 gap-3">
-            {[[full.swipes_left, 'свайпов'], [full.superlikes_left, 'суперлайков'], [0, 'смотрели', true]].map(([n, l, clk], i) => (
-              <Glass key={i} dark={dark} className="p-3 text-center">
-                <AnimNum value={n} className="text-[22px] font-black block" style={{ color: accent }} />
-                <div className="text-[11px] font-semibold mt-0.5" style={{ color: sub }}>{l}</div>
-              </Glass>
+            {[[full.swipes_left, 'свайпов'], [full.superlikes_left, 'суперлайков'], [full.streak_days, 'дней подряд']].map(([n, l], i) => (
+              <button key={i} onClick={onStats} className="active:scale-95 transition">
+                <Glass dark={dark} className="p-3 text-center">
+                  <AnimNum value={n} className="text-[22px] font-black block" style={{ color: accent }} />
+                  <div className="text-[11px] font-semibold mt-0.5" style={{ color: sub }}>{l}</div>
+                </Glass>
+              </button>
             ))}
           </div>
 
@@ -445,17 +453,17 @@ export function ProfileEdit({ onBack, onSaved, setToast }) {
     setBusy(false)
   }
 
-  if (!loaded) return <SkeletonProfile dark={false} />
+  if (!loaded) return <SkeletonProfile dark />
 
   const Section = ({ title, children }) => (
-    <div className="mb-5"><h3 className="text-[14px] font-black text-[#0F0F13] mb-2.5">{title}</h3>{children}</div>
+    <div className="mb-5"><h3 className="text-[14px] font-black text-white mb-2.5">{title}</h3>{children}</div>
   )
 
   return (
-    <div className="w-full h-full flex flex-col" style={{ background: '#FAFAFC' }}>
-      <div className="safe-top shrink-0 flex items-center gap-3 px-4 pb-2" style={{ borderBottom: '1px solid #f3f4f6', background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)' }}>
-        <button onClick={onBack} className="w-9 h-9 rounded-full bg-white border border-[#e5e7eb] flex items-center justify-center active:scale-90 transition shrink-0"><i className="ph-bold ph-arrow-left text-[18px] text-[#0F0F13]" /></button>
-        <h1 className="text-[18px] font-black text-[#0F0F13]">Редактировать профиль</h1>
+    <div className="form-dark w-full h-full flex flex-col" style={{ background: '#0A0A0F' }}>
+      <div className="safe-top shrink-0 flex items-center gap-3 px-4 pb-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'rgba(10,10,15,0.9)', backdropFilter: 'blur(10px)' }}>
+        <button onClick={onBack} className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90 transition shrink-0" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}><i className="ph-bold ph-arrow-left text-[18px] text-white" /></button>
+        <h1 className="text-[18px] font-black text-white">Редактировать профиль</h1>
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto noscroll screen-pad pt-4" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 90px)' }}>
@@ -472,8 +480,8 @@ export function ProfileEdit({ onBack, onSaved, setToast }) {
           <div className="grid grid-cols-2 gap-3">
             {[{ id: 'male', label: 'Парень', emoji: '👨' }, { id: 'female', label: 'Девушка', emoji: '👩' }].map((g) => (
               <button key={g.id} onClick={() => setGender(g.id)} className="rounded-2xl flex items-center justify-center gap-2 transition active:scale-95"
-                style={{ height: 60, background: gender === g.id ? 'rgba(255,0,255,0.06)' : '#fff', border: `2px solid ${gender === g.id ? '#FF00FF' : '#e5e7eb'}` }}>
-                <span className="text-[24px]">{g.emoji}</span><span className="text-[15px] font-bold text-[#0F0F13]">{g.label}</span>
+                style={{ height: 60, background: gender === g.id ? 'rgba(168,85,247,0.18)' : 'rgba(255,255,255,0.05)', border: `2px solid ${gender === g.id ? 'var(--cupid-accent)' : 'rgba(255,255,255,0.12)'}` }}>
+                <span className="text-[24px]">{g.emoji}</span><span className="text-[15px] font-bold text-white">{g.label}</span>
               </button>
             ))}
           </div>
@@ -485,8 +493,8 @@ export function ProfileEdit({ onBack, onSaved, setToast }) {
               const sel = looking === o.id || (looking === 'any' && o.id === 'all')
               return (
                 <button key={o.id} onClick={() => setLooking(o.id)} className="rounded-2xl flex flex-col items-center justify-center gap-1 transition active:scale-95"
-                  style={{ height: 64, background: sel ? 'rgba(255,0,255,0.06)' : '#fff', border: `2px solid ${sel ? '#FF00FF' : '#e5e7eb'}` }}>
-                  <span className="text-[22px]">{o.emoji}</span><span className="text-[12px] font-bold text-[#0F0F13]">{o.label}</span>
+                  style={{ height: 64, background: sel ? 'rgba(168,85,247,0.18)' : 'rgba(255,255,255,0.05)', border: `2px solid ${sel ? 'var(--cupid-accent)' : 'rgba(255,255,255,0.12)'}` }}>
+                  <span className="text-[22px]">{o.emoji}</span><span className="text-[12px] font-bold text-white">{o.label}</span>
                 </button>
               )
             })}
@@ -501,11 +509,11 @@ export function ProfileEdit({ onBack, onSaved, setToast }) {
               className="w-full h-12 rounded-2xl bg-white border-2 border-[#e5e7eb] focus:border-[#FF00FF] outline-none pl-11 pr-4 text-[15px] font-semibold text-[#0F0F13] transition" />
           </div>
           {citySearch && cityResults.length > 0 && (
-            <div className="mt-2 bg-white rounded-2xl border border-[#e5e7eb] overflow-hidden" style={{ maxHeight: 180, overflowY: 'auto' }}>
+            <div className="mt-2 rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', maxHeight: 180, overflowY: 'auto' }}>
               {cityResults.map((c, i) => (
-                <button key={c.id ?? `g${i}`} onClick={() => pickCity(c)} className="w-full px-4 py-2.5 flex items-center gap-2 active:bg-[#FAFAFC] border-b border-[#f3f4f6] last:border-0 text-left">
-                  <div className="flex-1 min-w-0"><span className="text-[15px] font-bold text-[#0F0F13]">{c.name}</span> <span className="text-[12px] text-[#9ca3af]">{c.region}</span></div>
-                  <i className="ph-bold ph-check text-[#FF00FF]" />
+                <button key={c.id ?? `g${i}`} onClick={() => pickCity(c)} className="w-full px-4 py-2.5 flex items-center gap-2 text-left" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div className="flex-1 min-w-0"><span className="text-[15px] font-bold text-white">{c.name}</span> <span className="text-[12px] text-white/50">{c.region}</span></div>
+                  <i className="ph-bold ph-check" style={{ color: 'var(--cupid-accent)' }} />
                 </button>
               ))}
             </div>
@@ -548,7 +556,7 @@ export function ProfileEdit({ onBack, onSaved, setToast }) {
         </Section>
       </div>
 
-      <div className="shrink-0 px-4 pt-2" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)', background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)', borderTop: '1px solid #f3f4f6' }}>
+      <div className="shrink-0 px-4 pt-2" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)', background: 'rgba(10,10,15,0.92)', backdropFilter: 'blur(10px)', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
         <Button disabled={busy} onClick={save}>{busy ? 'Сохраняем…' : 'Сохранить'}</Button>
       </div>
     </div>
@@ -570,31 +578,34 @@ export function Verification({ onBack, onSuccess, setToast }) {
   }
 
   return (
-    <div className="w-full h-full flex flex-col" style={{ background: 'linear-gradient(180deg,#EFF6FF,#FAFAFC)' }}>
-      <div className="safe-top screen-pad shrink-0 pt-1">
-        <button onClick={onBack} className="w-9 h-9 rounded-full bg-white border border-[#e5e7eb] flex items-center justify-center active:scale-90 transition"><i className="ph-bold ph-arrow-left text-[18px] text-[#0F0F13]" /></button>
+    <div className="w-full h-full flex flex-col relative overflow-hidden" style={{ background: '#0A0A0F' }}>
+      <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(120% 60% at 50% 0%, rgba(59,130,246,0.22), transparent 60%)' }} />
+      <div className="safe-top screen-pad shrink-0 pt-1 relative">
+        <button onClick={onBack} className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90 transition" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}><i className="ph-bold ph-arrow-left text-[18px] text-white" /></button>
       </div>
-      <div className="flex-1 flex flex-col items-center justify-center text-center screen-pad">
+      <div className="flex-1 flex flex-col items-center justify-center text-center screen-pad relative">
         {phase === 'intro' && (<>
           <div className="relative flex items-center justify-center mb-7" style={{ width: 200, height: 200 }}>
-            <div className="absolute inset-0 rounded-full" style={{ border: '3px dashed #93C5FD' }} />
-            <div className="text-[80px]">🤳</div>
-            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap px-4 py-2 rounded-full text-[14px] font-bold text-white" style={{ background: 'linear-gradient(135deg,#3B82F6,#6366F1)', boxShadow: '0 8px 20px -6px rgba(59,130,246,0.5)' }}>{gesture}</div>
+            <div className="absolute rounded-full" style={{ inset: 18, border: '3px dashed rgba(96,165,250,0.5)' }} />
+            <ArtVerify size={120} />
+            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap px-4 py-2 rounded-full text-[14px] font-bold text-white" style={{ background: 'linear-gradient(135deg,#3B82F6,#6366F1)', boxShadow: '0 8px 20px -6px rgba(59,130,246,0.5)' }}>{gesture}</div>
           </div>
-          <h1 className="text-[28px] font-black text-[#0F0F13] tracking-tight">Заявка на галочку</h1>
-          <p className="mt-2 text-[14px] font-medium text-[#6b7280] px-4">Сделай селфи, повторив жест выше — модерация лично проверит, что это ты, и выдаст синюю галочку избранным.</p>
+          <h1 className="text-[28px] font-black text-white tracking-tight">Заявка на галочку</h1>
+          <p className="mt-2 text-[14px] font-medium px-4" style={{ color: 'rgba(255,255,255,0.65)' }}>Сделай селфи, повторив жест выше — модерация лично проверит, что это ты, и выдаст синюю галочку избранным.</p>
           <div className="w-full mt-8 space-y-3">
-            <Button variant="blue" disabled={busy} onClick={() => fileRef.current?.click()}>{busy ? 'Отправляем…' : '📷 Сделать селфи с жестом'}</Button>
-            <Button variant="ghost" disabled={busy} onClick={() => submit(null)} className="w-full">Отправить заявку без фото</Button>
+            <Button variant="blue" disabled={busy} onClick={() => fileRef.current?.click()}>{busy ? 'Отправляем…' : 'Сделать селфи с жестом'}</Button>
+            <Button variant="ghost" disabled={busy} onClick={() => submit(null)} className="w-full" style={{ color: 'rgba(255,255,255,0.6)' }}>Отправить заявку без фото</Button>
           </div>
-          <p className="mt-4 text-[12px] font-medium text-[#9ca3af]">Галочка повышает доверие и поднимает анкету в ленте.</p>
+          <p className="mt-4 text-[12px] font-medium" style={{ color: 'rgba(255,255,255,0.4)' }}>Галочка повышает доверие и поднимает анкету в ленте.</p>
           <input ref={fileRef} type="file" accept="image/*,video/*" capture="user" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) submit(f) }} />
         </>)}
         {phase === 'ok' && (
-          <div className="anim-pop"><Confetti />
-            <div className="text-[88px]">📨</div>
-            <h1 className="text-[28px] font-black text-[#0F0F13] mt-2">Заявка отправлена!</h1>
-            <p className="mt-2 text-[15px] font-medium text-[#6b7280] px-6">Модерация проверит её вручную. Если всё ок — придёт уведомление с галочкой 🔵</p>
+          <div className="anim-pop relative"><Confetti />
+            <div className="mx-auto w-24 h-24 rounded-3xl flex items-center justify-center anim-pop" style={{ background: 'linear-gradient(135deg,#3B82F6,#6366F1)', boxShadow: '0 20px 50px -16px rgba(59,130,246,0.6)' }}>
+              <i className="ph-fill ph-paper-plane-tilt text-white text-[44px]" />
+            </div>
+            <h1 className="text-[28px] font-black text-white mt-4">Заявка отправлена!</h1>
+            <p className="mt-2 text-[15px] font-medium px-6" style={{ color: 'rgba(255,255,255,0.65)' }}>Модерация проверит её вручную. Если всё ок — придёт уведомление с галочкой 🔵</p>
             <div className="w-full mt-8"><Button variant="blue" onClick={onSuccess}>В профиль</Button></div>
           </div>
         )}
@@ -631,25 +642,25 @@ export function Pricing({ onBack, currentTier, setToast, onMutate, palette }) {
   }
   return (
     <div className="w-full h-full relative overflow-hidden">
-      <MeshBG palette={palette || VIBES.berry} grainOpacity={0.05} />
+      <MeshBG palette={darkVibe(palette || VIBES.berry)} grainOpacity={0.09} />
       <div className="relative z-10 w-full h-full overflow-y-auto noscroll">
         <div className="safe-top screen-pad pb-8">
           <div className="flex items-center gap-3 pt-1 pb-3">
-            <button onClick={onBack} className="w-9 h-9 rounded-full bg-white/80 backdrop-blur border border-white/60 flex items-center justify-center active:scale-90 transition shrink-0"><i className="ph-bold ph-x text-[18px] text-[#0F0F13]" /></button>
-            <h1 className="text-[24px] font-black tracking-tight text-[#0F0F13]">Стань Купидоном 💘</h1>
+            <button onClick={onBack} className="w-9 h-9 rounded-full backdrop-blur flex items-center justify-center active:scale-90 transition shrink-0" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.18)' }}><i className="ph-bold ph-x text-[18px] text-white" /></button>
+            <h1 className="text-[24px] font-black tracking-tight text-white">Стань Купидоном 💘</h1>
           </div>
           <div className="space-y-3">
             {TIERS.map((t) => {
               const isK = t.id === 'kupidon', isP = t.id === 'premium', current = currentTier === t.id
               return (
-                <div key={t.id} className="rounded-3xl p-4 relative overflow-hidden" style={{ background: isK ? 'linear-gradient(150deg,#1a1505,#0d0d0d)' : '#fff', border: isP ? '2px solid #FF00FF' : isK ? '1.5px solid rgba(255,215,0,0.4)' : '1.5px solid #e5e7eb', boxShadow: isP ? '0 12px 30px -12px rgba(255,0,255,0.3)' : isK ? '0 12px 30px -12px rgba(255,215,0,0.25)' : 'none' }}>
-                  {t.badge && <span className="absolute top-4 right-4 px-2.5 py-1 rounded-full text-[10px] font-black" style={{ background: isK ? 'rgba(255,215,0,0.18)' : 'rgba(255,0,255,0.12)', color: t.accent }}>{t.badge}</span>}
-                  <div className="flex items-center gap-2 mb-3"><span className="text-[20px] font-black" style={{ color: isK ? '#FFD700' : '#0F0F13' }}>{t.name}</span><span className="text-[18px]">{t.emoji}</span></div>
+                <div key={t.id} className="rounded-3xl p-4 relative overflow-hidden" style={{ background: isK ? 'linear-gradient(150deg,#1a1505,#0d0d0d)' : 'rgba(255,255,255,0.06)', border: isP ? '2px solid var(--cupid-accent)' : isK ? '1.5px solid rgba(255,215,0,0.4)' : '1.5px solid rgba(255,255,255,0.12)', boxShadow: isP ? '0 12px 34px -12px var(--cupid-accent)' : isK ? '0 12px 30px -12px rgba(255,215,0,0.25)' : 'none', backdropFilter: 'blur(8px)' }}>
+                  {t.badge && <span className="absolute top-4 right-4 px-2.5 py-1 rounded-full text-[10px] font-black" style={{ background: isK ? 'rgba(255,215,0,0.18)' : 'rgba(255,0,255,0.18)', color: t.accent }}>{t.badge}</span>}
+                  <div className="flex items-center gap-2 mb-3"><span className="text-[20px] font-black" style={{ color: isK ? '#FFD700' : '#fff' }}>{t.name}</span><span className="text-[18px]">{t.emoji}</span></div>
                   <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 mb-4">
-                    {t.rows.map((r, i) => <div key={i} className="flex items-center gap-1.5 text-[12.5px] font-medium" style={{ color: isK ? '#cfc6a8' : '#374151' }}><i className="ph-bold ph-check text-[12px]" style={{ color: t.accent }} /> {r}</div>)}
+                    {t.rows.map((r, i) => <div key={i} className="flex items-center gap-1.5 text-[12.5px] font-medium" style={{ color: isK ? '#cfc6a8' : 'rgba(255,255,255,0.75)' }}><i className="ph-bold ph-check text-[12px]" style={{ color: t.accent }} /> {r}</div>)}
                   </div>
                   {t.id !== 'free' && (current ? (
-                    <div className="h-12 rounded-2xl flex items-center justify-center text-[14px] font-bold" style={{ background: isK ? 'rgba(255,215,0,0.1)' : 'rgba(255,0,255,0.08)', color: t.accent }}>Текущий план ✓</div>
+                    <div className="h-12 rounded-2xl flex items-center justify-center text-[14px] font-bold" style={{ background: isK ? 'rgba(255,215,0,0.1)' : 'rgba(255,0,255,0.12)', color: t.accent }}>Текущий план ✓</div>
                   ) : isK ? (
                     <Button variant="gold" onClick={() => buy(t.product)} className="w-full">Оформить Kupidon</Button>
                   ) : (
@@ -659,13 +670,13 @@ export function Pricing({ onBack, currentTier, setToast, onMutate, palette }) {
               )
             })}
           </div>
-          <h2 className="text-[18px] font-black text-[#0F0F13] mt-6 mb-3 px-1">Разовые покупки ⭐</h2>
+          <h2 className="text-[18px] font-black text-white mt-6 mb-3 px-1">Разовые покупки ⭐</h2>
           <div className="grid grid-cols-2 gap-3">
             {STARS.map((s) => (
-              <button key={s.label} onClick={() => buy(s.product)} className="rounded-2xl p-3.5 text-left bg-white border border-[#e5e7eb] active:scale-95 transition">
+              <button key={s.label} onClick={() => buy(s.product)} className="rounded-2xl p-3.5 text-left active:scale-95 transition" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', backdropFilter: 'blur(8px)' }}>
                 <div className="text-[24px] mb-1">{s.emoji}</div>
-                <div className="text-[13px] font-bold text-[#0F0F13] leading-tight">{s.label}</div>
-                <div className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[12px] font-black" style={{ background: 'rgba(255,215,0,0.15)', color: '#B8860B' }}>{s.price} ⭐</div>
+                <div className="text-[13px] font-bold text-white leading-tight">{s.label}</div>
+                <div className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[12px] font-black" style={{ background: 'rgba(255,215,0,0.18)', color: '#FFD36B' }}>{s.price} ⭐</div>
               </button>
             ))}
           </div>

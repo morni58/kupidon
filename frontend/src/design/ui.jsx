@@ -49,7 +49,7 @@ export function Button({ variant = 'primary', children, onClick, disabled, class
     ghost: 'text-[#6b7280] bg-transparent', gold: 'text-[#0F0F13]', blue: 'text-white',
   }
   const vstyle = {
-    primary: { background: 'linear-gradient(135deg,#FF00FF,#FF66CC)', boxShadow: disabled ? 'none' : '0 10px 28px -8px rgba(255,0,255,0.55)' },
+    primary: { background: 'var(--cupid-grad)', boxShadow: disabled ? 'none' : '0 12px 30px -8px var(--cupid-accent)' },
     gold: { background: 'linear-gradient(135deg,#FFE259,#FFA751)', boxShadow: disabled ? 'none' : '0 10px 28px -8px rgba(255,168,81,0.55)' },
     blue: { background: 'linear-gradient(135deg,#3B82F6,#6366F1)', boxShadow: disabled ? 'none' : '0 10px 28px -8px rgba(59,130,246,0.5)' },
     secondary: {}, ghost: {},
@@ -63,10 +63,10 @@ export function Button({ variant = 'primary', children, onClick, disabled, class
   )
 }
 
-export function Toggle({ on, onChange, color = '#FF00FF' }) {
+export function Toggle({ on, onChange, color = 'var(--cupid-accent)' }) {
   return (
     <button onClick={() => onChange(!on)} className="relative shrink-0 rounded-full transition-colors duration-200"
-      style={{ width: 48, height: 26, background: on ? color : '#e5e7eb' }}>
+      style={{ width: 48, height: 26, background: on ? color : 'rgba(130,130,145,0.4)' }}>
       <span className="absolute top-[3px] rounded-full bg-white transition-all duration-200"
         style={{ width: 20, height: 20, left: on ? 25 : 3, boxShadow: '0 2px 6px rgba(0,0,0,0.2)' }} />
     </button>

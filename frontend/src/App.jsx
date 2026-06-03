@@ -20,13 +20,33 @@ export default function App() {
   useEffect(() => {
     try {
       tg?.ready?.(); tg?.expand?.()
-      // Stop Telegram's vertical drag-to-close from fighting card swipes (U-SCROLL).
+      // Lock Telegram's own gestures so they don't fight the app (U-SCROLL).
       tg?.disableVerticalSwipes?.()
+      tg?.disableClosingConfirmation?.()
+      tg?.setHeaderColor?.('#0A0A0F'); tg?.setBackgroundColor?.('#0A0A0F')
       // Low-end devices: drop expensive blur/grain/animations (PF).
       const mem = navigator.deviceMemory || 8
       const cores = navigator.hardwareConcurrency || 8
       if (mem <= 4 || cores <= 4) document.body.classList.add('lite')
     } catch {}
+
+    // Make the whole app feel native/rigid: kill horizontal page drift and
+    // rubber-banding. Only real scroll containers (.noscroll), the swipe deck
+    // (.touch-none / [data-swipe]) and inputs may move under a gesture.
+    let tsx = 0, tsy = 0
+    const onTS = (e) => { const t = e.touches?.[0]; if (t) { tsx = t.clientX; tsy = t.clientY } }
+    const onTM = (e) => {
+      const t = e.touches?.[0]; if (!t) return
+      const el = e.target
+      if (el?.closest?.('.touch-none, [data-swipe], input, textarea, [contenteditable]')) return
+      const scroller = el?.closest?.('.noscroll')
+      const dx = Math.abs(t.clientX - tsx), dy = Math.abs(t.clientY - tsy)
+      // Horizontal drift anywhere → block. Outside any scroller → block all.
+      if (!scroller || dx > dy) { try { e.preventDefault() } catch {} }
+    }
+    document.addEventListener('touchstart', onTS, { passive: true })
+    document.addEventListener('touchmove', onTM, { passive: false })
+    window.__cupidGesture = () => { document.removeEventListener('touchstart', onTS); document.removeEventListener('touchmove', onTM) }
     // preload tag catalog so emoji/colors resolve everywhere
     api.getTags().then(registerTags).catch(() => {})
 
@@ -94,7 +114,23 @@ export default function App() {
   const theme = s.theme()
   const palette = s.palette()
   const accent = s.accent()
+  const accent2 = s.accent2()
+  const grad = s.grad()
   const dark = s.isDark()
+
+  // Push the active vibe colours into CSS vars so buttons/rings/glows app-wide
+  // follow the chosen vibe + theme (U-CUSTOM). Also tint the Telegram chrome.
+  useEffect(() => {
+    const r = document.documentElement.style
+    r.setProperty('--cupid-accent', accent)
+    r.setProperty('--cupid-accent2', accent2)
+    r.setProperty('--cupid-grad', grad)
+    document.documentElement.style.background = dark ? '#0A0A0F' : '#FAFAFC'
+    try {
+      tg?.setHeaderColor?.(dark ? '#0A0A0F' : '#FAFAFC')
+      tg?.setBackgroundColor?.(dark ? '#0A0A0F' : '#FAFAFC')
+    } catch {}
+  }, [accent, accent2, grad, dark])
   const plan = s.plan()
   const me = s.me
   const dots = { likes: true, chats: false }
@@ -108,10 +144,13 @@ export default function App() {
     case 'loading':
       view = <BootLoader palette={palette} />; break
     case 'error':
-      view = <div className="w-full h-full flex flex-col items-center justify-center text-center px-8" style={{ background: '#FAFAFC' }}>
-        <div className="text-[64px]">💔</div>
-        <h2 className="text-[22px] font-black text-[#0F0F13] mt-3">Не удалось войти</h2>
-        <p className="text-[14px] text-[#6b7280] mt-2">Открой CupidBot через кнопку в Telegram-боте, чтобы войти в свой аккаунт.</p>
+      view = <div className="w-full h-full flex flex-col items-center justify-center text-center px-8 relative overflow-hidden" style={{ background: '#0A0A0F' }}>
+        <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(120% 60% at 50% 0%, rgba(255,0,255,0.18), transparent 60%)' }} />
+        <div className="relative w-20 h-20 rounded-3xl flex items-center justify-center heartbeat" style={{ background: 'linear-gradient(135deg,#FF00FF,#FF66CC)', boxShadow: '0 20px 50px -16px rgba(255,0,255,0.6)' }}>
+          <i className="ph-fill ph-heart-break text-white text-[40px]" />
+        </div>
+        <h2 className="relative text-[22px] font-black text-white mt-5">Не удалось войти</h2>
+        <p className="relative text-[14px] mt-2" style={{ color: 'rgba(255,255,255,0.65)' }}>Открой CupidBot через кнопку в Telegram-боте, чтобы войти в свой аккаунт.</p>
       </div>; break
     case 'onboarding':
       view = <Onboarding setToast={setToast} onDone={async () => { await s.refreshMe(); s.setScreen('feed') }} />; break

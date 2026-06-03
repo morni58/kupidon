@@ -18,7 +18,7 @@ export const useStore = create((set, get) => ({
   vibe: prefs.vibe || 'neon',
   frame: prefs.frame || 'glow',
   anthem: prefs.anthem !== false,
-  uiTheme: prefs.uiTheme || 'light',   // light | dark (visual; separate from 18+ mode)
+  uiTheme: prefs.uiTheme || 'dark',   // dark is the primary theme (light optional)
   anthemTrack: prefs.anthemTrack || null, // {name, url} chosen profile anthem
 
   viewUserId: null,
@@ -86,6 +86,16 @@ export const useStore = create((set, get) => ({
     if (t === 'oligarch') return '#FFD700'
     return (VIBES[get().vibe] || VIBES.neon).accent
   },
+  // Second accent (for gradients) + ready-made CSS gradient driven by the vibe,
+  // so the chosen vibe colours the whole UI (buttons, rings, glows).
+  accent2: () => {
+    const t = get().theme()
+    if (t === 'adult') return '#FF00FF'
+    if (t === 'oligarch') return '#FFA751'
+    const v = VIBES[get().vibe] || VIBES.neon
+    return v.blobs?.[1]?.[0] || v.accent
+  },
+  grad: () => `linear-gradient(135deg, ${get().accent()}, ${get().accent2()})`,
   isDark: () => {
     const t = get().theme()
     return t === 'adult' || t === 'oligarch' || t === 'dark'

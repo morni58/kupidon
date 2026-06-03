@@ -1,23 +1,23 @@
 import { useState, useRef, useEffect } from 'react'
-import { MeshBG, VIBES } from '../design/fx'
+import { MeshBG, VIBES, darkVibe } from '../design/fx'
 import { Button, Pill, Progress, Confetti, Badge, Photo } from '../design/ui'
 import { GRADS, birthFromAge } from '../design/data'
 import { api, haptic } from '../lib/api'
 
 function OnbShell({ step, total, children, onBack }) {
   return (
-    <div className="w-full h-full flex flex-col relative overflow-hidden">
-      <MeshBG palette={VIBES.neon} grainOpacity={0.05} />
+    <div className="form-dark w-full h-full flex flex-col relative overflow-hidden">
+      <MeshBG palette={darkVibe(VIBES.neon)} grainOpacity={0.08} />
       <div className="relative z-10 flex flex-col h-full">
         <div className="safe-top screen-pad">
           <div className="flex items-center gap-3 pt-2 pb-4">
             {onBack ? (
-              <button onClick={onBack} className="shrink-0 w-9 h-9 rounded-full bg-white/80 backdrop-blur border border-white/60 flex items-center justify-center active:scale-90 transition">
-                <i className="ph-bold ph-arrow-left text-[#0F0F13] text-[18px]" />
+              <button onClick={onBack} className="shrink-0 w-9 h-9 rounded-full backdrop-blur flex items-center justify-center active:scale-90 transition" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.18)' }}>
+                <i className="ph-bold ph-arrow-left text-white text-[18px]" />
               </button>
             ) : <div className="w-9 h-9" />}
-            <div className="flex-1"><Progress value={(step / total) * 100} height={6} track="rgba(0,0,0,0.07)" /></div>
-            <span className="shrink-0 text-[12px] font-bold text-[#9ca3af] tabular-nums w-9 text-right">{step}/{total}</span>
+            <div className="flex-1"><Progress value={(step / total) * 100} height={6} track="rgba(255,255,255,0.12)" gradient="var(--cupid-grad)" /></div>
+            <span className="shrink-0 text-[12px] font-bold tabular-nums w-9 text-right" style={{ color: 'rgba(255,255,255,0.5)' }}>{step}/{total}</span>
           </div>
         </div>
         <div className="flex-1 min-h-0 flex flex-col screen-pad pb-6">{children}</div>
@@ -29,8 +29,8 @@ function OnbShell({ step, total, children, onBack }) {
 function StepHead({ title, sub }) {
   return (
     <div className="mb-6">
-      <h1 className="text-[34px] leading-[1.05] font-black tracking-tight text-[#0F0F13]">{title}</h1>
-      {sub && <p className="mt-2 text-[15px] font-medium text-[#6b7280]">{sub}</p>}
+      <h1 className="text-[34px] leading-[1.05] font-black tracking-tight text-white">{title}</h1>
+      {sub && <p className="mt-2 text-[15px] font-medium" style={{ color: 'rgba(255,255,255,0.6)' }}>{sub}</p>}
     </div>
   )
 }
