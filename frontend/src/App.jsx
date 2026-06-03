@@ -119,7 +119,7 @@ export default function App() {
       view = <Feed {...themeProps} plan={plan} me={me} refreshMe={refreshMe} setToast={setToast} dots={dots} active="feed" onTab={onTab}
         onMatch={(matchId) => s.openChat(matchId)} onUpgrade={(product) => s.setScreen('pricing')} onOpenProfile={(id) => s.openUser(id)} onOpenBlind={() => s.setScreen('blind')} />; break
     case 'likes':
-      view = <Likes {...themeProps} plan={plan} me={me} setToast={setToast} dots={dots} active="likes" onTab={onTab} onOpenChat={(id) => s.openChat(id)} onOpenProfile={(id) => s.openUser(id)} />; break
+      view = <Likes {...themeProps} plan={plan} me={me} setToast={setToast} dots={dots} active="likes" onTab={onTab} onOpenChat={(id) => s.openChat(id)} onOpenProfile={(id) => s.openUser(id)} onUpgrade={() => s.setScreen('pricing')} />; break
     case 'chats':
       view = <Chats {...themeProps} dots={dots} active="chats" onTab={onTab} onOpenChat={(id) => s.openChat(id)} />; break
     case 'dialog':

@@ -44,7 +44,7 @@ const surfaceStyle = (dark) => dark
   : { background: 'rgba(255,255,255,0.85)', border: '1px solid rgba(255,255,255,0.6)', backdropFilter: 'blur(12px)', boxShadow: '0 8px 24px -14px rgba(0,0,0,0.12)' }
 
 /* ---------------- LIKES ---------------- */
-export function Likes({ plan, me, palette, accent = '#FF00FF', dark = false, onOpenChat, onOpenProfile, setToast, dots, active, onTab }) {
+export function Likes({ plan, me, palette, accent = '#FF00FF', dark = false, onOpenChat, onOpenProfile, onUpgrade, setToast, dots, active, onTab }) {
   const [items, setItems] = useState([])
   const [views, setViews] = useState({ count: 0, items: [], is_premium: false })
   const [loading, setLoading] = useState(true)
@@ -139,27 +139,42 @@ export function Likes({ plan, me, palette, accent = '#FF00FF', dark = false, onO
 
           {/* who viewed you */}
           <div className="pt-2">
-            <h3 className="text-[15px] font-bold mb-2 px-1" style={{ color: dark ? '#fff' : '#0F0F13' }}>👁 Кто смотрел тебя</h3>
+            <div className="flex items-center justify-between mb-2 px-1">
+              <h3 className="text-[15px] font-bold" style={{ color: dark ? '#fff' : '#0F0F13' }}>👁 Кто смотрел тебя</h3>
+              {views.count > 0 && <span className="text-[12px] font-bold" style={{ color: accent }}>{views.count}{views.liked_count ? ` · ❤️ ${views.liked_count}` : ''}</span>}
+            </div>
             {views.is_premium ? (
-              <div className="grid grid-cols-4 gap-3">
-                {views.items.map((v, i) => (
-                  <div key={i} className="flex flex-col items-center gap-1">
-                    <Photo data={pic(null, v.name || '?', '🙂')} rounded="9999px" className="w-16 h-16" emojiSize={32} />
-                    <span className="text-[11px] font-semibold text-[#6b7280] truncate w-full text-center">{v.name}</span>
+              views.items.length === 0
+                ? <div className="rounded-3xl p-5 text-center" style={surfaceStyle(dark)}><span className="text-[13px]" style={{ color: dark ? 'rgba(255,255,255,0.6)' : '#9ca3af' }}>Пока никто не смотрел — но скоро 👀</span></div>
+                : (
+                  <div className="grid grid-cols-3 gap-2.5">
+                    {views.items.map((v, i) => (
+                      <button key={i} onClick={() => v.viewer_id && onOpenProfile?.(v.viewer_id)} className="relative rounded-2xl overflow-hidden active:scale-95 transition" style={{ aspectRatio: '3/4', ...surfaceStyle(dark) }}>
+                        <Photo data={v.photo ? { url: mediaUrl(v.photo) } : pic(null, v.name || '?', '🙂')} rounded="0" className="w-full h-full" emojiSize={40} />
+                        <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.7), transparent 50%)' }} />
+                        {v.likes_me && <div className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,0,255,0.9)' }}><i className="ph-fill ph-heart text-white text-[12px]" /></div>}
+                        {v.is_verified && <div className="absolute top-1.5 left-1.5"><i className="ph-fill ph-seal-check text-[#60A5FA] text-[15px]" /></div>}
+                        <div className="absolute inset-x-0 bottom-0 p-1.5 text-left">
+                          <div className="text-[12px] font-black text-white truncate leading-tight">{v.name}{v.age ? `, ${v.age}` : ''}</div>
+                          {v.city && <div className="text-[10px] text-white/75 truncate">{v.city}</div>}
+                        </div>
+                      </button>
+                    ))}
                   </div>
-                ))}
-                {views.items.length === 0 && <span className="text-[13px] text-[#9ca3af] col-span-4">Пока никто не смотрел</span>}
-              </div>
+                )
             ) : (
-              <div className="rounded-3xl p-4" style={surfaceStyle(dark)}>
-                <div className="flex gap-3 mb-3">
-                  {[0, 1, 2, 3].map((i) => <div key={i} className="w-14 h-14 rounded-full" style={{ background: 'linear-gradient(135deg,#d1d5db,#9ca3af)', filter: 'blur(3px)' }} />)}
+              <button onClick={() => onUpgrade?.()} className="w-full rounded-3xl p-4 text-left active:scale-[0.99] transition" style={surfaceStyle(dark)}>
+                <div className="flex gap-2.5 mb-3">
+                  {(views.items.length ? views.items : [0, 1, 2, 3]).slice(0, 4).map((_, i) => <div key={i} className="w-14 h-14 rounded-2xl" style={{ background: 'linear-gradient(135deg,#FF00FF,#9333EA)', filter: 'blur(7px)', opacity: 0.7 }} />)}
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-[13px] font-bold text-[#6b7280]">{views.count} человек смотрели тебя</span>
-                  <span className="text-[13px] font-bold text-[#FF00FF]">Открой с Premium</span>
+                  <span className="text-[13px] font-bold" style={{ color: dark ? '#fff' : '#374151' }}>
+                    {views.count > 0 ? `${views.count} ${views.count === 1 ? 'человек посмотрел' : 'людей посмотрели'} тебя` : 'Тебя ещё не смотрели'}
+                    {views.liked_count > 0 && <span style={{ color: accent }}> · {views.liked_count} лайкнули!</span>}
+                  </span>
+                  <span className="text-[12.5px] font-black px-2.5 py-1 rounded-full shrink-0" style={{ background: 'linear-gradient(135deg,#FF00FF,#FF66CC)', color: '#fff' }}>Открыть 💎</span>
                 </div>
-              </div>
+              </button>
             )}
           </div>
         </div>

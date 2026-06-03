@@ -79,6 +79,7 @@ export function apiCardToPerson(c, hasFullMedia = true) {
     tags: (c.tags || []).map((t) => { registerTags([t]); return t.id }),
     bio: c.bio || '',
     photos,
+    score: c.profile_score ?? null,
     common: c.common_tags_count || 0,
   }
 }

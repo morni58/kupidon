@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { MeshBG, THEME_MESH, VIBES, hexA, Grain } from '../design/fx'
 import { Photo, Pill, Badge, Button, Sheet, TabBar, Avatar, Confetti } from '../design/ui'
-import { apiCardToPerson, gradPhoto } from '../design/data'
+import { apiCardToPerson, gradPhoto, interestById } from '../design/data'
 import { SkeletonFeed } from '../design/loaders'
 import { ArtNoCards } from '../design/illustrations'
 import { api, haptic } from '../lib/api'
@@ -200,6 +200,66 @@ function Paywall({ open, onClose, onUpgrade }) {
 
 const DIR_MAP = { like: 'right', nope: 'left', super: 'superlike' }
 
+// One card in the scrollable (web-format) feed.
+function FeedListCard({ p, accent, dark, onDecide, onOpenProfile }) {
+  const [pi, setPi] = useState(0)
+  useEffect(() => { if (p?.id) api.recordView(p.id).catch(() => {}) }, [p?.id])
+  const ph = p.photos[pi] || p.photos[0]
+  return (
+    <div className="relative rounded-[1.75rem] overflow-hidden mb-4" style={{ boxShadow: '0 20px 50px -24px rgba(0,0,0,0.5)' }}>
+      <div className="relative" style={{ aspectRatio: '3 / 4' }}>
+        <Photo data={ph} rounded="0" className="w-full h-full" emojiSize={150} />
+        <Grain opacity={0.08} blend="overlay" />
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.72) 8%, transparent 42%)' }} />
+        {/* photo dots + tap zones */}
+        {p.photos.length > 1 && (
+          <div className="absolute top-3 left-3 right-3 flex gap-1.5 z-20">
+            {p.photos.map((_, i) => <div key={i} className="flex-1 rounded-full" style={{ height: 3, background: i === pi ? '#fff' : 'rgba(255,255,255,0.4)' }} />)}
+          </div>
+        )}
+        <div className="absolute left-0 top-10 bottom-28 w-1/2 z-10" onClick={() => setPi((i) => Math.max(0, i - 1))} />
+        <div className="absolute right-0 top-10 bottom-28 w-1/2 z-10" onClick={() => setPi((i) => Math.min(p.photos.length - 1, i + 1))} />
+        {p.verified && <div className="absolute top-6 right-3 z-20"><Badge kind="glass"><i className="ph-fill ph-seal-check" style={{ color: '#60A5FA' }} /> Verified</Badge></div>}
+        <button onClick={() => onOpenProfile?.(p.id)} className="absolute top-6 left-3 z-20 w-8 h-8 rounded-full flex items-center justify-center active:scale-90" style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(6px)' }}>
+          <i className="ph-bold ph-info text-white text-[16px]" />
+        </button>
+
+        {/* info */}
+        <div className="absolute inset-x-0 bottom-0 z-20 p-4">
+          <div className="flex items-center gap-2">
+            <h3 className="text-[22px] font-black text-white leading-none truncate">{p.name}, {p.age}</h3>
+          </div>
+          <div className="flex items-center gap-2 mt-1 text-[12.5px] font-semibold" style={{ color: 'rgba(255,255,255,0.85)' }}>
+            {p.city && <span className="flex items-center gap-1"><i className="ph-fill ph-map-pin" style={{ color: accent }} /> {p.city}</span>}
+            {p.dist && <span>· {p.dist}</span>}
+            {p.score != null && <span className="ml-auto">⭐ {p.score}</span>}
+          </div>
+          {p.tags?.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {p.tags.slice(0, 4).map((id) => interestById(id) && <Pill key={id} interest={interestById(id)} selected small />)}
+            </div>
+          )}
+        </div>
+      </div>
+      {/* action row */}
+      <div className="flex items-center justify-center gap-3 py-3" style={{ background: dark ? 'rgba(255,255,255,0.05)' : '#fff' }}>
+        <button onClick={() => onDecide(p, 'nope')} className="w-12 h-12 rounded-full flex items-center justify-center active:scale-90 transition" style={{ background: dark ? 'rgba(255,255,255,0.08)' : '#f3f4f6' }}><i className="ph-bold ph-x text-[22px] text-[#EF4444]" /></button>
+        <button onClick={() => onDecide(p, 'super')} className="w-11 h-11 rounded-full flex items-center justify-center active:scale-90 transition" style={{ background: 'rgba(168,85,247,0.15)' }}><i className="ph-fill ph-star text-[18px] text-[#A855F7]" /></button>
+        <button onClick={() => onDecide(p, 'like')} className="w-14 h-14 rounded-full flex items-center justify-center text-white active:scale-90 transition" style={{ background: 'linear-gradient(135deg,#FF00FF,#FF66CC)', boxShadow: '0 10px 24px -8px rgba(255,0,255,0.6)' }}><i className="ph-fill ph-heart text-[26px]" /></button>
+      </div>
+    </div>
+  )
+}
+
+function FeedList({ deck, accent, dark, onDecide, onOpenProfile }) {
+  return (
+    <div className="w-full h-full overflow-y-auto noscroll" style={{ paddingBottom: 'calc(64px + env(safe-area-inset-bottom) + 12px)' }}>
+      {deck.map((p) => <FeedListCard key={p.id} p={p} accent={accent} dark={dark} onDecide={onDecide} onOpenProfile={onOpenProfile} />)}
+      <div className="text-center py-6 text-[13px] font-semibold" style={{ color: dark ? 'rgba(255,255,255,0.5)' : '#9ca3af' }}>Листай ещё — подгружаем новых ✨</div>
+    </div>
+  )
+}
+
 export function Feed({ theme, palette, accent: accentProp, dark, plan, me, refreshMe, onMatch, onUpgrade, setToast, dots, active, onTab, onOpenProfile, onOpenBlind }) {
   const adult = theme === 'adult'
   const [deck, setDeck] = useState([])
@@ -217,6 +277,8 @@ export function Feed({ theme, palette, accent: accentProp, dark, plan, me, refre
   const [filterTags, setFilterTags] = useState([])
   const [filterOpen, setFilterOpen] = useState(false)
   const [tempFilter, setTempFilter] = useState([])
+  const [viewMode, setViewMode] = useState(() => { try { return localStorage.getItem('cupid_feedmode') || 'swipe' } catch { return 'swipe' } })
+  const setMode = (m) => { setViewMode(m); try { localStorage.setItem('cupid_feedmode', m) } catch {}; haptic('light') }
   const openFilter = () => { setTempFilter(filterTags); setFilterOpen(true) }
   const toggleTemp = (id) => setTempFilter((t) => t.includes(id) ? t.filter((x) => x !== id) : [...t, id])
 
@@ -284,6 +346,26 @@ export function Feed({ theme, palette, accent: accentProp, dark, plan, me, refre
     } catch {}
   }
 
+  // List (web-scroll) mode: act on a specific card, remove it from the list.
+  async function listDecide(p, dir) {
+    if (dir !== 'nope') {
+      if (swipesLeft <= 0) { setPaywall(true); return }
+      if (dir === 'super' && superLeft <= 0) { setToast('⭐ Суперлайки закончились'); return }
+    }
+    haptic(dir === 'like' ? 'medium' : 'light')
+    setDeck((d) => d.filter((x) => x.id !== p.id))
+    if (dir === 'super') setSuperLeft((s) => Math.max(0, s - 1))
+    if (dir !== 'nope') setSwipesLeft((s) => Math.max(0, s - 1))
+    try {
+      const res = await api.swipe(p.id, DIR_MAP[dir])
+      if (res.is_match) { haptic('success'); setMatch({ ...p, matchId: res.match_id }) }
+    } catch (e) {
+      if (e.status === 429) setPaywall(true)
+      if (e.status === 402) setToast('⭐ Суперлайки закончились')
+    }
+    if (deck.length <= 4) loadFeedAppend()
+  }
+
   async function onAction(dir) {
     if (dir === 'rewind') {
       if (!plan.rewind) { setToast('🔒 Откат доступен с Premium'); return }
@@ -312,6 +394,11 @@ export function Feed({ theme, palette, accent: accentProp, dark, plan, me, refre
           <div className="flex items-center justify-between pt-1 pb-2">
             <span className="text-[22px] font-black tracking-tight" style={{ color: accent, textShadow: !dark ? 'none' : `0 0 16px ${hexA(accent, 0.6)}` }}>CupidBot</span>
             <div className="flex items-center gap-2">
+              <button onClick={() => setMode(viewMode === 'swipe' ? 'list' : 'swipe')} className="inline-flex items-center justify-center rounded-full transition active:scale-90"
+                style={{ width: 30, height: 30, background: !dark ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.08)', color: accent, border: `1.5px solid ${!dark ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.12)'}`, backdropFilter: 'blur(8px)' }}
+                title={viewMode === 'swipe' ? 'Лента листанием' : 'Свайпы'}>
+                <i className={'ph-bold ' + (viewMode === 'swipe' ? 'ph-rows' : 'ph-cards')} style={{ fontSize: 15 }} />
+              </button>
               {onOpenBlind && (
                 <button onClick={onOpenBlind} className="inline-flex items-center gap-1 rounded-full font-bold transition active:scale-95"
                   style={{ height: 30, padding: '0 10px', fontSize: 11.5, background: 'linear-gradient(135deg,#A855F7,#EC4899)', color: '#fff', boxShadow: '0 6px 16px -6px rgba(168,85,247,0.7)' }}>
@@ -336,6 +423,8 @@ export function Feed({ theme, palette, accent: accentProp, dark, plan, me, refre
         <div className="flex-1 min-h-0 screen-pad relative" style={{ paddingBottom: 8 }}>
           {loading ? (
             <SkeletonFeed dark={dark} />
+          ) : viewMode === 'list' && deck.length ? (
+            <FeedList deck={deck} accent={accent} dark={dark} onDecide={listDecide} onOpenProfile={onOpenProfile} />
           ) : ended ? (
             <div className="h-full flex flex-col items-center justify-center text-center px-6">
               <div className="floaty"><ArtNoCards size={172} accent={accent} /></div>
@@ -352,7 +441,7 @@ export function Feed({ theme, palette, accent: accentProp, dark, plan, me, refre
           )}
         </div>
 
-        {!ended && !loading && (
+        {!ended && !loading && viewMode === 'swipe' && (
           <div className="shrink-0 screen-pad" style={{ paddingBottom: 'calc(64px + env(safe-area-inset-bottom) + 12px)', paddingTop: 4 }}>
             <ActionBar theme={theme} plan={plan} superLeft={superLeft} canRewind={plan.rewind} onAction={onAction} />
           </div>
