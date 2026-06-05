@@ -20,8 +20,8 @@ from app.models.safety import Report, ReportStatusEnum, StaffAction
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 OWNER_IDS = [int(x) for x in os.environ.get("ADMIN_IDS", "").split(",") if x.strip()]
-ROLE_LEVEL = {"user": 0, "moderator": 1, "admin": 2, "owner": 3}
-LEVEL_NAME = {0: "user", 1: "moderator", 2: "admin", 3: "owner"}
+ROLE_LEVEL = {"user": 0, "moderator": 1, "admin": 2, "owner": 3, "god": 4}
+LEVEL_NAME = {0: "user", 1: "moderator", 2: "admin", 3: "owner", 4: "god"}
 MOD, ADMIN, OWNER = 1, 2, 3
 REASON_RU = {"fake": "Фейк", "spam": "Спам", "abuse": "Оскорбления", "nsfw": "NSFW", "underage": "Несовершеннолетний", "fraud": "Мошенничество"}
 
@@ -204,17 +204,23 @@ async def user_action(user_id: uuid.UUID, body: ActionBody, db: AsyncSession = D
         raise HTTPException(404, "Not found")
     target_level = level_of_user(target)
 
-    # Role grant has special rules: admin can grant moderator, only owner can grant admin.
+    # Role grant has special rules: admin can grant moderator, only owner can grant admin,
+    # only an existing god (level 4) or hardcoded owner can grant the "god" role.
     if action == "role":
         new_role = (body.role or "user").lower()
-        if new_role not in ("user", "moderator", "admin"):
+        if new_role not in ("user", "moderator", "admin", "god"):
             raise HTTPException(400, "Bad role")
-        grant_lvl = ROLE_LEVEL[new_role]
-        if grant_lvl >= my_level:
-            raise HTTPException(403, "Нельзя выдать роль ≥ своей")
-        if new_role == "admin" and my_level < OWNER:
-            raise HTTPException(403, "Админов назначает только владелец")
-        if target_level >= my_level:
+        grant_lvl = ROLE_LEVEL.get(new_role, 0)
+        if new_role == "god":
+            # Only god-level users (or hardcoded owners acting as god) can grant the god role.
+            if my_level < 4:
+                raise HTTPException(403, "Только Бог назначает Богов")
+        else:
+            if grant_lvl >= my_level:
+                raise HTTPException(403, "Нельзя выдать роль ≥ своей")
+            if new_role == "admin" and my_level < OWNER:
+                raise HTTPException(403, "Админов назначает только владелец")
+        if target_level >= my_level and target.id != me.id:
             raise HTTPException(403, "Нельзя менять роль равного/старшего")
     else:
         if my_level < need:

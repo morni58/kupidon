@@ -81,6 +81,7 @@ export function apiCardToPerson(c, hasFullMedia = true) {
     photos,
     score: c.profile_score ?? null,
     common: c.common_tags_count || 0,
+    role: c.role || 'user',
   }
 }
 

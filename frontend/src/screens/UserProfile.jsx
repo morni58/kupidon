@@ -5,6 +5,7 @@ import { gradPhoto, interestById } from '../design/data'
 import { api, mediaUrl, haptic, openInvoice } from '../lib/api'
 import { SkeletonProfile } from '../design/loaders'
 import { AnthemPlayer, PromptsView } from './ProfileExtras'
+import { GodBadge, GodNameplate } from '../design/GodBadge'
 
 const PLAN_BADGE = { premium: 'Premium 💎', kupidon: 'Kupidon 👑' }
 
@@ -55,18 +56,26 @@ export function UserProfile({ userId, palette, accent = '#FF00FF', dark = false,
           <div className="absolute left-0 top-20 bottom-24 w-1/2" onClick={() => setPhotoIdx((i) => Math.max(0, i - 1))} />
           <div className="absolute right-0 top-20 bottom-24 w-1/2" onClick={() => setPhotoIdx((i) => Math.min(photos.length - 1, i + 1))} />
           {/* name plate */}
-          <div className="absolute inset-x-3 bottom-3 rounded-[1.5rem] px-4 py-3.5 overflow-hidden" style={{ background: 'rgba(16,12,22,0.4)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.18)' }}>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-[28px] font-black text-white leading-none tracking-tight truncate">{p.name}{p.age ? `, ${p.age}` : ''}</h1>
-              {p.is_verified && <VerifiedTick size={22} />}
-              {PLAN_BADGE[p.tier] && <span className="ml-auto text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: p.tier === 'kupidon' ? 'linear-gradient(135deg,#FFE259,#FFA751)' : 'rgba(255,0,255,0.9)', color: p.tier === 'kupidon' ? '#0F0F13' : '#fff' }}>{PLAN_BADGE[p.tier]}</span>}
+          {p.role === 'god' ? (
+            <div className="absolute inset-x-3 bottom-3 z-20">
+              <GodNameplate name={p.name} age={p.age} city={p.city_name} verified={p.is_verified} />
+              {p.anthem_url && <div className="absolute right-4 bottom-3.5"><AnthemPlayer url={p.anthem_url} title={p.anthem_title} start={p.anthem_start} accent="#FFD700" /></div>}
+              {p.likes_me && <div className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-full" style={{ background: 'rgba(255,180,0,0.25)', color: '#FFD700' }}><i className="ph-fill ph-heart" /> Уже лайкнул(а) тебя</div>}
             </div>
-            <div className="mt-1.5 flex items-center justify-between gap-2">
-              <p className="text-[12.5px] font-semibold flex items-center gap-1 truncate" style={{ color: 'rgba(255,255,255,0.85)' }}><i className="ph-fill ph-map-pin" style={{ color: accent }} /> {p.city_name || 'Рядом'}</p>
-              {p.anthem_url && <AnthemPlayer url={p.anthem_url} title={p.anthem_title} start={p.anthem_start} accent="#fff" />}
+          ) : (
+            <div className="absolute inset-x-3 bottom-3 rounded-[1.5rem] px-4 py-3.5 overflow-hidden" style={{ background: 'rgba(16,12,22,0.4)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.18)' }}>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-[28px] font-black text-white leading-none tracking-tight truncate">{p.name}{p.age ? `, ${p.age}` : ''}</h1>
+                {p.is_verified && <VerifiedTick size={22} />}
+                {PLAN_BADGE[p.tier] && <span className="ml-auto text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: p.tier === 'kupidon' ? 'linear-gradient(135deg,#FFE259,#FFA751)' : 'rgba(255,0,255,0.9)', color: p.tier === 'kupidon' ? '#0F0F13' : '#fff' }}>{PLAN_BADGE[p.tier]}</span>}
+              </div>
+              <div className="mt-1.5 flex items-center justify-between gap-2">
+                <p className="text-[12.5px] font-semibold flex items-center gap-1 truncate" style={{ color: 'rgba(255,255,255,0.85)' }}><i className="ph-fill ph-map-pin" style={{ color: accent }} /> {p.city_name || 'Рядом'}</p>
+                {p.anthem_url && <AnthemPlayer url={p.anthem_url} title={p.anthem_title} start={p.anthem_start} accent="#fff" />}
+              </div>
+              {p.likes_me && <div className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-full" style={{ background: 'rgba(255,0,255,0.25)', color: '#fff' }}><i className="ph-fill ph-heart" /> Уже лайкнул(а) тебя</div>}
             </div>
-            {p.likes_me && <div className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-full" style={{ background: 'rgba(255,0,255,0.25)', color: '#fff' }}><i className="ph-fill ph-heart" /> Уже лайкнул(а) тебя</div>}
-          </div>
+          )}
         </div>
 
         <div className="screen-pad pt-4 space-y-3">

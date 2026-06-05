@@ -65,6 +65,27 @@ img { max-width: 100%; display: block; }
 
 .dotbg { background-color: #FAFAFC; background-image: radial-gradient(circle, #e5e7eb 1px, transparent 1px); background-size: 24px 24px; }
 
+/* ── God role ── */
+@keyframes godPulse {
+  0%,100% { box-shadow: 0 0 14px rgba(255,180,0,0.55), 0 0 4px rgba(255,215,0,0.4), inset 0 1px 0 rgba(255,255,200,0.3); }
+  50%      { box-shadow: 0 0 28px rgba(255,180,0,0.85), 0 0 10px rgba(255,215,0,0.7), inset 0 1px 0 rgba(255,255,200,0.5); }
+}
+@keyframes godShimmer {
+  0%   { transform: translateX(-120%) skewX(-12deg); }
+  100% { transform: translateX(260%)  skewX(-12deg); }
+}
+.god-badge { animation: godPulse 2.2s ease-in-out infinite; }
+.god-shimmer {
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(255,235,100,0.85), transparent);
+  animation: godShimmer 2.8s ease-in-out infinite;
+  pointer-events: none; border-radius: 2px;
+}
+@keyframes godCardGlow {
+  0%,100% { box-shadow: 0 0 0 2px rgba(255,180,0,0.5), 0 0 24px rgba(255,150,0,0.3); }
+  50%      { box-shadow: 0 0 0 2.5px rgba(255,215,0,0.8), 0 0 44px rgba(255,170,0,0.5); }
+}
+.god-card-frame { animation: godCardGlow 2.4s ease-in-out infinite; }
 @keyframes confettiFall { to { transform: translateY(900px) rotate(720deg); opacity: 0.9; } }
 @keyframes toastIn { from { transform: translateY(-12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 @keyframes slideInR { from { transform: translateX(40px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
@@ -130,3 +151,71 @@ body.lite .heartbeat, body.lite .heart-glow { animation: none !important; }
 body.lite .grain { display: none !important; }
 body.lite .mesh-a, body.lite .mesh-b, body.lite .mesh-c, body.lite .floaty { animation: none !important; }
 body.lite .mesh-a, body.lite .mesh-b, body.lite .mesh-c { filter: none !important; }
+
+/* ─── Desktop / PC layout ─── */
+@media (min-width: 1024px) {
+  /* Override the mobile viewport-lock so the page can center the app frame */
+  html {
+    position: static !important;
+    height: 100% !important;
+    width: 100% !important;
+    overflow: auto !important;
+    overscroll-behavior: auto !important;
+  }
+  body {
+    position: static !important;
+    inset: auto !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 100vh !important;
+    overflow: auto !important;
+    overscroll-behavior: auto !important;
+    -webkit-overflow-scrolling: auto !important;
+    touch-action: auto !important;
+    /* Center the app frame */
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 24px !important;
+    box-sizing: border-box !important;
+    /* Rich desktop background */
+    background:
+      radial-gradient(ellipse 80% 50% at 15% 25%, rgba(255,0,255,0.09) 0%, transparent 55%),
+      radial-gradient(ellipse 60% 60% at 85% 75%, rgba(120,0,220,0.07) 0%, transparent 55%),
+      radial-gradient(ellipse 50% 40% at 50% 110%, rgba(255,100,0,0.04) 0%, transparent 50%),
+      #060609 !important;
+  }
+  /* The app runs inside a centered phone-sized frame */
+  #root {
+    position: relative !important;
+    inset: auto !important;
+    width: 440px !important;
+    height: min(900px, calc(100vh - 48px)) !important;
+    min-height: 580px !important;
+    overflow: hidden !important;
+    border-radius: 28px !important;
+    box-shadow:
+      0 60px 140px rgba(0,0,0,0.9),
+      0 0 0 1px rgba(255,255,255,0.09),
+      0 0 80px rgba(255,0,255,0.05) !important;
+    flex-shrink: 0 !important;
+    overscroll-behavior: none;
+  }
+  /* Desktop cursor enhancements */
+  button, [role="button"], a { cursor: pointer; }
+  .cursor-grab { cursor: grab !important; }
+  .cursor-grab:active { cursor: grabbing !important; }
+  /* Show slim scrollbar inside noscroll containers on desktop */
+  .noscroll { scrollbar-width: thin !important; scrollbar-color: rgba(255,255,255,0.15) transparent !important; }
+  .noscroll::-webkit-scrollbar { width: 4px !important; height: 4px !important; display: block !important; }
+  .noscroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+  .noscroll::-webkit-scrollbar-track { background: transparent; }
+  /* Keyboard-focus ring — visible on desktop for accessibility */
+  button:focus-visible { outline: 2px solid var(--cupid-accent); outline-offset: 2px; }
+}
+
+/* Desktop safe-area overrides (no notch on PC) */
+@media (min-width: 1024px) {
+  .safe-top { padding-top: 12px !important; }
+  .safe-bottom { padding-bottom: 0 !important; }
+}

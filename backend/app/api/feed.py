@@ -112,6 +112,7 @@ async def feed(
             tags=[TagOut.model_validate(t) for t in tags],
             media=[to_public_url(m.media_url) for m in media_slots if m.media_url],
             common_tags_count=len(my_tag_ids & c_tag_ids),
+            role=c.role or "user",
         )
         cards.append(card.model_dump(mode="json"))
 

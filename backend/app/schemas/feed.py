@@ -33,6 +33,7 @@ class FeedCard(BaseModel):
     tags: List[TagOut] = []
     media: List[str] = []
     common_tags_count: int = 0
+    role: Optional[str] = "user"  # "god" renders a special badge everywhere
 
     model_config = {"from_attributes": True}
 

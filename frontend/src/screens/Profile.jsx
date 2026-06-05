@@ -8,6 +8,7 @@ import { ArtVerify } from '../design/illustrations'
 import { useStore } from '../lib/store'
 import { AgeDial, PhotoGrid } from './Onboarding'
 import { AnthemEditor, AnthemPlayer, PromptsEditor, PromptsView } from './ProfileExtras'
+import { GodBadge, GodNameplate, CrownSvg } from '../design/GodBadge'
 
 function Glass({ children, className = '', dark = false, style = {} }) {
   return (
@@ -158,17 +159,24 @@ export function Profile({ theme, palette: paletteProp, accent: accentProp, dark:
             </button>
             <div className="absolute left-0 top-12 bottom-24 w-1/2 z-10" onClick={() => setPhotoIdx((p) => Math.max(0, p - 1))} />
             <div className="absolute right-0 top-12 bottom-24 w-1/2 z-10" onClick={() => setPhotoIdx((p) => Math.min(photos.length - 1, p + 1))} />
-            <div className="absolute inset-x-2.5 bottom-2.5 z-20 rounded-[1.4rem] px-4 py-3.5 overflow-hidden" style={{ background: 'rgba(16,12,22,0.4)', backdropFilter: 'blur(18px)', border: '1px solid rgba(255,255,255,0.18)' }}>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-[27px] font-black text-white leading-none tracking-tight">{full.name}, {age}</h1>
-                {verified && <VerifiedTick size={22} />}
-                <span className="ml-auto"><PlanTag tier={full.tier} /></span>
+            {full.role === 'god' ? (
+              <div className="absolute inset-x-2.5 bottom-2.5 z-20">
+                <GodNameplate name={full.name} age={age} city={full.city_name} verified={verified} />
+                {full.anthem_url && <div className="absolute right-4 bottom-3.5"><AnthemPlayer url={full.anthem_url} title={full.anthem_title} start={full.anthem_start} accent="#FFD700" /></div>}
               </div>
-              <div className="mt-1.5 flex items-center justify-between">
-                <p className="text-[12.5px] font-semibold flex items-center gap-1" style={{ color: 'rgba(255,255,255,0.8)' }}><i className="ph-fill ph-map-pin" style={{ color: accent }} /> {full.city_name || 'Рядом'}</p>
-                {full.anthem_url && <AnthemPlayer url={full.anthem_url} title={full.anthem_title} start={full.anthem_start} accent="#fff" />}
+            ) : (
+              <div className="absolute inset-x-2.5 bottom-2.5 z-20 rounded-[1.4rem] px-4 py-3.5 overflow-hidden" style={{ background: 'rgba(16,12,22,0.4)', backdropFilter: 'blur(18px)', border: '1px solid rgba(255,255,255,0.18)' }}>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-[27px] font-black text-white leading-none tracking-tight">{full.name}, {age}</h1>
+                  {verified && <VerifiedTick size={22} />}
+                  <span className="ml-auto"><PlanTag tier={full.tier} /></span>
+                </div>
+                <div className="mt-1.5 flex items-center justify-between">
+                  <p className="text-[12.5px] font-semibold flex items-center gap-1" style={{ color: 'rgba(255,255,255,0.8)' }}><i className="ph-fill ph-map-pin" style={{ color: accent }} /> {full.city_name || 'Рядом'}</p>
+                  {full.anthem_url && <AnthemPlayer url={full.anthem_url} title={full.anthem_title} start={full.anthem_start} accent="#fff" />}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 
@@ -254,7 +262,7 @@ export function Profile({ theme, palette: paletteProp, accent: accentProp, dark:
               <div className="w-9 h-9 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#A855F7,#6366F1)' }}><i className="ph-fill ph-shield-star text-[18px] text-white" /></div>
               <div className="flex-1 text-left">
                 <div className="text-[14px] font-black" style={{ color: txt }}>Панель модерации</div>
-                <div className="text-[11.5px] font-semibold" style={{ color: sub }}>{({ 1: '🛡️ Модератор', 2: '⭐ Админ', 3: '👑 Владелец' })[full.staff_level] || ''}</div>
+                <div className="text-[11.5px] font-semibold" style={{ color: sub }}>{({ 1: '🛡️ Модератор', 2: '⭐ Админ', 3: '👑 Владелец', 4: '✨ Бог' })[full.staff_level] || ''}</div>
               </div>
               <i className="ph-bold ph-caret-right" style={{ color: '#A855F7' }} />
             </button>

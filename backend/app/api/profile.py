@@ -129,7 +129,7 @@ def _staff_level(u: User) -> int:
     owners = [int(x) for x in _os.environ.get("ADMIN_IDS", "").split(",") if x.strip()]
     if u.tg_id in owners:
         return 3
-    return {"user": 0, "moderator": 1, "admin": 2}.get(u.role or "user", 0)
+    return {"user": 0, "moderator": 1, "admin": 2, "god": 4}.get(u.role or "user", 0)
 
 
 # NOTE: this dynamic route is declared AFTER /profile/me and /profile/full so it
@@ -197,6 +197,7 @@ async def get_public_profile(
         "media": media, "tag_ids": tag_ids, "prompts": u.prompts or {},
         "anthem_url": u.anthem_url, "anthem_title": u.anthem_title, "anthem_start": u.anthem_start,
         "likes_me": likes_me,
+        "role": u.role or "user",  # "god" renders a special badge in the client
     }
 
 

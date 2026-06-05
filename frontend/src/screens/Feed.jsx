@@ -1,10 +1,11 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { MeshBG, THEME_MESH, VIBES, hexA, Grain } from '../design/fx'
 import { Photo, Pill, Badge, Button, Sheet, TabBar, Avatar, Confetti } from '../design/ui'
 import { apiCardToPerson, gradPhoto, interestById } from '../design/data'
 import { SkeletonFeed } from '../design/loaders'
 import { ArtNoCards } from '../design/illustrations'
 import { api, haptic } from '../lib/api'
+import { GodBadge } from '../design/GodBadge'
 
 const INTENTS = [{ label: 'Без обязательств', emoji: '🎲' }, { label: 'Один вечер', emoji: '🌙' }]
 
@@ -52,10 +53,11 @@ function ProfileCard({ person, theme, front, drag = { x: 0, y: 0 }, photoIdx = 0
         <div className="absolute inset-0 pointer-events-none z-10" style={{ background: 'radial-gradient(120% 80% at -10% 50%, rgba(239,68,68,0.55), transparent 55%)', opacity: nopeOn }} />
         <div className="absolute inset-0 pointer-events-none z-10" style={{ background: 'radial-gradient(100% 90% at 50% -10%, rgba(168,85,247,0.6), transparent 55%)', opacity: supOn }} />
       </>)}
+      {person.role === 'god' && <div className="absolute inset-0 pointer-events-none z-5 god-card-frame" style={{ borderRadius: '2rem' }} />}
       <div className="absolute inset-x-3 bottom-3 z-20 rounded-[1.6rem] px-4 pt-3.5 pb-4 overflow-hidden"
-        style={{ background: adult ? 'rgba(30,4,6,0.4)' : 'rgba(18,14,26,0.34)', backdropFilter: 'blur(18px) saturate(1.2)', border: '1px solid rgba(255,255,255,0.18)', boxShadow: '0 12px 30px -12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.22)' }}>
+        style={{ background: person.role === 'god' ? 'rgba(20,10,0,0.5)' : adult ? 'rgba(30,4,6,0.4)' : 'rgba(18,14,26,0.34)', backdropFilter: 'blur(18px) saturate(1.2)', border: person.role === 'god' ? '1px solid rgba(255,180,0,0.35)' : '1px solid rgba(255,255,255,0.18)', boxShadow: '0 12px 30px -12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.22)' }}>
         <div className="flex items-end justify-between gap-2 min-w-0">
-          <h2 className="flex-1 min-w-0 truncate text-[26px] font-black text-white leading-none tracking-tight" style={{ textShadow: '0 2px 16px rgba(0,0,0,0.4)' }}>{person.name}, {person.age}</h2>
+          <h2 className="flex-1 min-w-0 truncate text-[26px] font-black leading-none tracking-tight" style={{ color: person.role === 'god' ? '#FFE680' : '#fff', textShadow: person.role === 'god' ? '0 0 20px rgba(255,200,0,0.6)' : '0 2px 16px rgba(0,0,0,0.4)' }}>{person.name}, {person.age}</h2>
           {front && onOpenProfile && (
             <button onClick={(e) => { e.stopPropagation(); onOpenProfile(person.id) }} className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center active:scale-90 transition" style={{ background: 'rgba(255,255,255,0.22)', backdropFilter: 'blur(6px)', border: '1px solid rgba(255,255,255,0.3)' }}>
               <i className="ph-bold ph-info text-white text-[17px]" />
@@ -64,7 +66,8 @@ function ProfileCard({ person, theme, front, drag = { x: 0, y: 0 }, photoIdx = 0
           {person.dist && <span className="flex items-center gap-1 text-[12px] font-semibold mb-0.5 shrink-0" style={{ color: 'rgba(255,255,255,0.85)' }}><i className="ph-fill ph-map-pin" style={{ color: adult ? '#FF6B6B' : '#FF99DD' }} />{person.dist}</span>}
         </div>
         <p className="mt-1 text-[12px] font-semibold truncate" style={{ color: 'rgba(255,255,255,0.7)' }}>{person.city}</p>
-        <div className="mt-2.5 flex gap-1.5 items-center overflow-hidden" style={{ maxHeight: 30 }}>
+        <div className="mt-2 flex gap-1.5 items-center overflow-hidden flex-wrap" style={{ maxHeight: 56 }}>
+          {person.role === 'god' && <GodBadge size="sm" />}
           {(adult ? INTENTS : person.tags.slice(0, 3)).map((t, i) => adult ? (
             <span key={i} className="inline-flex items-center gap-1 rounded-full font-semibold text-white" style={{ height: 28, padding: '0 11px', fontSize: 11.5, background: 'rgba(255,45,45,0.22)', border: '1px solid rgba(255,80,80,0.6)' }}>{t.emoji} {t.label}</span>
           ) : (<Pill key={i} interest={t} glass small />))}
@@ -263,8 +266,9 @@ function FeedListCard({ p, accent, dark, onDecide, onOpenProfile }) {
 
         {/* info */}
         <div className="absolute inset-x-0 bottom-0 z-20 p-4">
-          <div className="flex items-center gap-2">
-            <h3 className="text-[22px] font-black text-white leading-none truncate">{p.name}, {p.age}</h3>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className="text-[22px] font-black leading-none truncate" style={{ color: p.role === 'god' ? '#FFE680' : '#fff', textShadow: p.role === 'god' ? '0 0 16px rgba(255,200,0,0.7)' : 'none' }}>{p.name}, {p.age}</h3>
+            {p.role === 'god' && <GodBadge size="sm" />}
           </div>
           <div className="flex items-center gap-2 mt-1 text-[12.5px] font-semibold" style={{ color: 'rgba(255,255,255,0.85)' }}>
             {p.city && <span className="flex items-center gap-1"><i className="ph-fill ph-map-pin" style={{ color: accent }} /> {p.city}</span>}
@@ -426,6 +430,24 @@ export function Feed({ theme, palette, accent: accentProp, dark, plan, me, refre
   }
 
   const tapPhoto = (d) => setPhotoIdx((p) => Math.max(0, Math.min((person?.photos.length || 1) - 1, p + d)))
+
+  // Keyboard shortcuts for desktop: ← nope, → like, ↑ super, ↓ open profile
+  // Use refs so the listener doesn't rebuild on every render.
+  const kbActionRef = useRef(null)
+  kbActionRef.current = { onAction, person, onOpenProfile }
+  useEffect(() => {
+    if (active !== 'feed') return
+    const handler = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
+      const { onAction: act, person: p, onOpenProfile: oop } = kbActionRef.current
+      if (e.key === 'ArrowLeft')  { e.preventDefault(); act('nope') }
+      if (e.key === 'ArrowRight') { e.preventDefault(); act('like') }
+      if (e.key === 'ArrowUp')    { e.preventDefault(); act('super') }
+      if (e.key === 'ArrowDown' && p) { e.preventDefault(); oop?.(p.id) }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [active])
 
   return (
     <div className="w-full h-full flex flex-col relative overflow-hidden">
