@@ -19,7 +19,7 @@ function Stamp({ show, text, color, side }) {
   )
 }
 
-function ProfileCard({ person, theme, front, drag = { x: 0, y: 0 }, photoIdx = 0, onTapPhoto, dragging, onOpenProfile }) {
+function ProfileCard({ person, theme, front, drag = { x: 0, y: 0 }, photoIdx = 0, onTapPhoto, dragging, onOpenProfile, noOverlay = false }) {
   const adult = theme === 'adult'
   const ph = person.photos[photoIdx] || person.photos[0]
   const dx = drag.x, dy = drag.y
@@ -47,7 +47,7 @@ function ProfileCard({ person, theme, front, drag = { x: 0, y: 0 }, photoIdx = 0
         <div className="absolute right-0 top-12 bottom-44 w-1/2 z-10" onClick={(e) => { e.stopPropagation(); onTapPhoto(1) }} />
       </>)}
       {person.verified && <div className="absolute top-7 right-3 z-20"><Badge kind="glass"><i className="ph-fill ph-seal-check" style={{ color: '#60A5FA' }} /> Verified</Badge></div>}
-      {front && (<>
+      {front && !noOverlay && (<>
         <div className="absolute inset-0 pointer-events-none z-10" style={{ background: 'radial-gradient(120% 80% at 110% 50%, rgba(16,185,129,0.55), transparent 55%)', opacity: likeOn }} />
         <div className="absolute inset-0 pointer-events-none z-10" style={{ background: 'radial-gradient(120% 80% at -10% 50%, rgba(239,68,68,0.55), transparent 55%)', opacity: nopeOn }} />
         <div className="absolute inset-0 pointer-events-none z-10" style={{ background: 'radial-gradient(100% 90% at 50% -10%, rgba(168,85,247,0.6), transparent 55%)', opacity: supOn }} />
@@ -72,7 +72,7 @@ function ProfileCard({ person, theme, front, drag = { x: 0, y: 0 }, photoIdx = 0
         </div>
         {adult && <p className="mt-2.5 text-[11px] font-semibold flex items-center gap-1" style={{ color: '#ff9999' }}><i className="ph-fill ph-shield-check" /> Эротика заблокирована системой</p>}
       </div>
-      {front && (<>
+      {front && !noOverlay && (<>
         <Stamp show={likeOn} text="ЛАЙК ❤️" color="#10B981" side="l" />
         <Stamp show={nopeOn} text="НЕТ 👎" color="#EF4444" side="r" />
         <Stamp show={supOn} text="СУПЕРЛАЙК ⭐" color="#A855F7" side="t" />
@@ -81,31 +81,68 @@ function ProfileCard({ person, theme, front, drag = { x: 0, y: 0 }, photoIdx = 0
   )
 }
 
+// Imperative drag: the card transform + the LIKE/NOPE/SUPER overlays are
+// updated directly on the DOM during pointermove (no React re-render per move),
+// which keeps swiping perfectly smooth even on weak phones.
 function SwipeCard({ person, theme, onDecide, photoIdx, onTapPhoto, fling, onOpenProfile }) {
-  const [drag, setDrag] = useState({ x: 0, y: 0 })
-  const [dragging, setDragging] = useState(false)
-  const [leaving, setLeaving] = useState(null)
+  const wrap = useRef(null)
+  const stampLike = useRef(null), stampNope = useRef(null), stampSup = useRef(null)
+  const glowLike = useRef(null), glowNope = useRef(null), glowSup = useRef(null)
   const start = useRef(null)
-  useEffect(() => { if (fling && fling.id === person.id) doFling(fling.dir) }, [fling])
-  const down = (e) => { setDragging(true); start.current = { x: e.touches ? e.touches[0].clientX : e.clientX, y: e.touches ? e.touches[0].clientY : e.clientY } }
-  const move = (e) => { if (!start.current) return; const cx = e.touches ? e.touches[0].clientX : e.clientX; const cy = e.touches ? e.touches[0].clientY : e.clientY; setDrag({ x: cx - start.current.x, y: cy - start.current.y }) }
+  const cur = useRef({ x: 0, y: 0 })
+  const dragging = useRef(false)
+  const done = useRef(false)
+
+  const paint = (x, y, fast) => {
+    const el = wrap.current; if (!el) return
+    el.style.transition = fast ? 'transform .32s cubic-bezier(.4,0,.2,1)' : (dragging.current ? 'none' : 'transform .42s cubic-bezier(.34,1.4,.5,1)')
+    el.style.transform = `translate(${x}px,${y}px) rotate(${x / 18}deg)`
+    const likeOn = x > 30 ? Math.min(1, (x - 20) / 90) : 0
+    const nopeOn = x < -30 ? Math.min(1, (-x - 20) / 90) : 0
+    const supOn = y < -50 && Math.abs(x) < 90 ? Math.min(1, (-y - 40) / 90) : 0
+    if (stampLike.current) stampLike.current.style.opacity = likeOn
+    if (stampNope.current) stampNope.current.style.opacity = nopeOn
+    if (stampSup.current) stampSup.current.style.opacity = supOn
+    if (glowLike.current) glowLike.current.style.opacity = likeOn
+    if (glowNope.current) glowNope.current.style.opacity = nopeOn
+    if (glowSup.current) glowSup.current.style.opacity = supOn
+  }
+  const fly = (dir) => {
+    if (done.current) return; done.current = true
+    const t = dir === 'like' ? { x: 680, y: 40 } : dir === 'nope' ? { x: -680, y: 40 } : { x: 0, y: -820 }
+    paint(t.x, t.y, true)
+    if (dir === 'like') { if (stampLike.current) stampLike.current.style.opacity = 1 }
+    else if (dir === 'nope') { if (stampNope.current) stampNope.current.style.opacity = 1 }
+    else if (stampSup.current) stampSup.current.style.opacity = 1
+    setTimeout(() => onDecide(dir), 300)
+  }
+  useEffect(() => { if (fling && fling.id === person.id) fly(fling.dir) }, [fling])
+
+  const down = (e) => { if (done.current) return; dragging.current = true; const t = e.touches ? e.touches[0] : e; start.current = { x: t.clientX, y: t.clientY } }
+  const move = (e) => { if (!start.current) return; const t = e.touches ? e.touches[0] : e; cur.current = { x: t.clientX - start.current.x, y: t.clientY - start.current.y }; paint(cur.current.x, cur.current.y, false) }
   const up = () => {
     if (!start.current) return
-    start.current = null; setDragging(false)
-    const { x, y } = drag
-    if (x > 110) doFling('like'); else if (x < -110) doFling('nope'); else if (y < -120 && Math.abs(x) < 100) doFling('super'); else setDrag({ x: 0, y: 0 })
+    start.current = null; dragging.current = false
+    const { x, y } = cur.current
+    if (x > 110) fly('like'); else if (x < -110) fly('nope'); else if (y < -120 && Math.abs(x) < 100) fly('super'); else { cur.current = { x: 0, y: 0 }; paint(0, 0, false) }
   }
-  const doFling = (dir) => {
-    const target = dir === 'like' ? { x: 640, y: 30 } : dir === 'nope' ? { x: -640, y: 30 } : { x: 0, y: -780 }
-    setLeaving(target); setTimeout(() => onDecide(dir), 320)
-  }
-  const pos = leaving || drag
-  const rot = pos.x / 16
+
+  const stampStyle = (side, color) => ({
+    position: 'absolute', zIndex: 30, padding: '8px 16px', borderRadius: '1rem', fontWeight: 900, fontSize: 22,
+    letterSpacing: '0.04em', whiteSpace: 'nowrap', color: '#fff', background: hexA(color, 0.22), border: `2.5px solid ${color}`,
+    backdropFilter: 'blur(4px)', boxShadow: `0 0 30px ${hexA(color, 0.7)}, inset 0 0 18px ${hexA(color, 0.4)}`, opacity: 0, pointerEvents: 'none',
+    ...(side === 'l' ? { top: 34, left: 22, transform: 'rotate(-13deg)' } : side === 'r' ? { top: 34, right: 22, transform: 'rotate(13deg)' } : { bottom: 150, left: '50%', transform: 'translateX(-50%) rotate(-6deg)' }),
+  })
   return (
-    <div className="absolute inset-0 touch-none cursor-grab active:cursor-grabbing"
-      style={{ transform: `translate(${pos.x}px, ${pos.y}px) rotate(${rot}deg)`, transition: leaving ? 'transform .34s cubic-bezier(.4,0,.2,1)' : !dragging ? 'transform .42s cubic-bezier(.34,1.4,.5,1)' : 'none' }}
+    <div ref={wrap} className="absolute inset-0 touch-none cursor-grab active:cursor-grabbing" style={{ transform: 'translate(0,0)', willChange: 'transform' }}
       onMouseDown={down} onMouseMove={move} onMouseUp={up} onMouseLeave={up} onTouchStart={down} onTouchMove={move} onTouchEnd={up}>
-      <ProfileCard person={person} theme={theme} front drag={drag} dragging={dragging} photoIdx={photoIdx} onTapPhoto={onTapPhoto} onOpenProfile={onOpenProfile} />
+      <ProfileCard person={person} theme={theme} front noOverlay photoIdx={photoIdx} onTapPhoto={onTapPhoto} onOpenProfile={onOpenProfile} />
+      <div ref={glowLike} className="absolute inset-0 pointer-events-none z-10" style={{ opacity: 0, borderRadius: '2rem', background: 'radial-gradient(120% 80% at 110% 50%, rgba(16,185,129,0.55), transparent 55%)' }} />
+      <div ref={glowNope} className="absolute inset-0 pointer-events-none z-10" style={{ opacity: 0, borderRadius: '2rem', background: 'radial-gradient(120% 80% at -10% 50%, rgba(239,68,68,0.55), transparent 55%)' }} />
+      <div ref={glowSup} className="absolute inset-0 pointer-events-none z-10" style={{ opacity: 0, borderRadius: '2rem', background: 'radial-gradient(100% 90% at 50% -10%, rgba(168,85,247,0.6), transparent 55%)' }} />
+      <div ref={stampLike} style={stampStyle('l', '#10B981')}>ЛАЙК ❤️</div>
+      <div ref={stampNope} style={stampStyle('r', '#EF4444')}>НЕТ 👎</div>
+      <div ref={stampSup} style={stampStyle('t', '#A855F7')}>СУПЕР ⭐</div>
     </div>
   )
 }
@@ -277,7 +314,7 @@ export function Feed({ theme, palette, accent: accentProp, dark, plan, me, refre
   const [filterTags, setFilterTags] = useState([])
   const [filterOpen, setFilterOpen] = useState(false)
   const [tempFilter, setTempFilter] = useState([])
-  const [viewMode, setViewMode] = useState(() => { try { return localStorage.getItem('cupid_feedmode') || 'swipe' } catch { return 'swipe' } })
+  const [viewMode, setViewMode] = useState(() => { try { return localStorage.getItem('cupid_feedmode') || 'list' } catch { return 'list' } })
   const setMode = (m) => { setViewMode(m); try { localStorage.setItem('cupid_feedmode', m) } catch {}; haptic('light') }
   const openFilter = () => { setTempFilter(filterTags); setFilterOpen(true) }
   const toggleTemp = (id) => setTempFilter((t) => t.includes(id) ? t.filter((x) => x !== id) : [...t, id])
@@ -378,10 +415,14 @@ export function Feed({ theme, palette, accent: accentProp, dark, plan, me, refre
       }
       return
     }
+    if (!person) return
     if (swipesLeft <= 0) { setPaywall(true); return }
     if (dir === 'super' && superLeft <= 0) { setToast('⭐ Суперлайки закончились'); return }
     haptic(dir === 'like' ? 'medium' : 'light')
-    setFling({ id: person.id, dir, n: bump })
+    // Swipe mode flings the draggable card (which then calls decide); the simple
+    // "Лента" mode acts immediately — and counts the swipe just the same.
+    if (viewMode === 'swipe') setFling({ id: person.id, dir, n: bump })
+    else decide(dir)
   }
 
   const tapPhoto = (d) => setPhotoIdx((p) => Math.max(0, Math.min((person?.photos.length || 1) - 1, p + d)))
@@ -415,7 +456,7 @@ export function Feed({ theme, palette, accent: accentProp, dark, plan, me, refre
           {/* Prominent segmented browse-mode switch + swipes left */}
           <div className="flex items-center justify-between mb-1.5">
             <div className="inline-flex rounded-full p-1" style={{ background: !dark ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.07)', border: `1px solid ${!dark ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.1)'}`, backdropFilter: 'blur(8px)' }}>
-              {[{ id: 'swipe', icon: 'ph-cards-three', label: 'Свайпы' }, { id: 'list', icon: 'ph-rows', label: 'Лента' }].map((m) => {
+              {[{ id: 'list', icon: 'ph-cards-three', label: 'Лента' }, { id: 'swipe', icon: 'ph-hand-swipe-right', label: 'Свайп' }].map((m) => {
                 const on = viewMode === m.id
                 return (
                   <button key={m.id} onClick={() => setMode(m.id)} className="inline-flex items-center gap-1.5 rounded-full font-bold transition active:scale-95"
@@ -432,8 +473,6 @@ export function Feed({ theme, palette, accent: accentProp, dark, plan, me, refre
         <div className="flex-1 min-h-0 screen-pad relative" style={{ paddingBottom: 8 }}>
           {loading ? (
             <SkeletonFeed dark={dark} />
-          ) : viewMode === 'list' && deck.length ? (
-            <FeedList deck={deck} accent={accent} dark={dark} onDecide={listDecide} onOpenProfile={onOpenProfile} />
           ) : ended ? (
             <div className="h-full flex flex-col items-center justify-center text-center px-6">
               <div className="floaty"><ArtNoCards size={172} accent={accent} /></div>
@@ -443,14 +482,17 @@ export function Feed({ theme, palette, accent: accentProp, dark, plan, me, refre
             </div>
           ) : (
             <div className="relative w-full h-full" style={{ filter: paywall ? 'blur(8px)' : 'none', transition: 'filter .3s' }}>
-              {deck[idx + 2] && <div className="absolute inset-0" style={{ transform: 'scale(0.88) translateY(24px)', opacity: 0.45 }}><div className="absolute inset-0 rounded-[2rem] overflow-hidden"><Photo data={deck[idx + 2].photos[0]} rounded="2rem" className="w-full h-full" emojiSize={120} /></div></div>}
-              {deck[idx + 1] && <div className="absolute inset-0" style={{ transform: 'scale(0.94) translateY(12px)', opacity: 0.85 }}><ProfileCard person={deck[idx + 1]} theme={theme} photoIdx={0} /></div>}
-              {person && <SwipeCard key={person.id + '-' + bump} person={person} theme={theme} onDecide={decide} photoIdx={photoIdx} onTapPhoto={tapPhoto} fling={fling} onOpenProfile={onOpenProfile} />}
+              {/* faint peek of the next card for depth (both modes) */}
+              {deck[idx + 1] && <div className="absolute inset-0" style={{ transform: 'scale(0.93) translateY(14px)', opacity: 0.55 }}><div className="absolute inset-0 rounded-[2rem] overflow-hidden"><Photo data={deck[idx + 1].photos[0]} rounded="2rem" className="w-full h-full" emojiSize={120} /><div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.25)' }} /></div></div>}
+              {person && (viewMode === 'swipe'
+                ? <SwipeCard key={person.id + '-' + bump} person={person} theme={theme} onDecide={decide} photoIdx={photoIdx} onTapPhoto={tapPhoto} fling={fling} onOpenProfile={onOpenProfile} />
+                : <div key={person.id} className="absolute inset-0 anim-cardin"><ProfileCard person={person} theme={theme} front noOverlay photoIdx={photoIdx} onTapPhoto={tapPhoto} onOpenProfile={onOpenProfile} /></div>
+              )}
             </div>
           )}
         </div>
 
-        {!ended && !loading && viewMode === 'swipe' && (
+        {!ended && !loading && (
           <div className="shrink-0 screen-pad" style={{ paddingBottom: 'calc(64px + env(safe-area-inset-bottom) + 12px)', paddingTop: 4 }}>
             <ActionBar theme={theme} plan={plan} superLeft={superLeft} canRewind={plan.rewind} onAction={onAction} />
           </div>
