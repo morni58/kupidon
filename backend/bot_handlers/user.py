@@ -62,6 +62,47 @@ def open_app_kb(text="💕 Открыть приложение") -> InlineKeyboa
     return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text=text, web_app=WebAppInfo(url=WEBAPP_URL))]])
 
 
+def menu_kb() -> InlineKeyboardMarkup:
+    """The big clickable in-chat menu — every action one tap away."""
+    def b(t, d):
+        return InlineKeyboardButton(text=t, callback_data=d)
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [b("💞 Анкеты", "menu:browse"), b("💌 Лайки", "menu:likes")],
+        [b("💘 Мэтчи", "menu:matches"), b("👤 Профиль", "menu:me")],
+        [b("📊 Статистика", "menu:stats"), b("🎭 Вслепую", "menu:blind")],
+        [b("⭐ Премиум", "menu:premium"), b("❓ Помощь", "menu:help")],
+        [InlineKeyboardButton(text="💕 Открыть приложение", web_app=WebAppInfo(url=WEBAPP_URL))],
+    ])
+
+
+class _MsgShim:
+    """Lets callback buttons reuse the command handlers as if a user typed them
+    (from_user = the tapping user, not the bot)."""
+    __slots__ = ("from_user", "chat", "bot", "text")
+
+    def __init__(self, call, text=""):
+        self.from_user = call.from_user
+        self.chat = call.message.chat
+        self.bot = call.bot
+        self.text = text
+
+    async def answer(self, *args, **kwargs):
+        return await self.bot.send_message(self.chat.id, *args, **kwargs)
+
+
+@router.callback_query(F.data.startswith("menu:"))
+async def on_menu(call: CallbackQuery):
+    action = call.data.split(":")[1]
+    await call.answer()
+    handlers = {
+        "browse": cmd_browse, "likes": cmd_likes, "matches": cmd_matches, "me": cmd_me,
+        "stats": cmd_stats, "blind": cmd_blind, "premium": cmd_premium, "help": cmd_help,
+    }
+    fn = handlers.get(action)
+    if fn:
+        await fn(_MsgShim(call))
+
+
 async def candidate_view(db, cand: User):
     """Return (caption_text, photo_url|None) for a profile card."""
     age = calc_age(cand.birth_date)
@@ -164,16 +205,18 @@ async def cmd_start(message: Message):
     async with async_session_maker() as db:
         me = await get_me(db, message.from_user.id)
     hello = (
-        "❤️ *CupidBot* — знакомства в Telegram\n\n"
-        "Здесь всё работает *прямо в чате*: смотри анкеты, ставь лайки, читай "
-        "совпадения. А для полного опыта — открой приложение.\n\n"
-        "Команды: /browse · /likes · /matches · /me · /stats · /premium · /blind · /help\n"
-        "Или жми кнопки меню ниже 👇"
+        "❤️ *Добро пожаловать в CupidBot!*\n\n"
+        "Знакомства, которые работают *прямо здесь, в чате*:\n"
+        "• 💞 смотри анкеты и свайпай кнопками\n"
+        "• 💌 лайкай в ответ — будет мэтч\n"
+        "• 🎭 «Свидание вслепую» каждый вечер\n\n"
+        "Жми любую кнопку ниже 👇 — всё просто."
     )
-    await message.answer(hello, reply_markup=main_menu())
-    await message.answer("Готов начать?", reply_markup=open_app_kb())
+    # Menu lives both as a tappable inline grid AND the persistent keyboard below.
+    await message.answer(hello, reply_markup=menu_kb())
+    await message.answer("Меню всегда под рукой 👇", reply_markup=main_menu())
     if not me or not me.birth_date:
-        await message.answer("⚠️ Сначала создай анкету в приложении — это займёт минуту.", reply_markup=open_app_kb("Создать анкету"))
+        await message.answer("⚠️ Сначала создай анкету — это займёт минуту.", reply_markup=open_app_kb("Создать анкету"))
 
 
 @router.message(Command("help"))
@@ -191,14 +234,14 @@ async def cmd_help(message: Message):
         "📄 /export — выгрузить профиль в PDF (придёт сюда файлом)\n"
         "⚙️ /settings — режимы (18+, невидимость, щит)\n"
         "🍀 /lucky — случайная анкета одним тапом\n\n"
-        "Подсказка: всё то же и красивее — в приложении.",
-        reply_markup=main_menu(),
+        "👇 Или просто тапай кнопки — ничего печатать не нужно.",
+        reply_markup=menu_kb(),
     )
 
 
 @router.message(Command("menu"))
 async def cmd_menu(message: Message):
-    await message.answer("Меню открыто 👇", reply_markup=main_menu())
+    await message.answer("📋 *Меню CupidBot* — выбирай 👇", reply_markup=menu_kb())
 
 
 @router.message(Command("browse"))

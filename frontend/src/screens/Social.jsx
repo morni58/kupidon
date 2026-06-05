@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { MeshBG, VIBES } from '../design/fx'
+import { MeshBG, VIBES, hexA } from '../design/fx'
 import { Photo, Button, TabBar, VerifiedTick } from '../design/ui'
 import { gradPhoto } from '../design/data'
 import { SkeletonRows } from '../design/loaders'
@@ -232,8 +232,9 @@ export function Chats({ palette, accent = '#FF00FF', dark = false, onOpenChat, a
 }
 
 /* ---------------- DIALOG ---------------- */
-export function Dialog({ chatId, me, plan, theme, accent: accentProp, onBack, setToast, onOpenProfile }) {
+export function Dialog({ chatId, me, plan, theme, palette, accent: accentProp, dark: darkProp, onBack, setToast, onOpenProfile }) {
   const [info, setInfo] = useState(null)
+  const [partnerReadAt, setPartnerReadAt] = useState(null)
   const [msgs, setMsgs] = useState([])
   const [text, setText] = useState('')
   const [ices, setIces] = useState([])
@@ -251,15 +252,35 @@ export function Dialog({ chatId, me, plan, theme, accent: accentProp, onBack, se
 
   const adult = info?.is_18_room
   const accent = adult ? '#FF3333' : (accentProp || '#FF00FF')
+  // Chat now adopts the app's dark/vibe styling instead of a fixed light look.
+  const dk = adult || (darkProp != null ? darkProp : true)
+  const T = {
+    bg: adult ? '#0A0000' : (dk ? '#0B0712' : '#FAFAFC'),
+    head: adult ? 'rgba(20,0,0,0.82)' : (dk ? 'rgba(11,7,18,0.82)' : 'rgba(255,255,255,0.85)'),
+    border: adult ? '#4A0000' : (dk ? 'rgba(255,255,255,0.08)' : '#f3f4f6'),
+    txt: (adult || dk) ? '#fff' : '#0F0F13',
+    sub: (adult || dk) ? 'rgba(255,255,255,0.5)' : '#9ca3af',
+    surf: adult ? '#2a1010' : (dk ? 'rgba(255,255,255,0.07)' : '#f3f4f6'),
+    bubbleOther: adult ? '#2a1010' : (dk ? 'rgba(255,255,255,0.09)' : '#f3f4f6'),
+    bubbleOtherTxt: (adult || dk) ? '#fff' : '#0F0F13',
+    inputBg: adult ? '#2a1010' : (dk ? 'rgba(255,255,255,0.06)' : '#fff'),
+    menuBg: adult ? '#1a0808' : (dk ? '#171022' : '#fff'),
+  }
+  const mineGrad = adult ? 'linear-gradient(135deg,#FF3333,#FF00FF)' : 'var(--cupid-grad)'
+
+  // Read receipt: my message is "read" once the partner's lastread >= its time.
+  const readTs = partnerReadAt ? new Date(partnerReadAt).getTime() : 0
+  const isReadMsg = (m) => m.created_at && new Date(m.created_at).getTime() <= readTs
 
   useEffect(() => {
     if (!chatId) return
-    api.chatInfo(chatId).then(setInfo).catch(() => {})
+    api.chatInfo(chatId).then((i) => { setInfo(i); setPartnerReadAt(i?.partner_read_at || null) }).catch(() => {})
     api.messages(chatId).then(setMsgs).catch(() => {})
     api.icebreakers().then(setIces).catch(() => {})
     api.markRead(chatId).catch(() => {})
     const ws = createChatWS(chatId, (data) => {
-      if (data.type === 'message_sent' && data.message?.sender_id !== me?.id) { setMsgs((m) => [...m, data.message]); setTyping(false) }
+      if (data.type === 'message_sent' && data.message?.sender_id !== me?.id) { setMsgs((m) => [...m, data.message]); setTyping(false); api.markRead(chatId).catch(() => {}) }
+      else if (data.type === 'message_read' && data.reader_id !== me?.id) setPartnerReadAt(data.at || new Date().toISOString())
       else if (data.type === 'tg_consent_request' && data.from_id !== me?.id) setConsentFrom(data.from_id)
       else if (data.type === 'tg_consent_approved') { setToast('✈️ Контакты открыты'); api.chatInfo(chatId).then(setInfo) }
       else if (data.type === 'typing' && data.user_id !== me?.id) {
@@ -325,22 +346,22 @@ export function Dialog({ chatId, me, plan, theme, accent: accentProp, onBack, se
   }
 
   return (
-    <div className="w-full h-full flex flex-col relative" style={{ background: adult ? '#0A0000' : '#FAFAFC' }}>
-      <div className="safe-top shrink-0" style={{ background: adult ? 'rgba(20,0,0,0.85)' : 'rgba(255,255,255,0.85)', backdropFilter: 'blur(12px)', borderBottom: adult ? '1px solid #4A0000' : '1px solid #f3f4f6' }}>
+    <div className="w-full h-full flex flex-col relative" style={{ background: T.bg }}>
+      <div className="safe-top shrink-0" style={{ background: T.head, backdropFilter: 'blur(12px)', borderBottom: `1px solid ${T.border}` }}>
         <div className="flex items-center gap-2.5 px-3 pb-2.5 pt-1">
-          <button onClick={onBack} className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90 transition shrink-0"><i className="ph-bold ph-arrow-left text-[20px]" style={{ color: adult ? '#fff' : '#0F0F13' }} /></button>
+          <button onClick={onBack} className="w-9 h-9 rounded-full flex items-center justify-center active:scale-90 transition shrink-0"><i className="ph-bold ph-arrow-left text-[20px]" style={{ color: T.txt }} /></button>
           <div className="flex items-center gap-2.5 flex-1 min-w-0 active:opacity-80" onClick={() => info?.partner_id && onOpenProfile?.(info.partner_id)}>
           <Photo data={pic(info?.photo, info?.name || '?', '💞')} rounded="9999px" className="w-9 h-9 shrink-0" emojiSize={20} />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1">
-              <span className="text-[15px] font-bold" style={{ color: adult ? '#fff' : '#0F0F13' }}>{info?.name || 'Чат'}</span>
+              <span className="text-[15px] font-bold" style={{ color: T.txt }}>{info?.name || 'Чат'}</span>
               {info?.verified && <VerifiedTick size={14} />}
             </div>
             {typing ? <span className="text-[11px] font-semibold" style={{ color: accent }}>печатает…</span>
               : info?.online && <span className="text-[11px] font-semibold text-[#10B981]">в сети</span>}
           </div>
           </div>
-          <button onClick={() => setMenuOpen((v) => !v)} className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"><i className="ph-bold ph-dots-three-vertical text-[20px]" style={{ color: adult ? '#fff' : '#9ca3af' }} /></button>
+          <button onClick={() => setMenuOpen((v) => !v)} className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"><i className="ph-bold ph-dots-three-vertical text-[20px]" style={{ color: T.sub }} /></button>
           <div className="flex flex-col items-center shrink-0">
             <button onClick={() => {
                 if (tgUnlocked) {
@@ -353,10 +374,10 @@ export function Dialog({ chatId, me, plan, theme, accent: accentProp, onBack, se
                 } else {
                   api.requestTg(chatId).then((r) => { setInfo((i) => ({ ...i, my_consent: true, tg_unlocked: r?.mutual || i?.tg_unlocked })); setToast(r?.mutual ? '✈️ Контакты открыты!' : 'Согласие отправлено — ждём собеседника') }).catch(() => {})
                 }
-              }} className="w-9 h-9 rounded-full flex items-center justify-center transition" style={{ background: tgUnlocked ? 'linear-gradient(135deg,#3B82F6,#6366F1)' : (myConsent ? 'rgba(59,130,246,0.18)' : '#e5e7eb') }}>
-              <i className={'ph-fill ' + (myConsent && !tgUnlocked ? 'ph-hourglass-medium' : 'ph-telegram-logo') + ' text-[18px]'} style={{ color: tgUnlocked ? '#fff' : (myConsent ? '#3B82F6' : '#9ca3af') }} />
+              }} className="w-9 h-9 rounded-full flex items-center justify-center transition" style={{ background: tgUnlocked ? 'linear-gradient(135deg,#3B82F6,#6366F1)' : (myConsent ? 'rgba(59,130,246,0.18)' : T.surf) }}>
+              <i className={'ph-fill ' + (myConsent && !tgUnlocked ? 'ph-hourglass-medium' : 'ph-telegram-logo') + ' text-[18px]'} style={{ color: tgUnlocked ? '#fff' : (myConsent ? '#3B82F6' : T.sub) }} />
             </button>
-            {!tgUnlocked && <span className="text-[8px] font-bold text-[#9ca3af] mt-0.5 whitespace-nowrap">{myConsent ? 'ждём…' : (canRequest ? 'обмен ТГ' : `ещё ${remainTg}`)}</span>}
+            {!tgUnlocked && <span className="text-[8px] font-bold mt-0.5 whitespace-nowrap" style={{ color: T.sub }}>{myConsent ? 'ждём…' : (canRequest ? 'обмен ТГ' : `ещё ${remainTg}`)}</span>}
           </div>
         </div>
       </div>
@@ -364,17 +385,17 @@ export function Dialog({ chatId, me, plan, theme, accent: accentProp, onBack, se
       {menuOpen && (
         <>
           <div className="absolute inset-0 z-30" onClick={() => setMenuOpen(false)} />
-          <div className="absolute z-40 right-3 rounded-2xl overflow-hidden shadow-xl" style={{ top: 'calc(env(safe-area-inset-top) + 48px)', background: '#fff', border: '1px solid #e5e7eb', minWidth: 180 }}>
-            <button onClick={reportUser} className="w-full px-4 py-3 flex items-center gap-2.5 text-[14px] font-semibold text-[#0F0F13] active:bg-[#FAFAFC] border-b border-[#f3f4f6]"><i className="ph-bold ph-warning text-[#F59E0B]" /> Пожаловаться</button>
-            <button onClick={blockUser} className="w-full px-4 py-3 flex items-center gap-2.5 text-[14px] font-semibold text-[#EF4444] active:bg-[#FAFAFC]"><i className="ph-bold ph-prohibit" /> Заблокировать</button>
+          <div className="absolute z-40 right-3 rounded-2xl overflow-hidden shadow-xl" style={{ top: 'calc(env(safe-area-inset-top) + 48px)', background: T.menuBg, border: `1px solid ${T.border}`, minWidth: 180 }}>
+            <button onClick={reportUser} className="w-full px-4 py-3 flex items-center gap-2.5 text-[14px] font-semibold active:opacity-70" style={{ color: T.txt, borderBottom: `1px solid ${T.border}` }}><i className="ph-bold ph-warning text-[#F59E0B]" /> Пожаловаться</button>
+            <button onClick={blockUser} className="w-full px-4 py-3 flex items-center gap-2.5 text-[14px] font-semibold text-[#EF4444] active:opacity-70"><i className="ph-bold ph-prohibit" /> Заблокировать</button>
           </div>
         </>
       )}
 
       {info?.is_blind && (
         <div className="shrink-0 mx-3 mt-2 rounded-2xl px-3.5 py-2.5 flex items-center gap-2.5" style={{ background: 'linear-gradient(135deg, rgba(168,85,247,0.16), rgba(236,72,153,0.16))', border: '1px solid rgba(168,85,247,0.4)' }}>
-          <span className="text-[20px]">🎭</span>
-          <div className="flex-1 min-w-0"><div className="text-[12.5px] font-bold" style={{ color: '#0F0F13' }}>Свидание вслепую</div><div className="text-[11px]" style={{ color: '#6b7280' }}>Фото скрыты, пока оба не раскроются</div></div>
+          <span className="w-9 h-9 rounded-2xl flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg,#A855F7,#EC4899)' }}><i className="ph-fill ph-mask-happy text-white text-[18px]" /></span>
+          <div className="flex-1 min-w-0"><div className="text-[12.5px] font-bold" style={{ color: T.txt }}>Свидание вслепую</div><div className="text-[11px]" style={{ color: T.sub }}>Фото скрыты, пока оба не раскроются</div></div>
           <button onClick={() => api.blindReveal().then((r) => { if (r.both) { setToast('🎉 Раскрыты!'); api.chatInfo(chatId).then(setInfo) } else setToast('Ждём собеседника…') }).catch((e) => setToast(e?.data?.detail || 'Ошибка'))}
             className="shrink-0 px-3 h-8 rounded-full text-[12px] font-bold text-white active:scale-95 transition" style={{ background: 'linear-gradient(135deg,#A855F7,#EC4899)' }}>❤️ Раскрыться</button>
         </div>
@@ -402,7 +423,8 @@ export function Dialog({ chatId, me, plan, theme, accent: accentProp, onBack, se
                           <i className="ph-fill ph-fire text-[30px]" style={{ color: '#FF3333' }} /><span className="text-[12px] font-bold">Нажми — исчезнет</span>
                         </button>
                       )}
-                      {m.is_disappearing && mine && <span className="absolute bottom-1 right-2 text-[10px] font-bold text-white/80 flex items-center gap-0.5"><i className="ph-fill ph-fire" />исчезающее</span>}
+                      {m.is_disappearing && mine && <span className="absolute bottom-1 left-2 text-[10px] font-bold text-white/80 flex items-center gap-0.5"><i className="ph-fill ph-fire" />исчезающее</span>}
+                      {mine && <span className="absolute bottom-1.5 right-2 px-1 rounded-md flex items-center" style={{ background: 'rgba(0,0,0,0.4)' }}><i className={'ph-bold ' + (isReadMsg(m) ? 'ph-checks' : 'ph-check')} style={{ fontSize: 12, color: isReadMsg(m) ? '#7DF9FF' : 'rgba(255,255,255,0.8)' }} /></span>}
                     </>
                   ) : null}
                 </div>
@@ -411,20 +433,25 @@ export function Dialog({ chatId, me, plan, theme, accent: accentProp, onBack, se
           }
           return (
             <div key={m.id} className={'flex ' + (mine ? 'justify-end' : 'justify-start')}>
-              <div className={'max-w-[75%] px-3.5 py-2.5 text-[14px] font-medium leading-snug ' + (mine ? 'rounded-2xl rounded-tr-none text-white' : 'rounded-2xl rounded-tl-none')}
-                style={{ wordBreak: 'break-word', ...(mine ? { background: adult ? 'linear-gradient(135deg,#FF3333,#FF00FF)' : 'linear-gradient(135deg,#FF00FF,#FF66CC)' } : { background: adult ? '#2a1010' : '#f3f4f6', color: adult ? '#fff' : '#0F0F13' }) }}>
-                {linkify(m.content)}
+              <div className={'max-w-[75%] px-3.5 py-2 text-[14px] font-medium leading-snug ' + (mine ? 'rounded-2xl rounded-br-md text-white' : 'rounded-2xl rounded-bl-md')}
+                style={{ wordBreak: 'break-word', ...(mine ? { background: mineGrad } : { background: T.bubbleOther, color: T.bubbleOtherTxt }) }}>
+                <span>{linkify(m.content)}</span>
+                {mine && (
+                  <span className="inline-flex items-center align-middle ml-1.5 -mr-0.5 translate-y-[1px]" title={isReadMsg(m) ? 'Прочитано' : 'Доставлено'}>
+                    <i className={'ph-bold ' + (isReadMsg(m) ? 'ph-checks' : 'ph-check')} style={{ fontSize: 13, color: isReadMsg(m) ? '#7DF9FF' : 'rgba(255,255,255,0.75)' }} />
+                  </span>
+                )}
               </div>
             </div>
           )
         })}
         {consentFrom && (
           <div className="flex justify-center py-2">
-            <div className="rounded-2xl px-4 py-3 max-w-[85%] text-center" style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.25)' }}>
-              <div className="text-[24px]">🔑</div>
-              <p className="text-[13px] font-semibold text-[#0F0F13] mt-1">Собеседник хочет в Telegram</p>
+            <div className="rounded-2xl px-4 py-3 max-w-[85%] text-center" style={{ background: 'rgba(59,130,246,0.14)', border: '1px solid rgba(59,130,246,0.3)' }}>
+              <i className="ph-fill ph-key text-[26px]" style={{ color: '#3B82F6' }} />
+              <p className="text-[13px] font-semibold mt-1" style={{ color: T.txt }}>Собеседник хочет в Telegram</p>
               <div className="flex gap-2 mt-3">
-                <button onClick={declineTg} className="flex-1 h-9 rounded-xl bg-white border border-[#e5e7eb] text-[13px] font-bold text-[#6b7280]">Отклонить</button>
+                <button onClick={declineTg} className="flex-1 h-9 rounded-xl text-[13px] font-bold" style={{ background: T.surf, color: T.sub, border: `1px solid ${T.border}` }}>Отклонить</button>
                 <button onClick={approveTg} className="flex-1 h-9 rounded-xl text-[13px] font-bold text-white" style={{ background: 'linear-gradient(135deg,#3B82F6,#6366F1)' }}>Одобрить</button>
               </div>
             </div>
@@ -436,19 +463,19 @@ export function Dialog({ chatId, me, plan, theme, accent: accentProp, onBack, se
         <div className="shrink-0 px-3 pb-2 flex gap-2 overflow-x-auto noscroll">
           {ices.map((q) => (
             <button key={q} onClick={() => send(q)} className="shrink-0 px-3 h-9 rounded-full text-[12.5px] font-semibold whitespace-nowrap active:scale-95 transition"
-              style={{ color: accent, background: adult ? 'rgba(255,51,51,0.1)' : 'rgba(255,0,255,0.08)', border: `1px solid ${adult ? 'rgba(255,51,51,0.3)' : 'rgba(255,0,255,0.25)'}` }}>{q}</button>
+              style={{ color: accent, background: hexA(accent, 0.12), border: `1px solid ${hexA(accent, 0.32)}` }}>{q}</button>
           ))}
         </div>
       )}
 
-      <div className="shrink-0 px-3 pt-2 flex items-center gap-2" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 10px)', background: adult ? 'rgba(20,0,0,0.6)' : 'rgba(255,255,255,0.6)', backdropFilter: 'blur(10px)' }}>
-        <button onClick={() => !sending && fileRef.current?.click()} className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: adult ? '#2a1010' : '#f3f4f6' }}>
-          <i className={'ph-fill ' + (sending ? 'ph-spinner animate-spin' : (adult ? 'ph-fire' : 'ph-paperclip')) + ' text-[18px]'} style={{ color: adult ? '#FF3333' : '#6b7280' }} />
+      <div className="shrink-0 px-3 pt-2 flex items-center gap-2" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 10px)', background: T.head, backdropFilter: 'blur(10px)', borderTop: `1px solid ${T.border}` }}>
+        <button onClick={() => !sending && fileRef.current?.click()} className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: T.surf }}>
+          <i className={'ph-fill ' + (sending ? 'ph-spinner animate-spin' : (adult ? 'ph-fire' : 'ph-paperclip')) + ' text-[18px]'} style={{ color: adult ? '#FF3333' : T.sub }} />
         </button>
         <input ref={fileRef} type="file" accept="image/*,video/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) sendMedia(f); e.target.value = '' }} />
         <input value={text} onChange={(e) => { setText(e.target.value); const now = Date.now(); if (now - lastTypingSent.current > 1800) { lastTypingSent.current = now; wsRef.current?.send?.({ type: 'typing' }) } }} onKeyDown={(e) => e.key === 'Enter' && send()} placeholder="Сообщение…"
-          className="flex-1 h-11 rounded-full px-4 text-[14px] font-medium outline-none" style={{ background: adult ? '#2a1010' : '#fff', color: adult ? '#fff' : '#0F0F13', border: adult ? '1px solid #4A0000' : '1px solid #e5e7eb' }} />
-        <button onClick={() => send()} className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 active:scale-90 transition" style={{ background: adult ? 'linear-gradient(135deg,#FF3333,#FF00FF)' : 'linear-gradient(135deg,#FF00FF,#FF66CC)' }}>
+          className="flex-1 h-11 rounded-full px-4 text-[14px] font-medium outline-none" style={{ background: T.inputBg, color: T.txt, border: `1px solid ${T.border}` }} />
+        <button onClick={() => send()} className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 active:scale-90 transition" style={{ background: mineGrad }}>
           <i className="ph-fill ph-paper-plane-right text-[18px] text-white" />
         </button>
       </div>

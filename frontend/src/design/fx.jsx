@@ -74,7 +74,7 @@ export function MeshBG({ palette, className = '', style = {}, grain = true, grai
   )
 }
 
-export function ScoreRing({ value, size = 96, stroke = 9, color = '#FF00FF', track = 'rgba(0,0,0,0.08)', label }) {
+export function ScoreRing({ value, size = 96, stroke = 9, color = '#FF00FF', color2 = 'var(--cupid-accent2)', track = 'rgba(0,0,0,0.08)', label }) {
   const [n, setN] = useState(0)
   useEffect(() => {
     let raf, start
@@ -93,7 +93,7 @@ export function ScoreRing({ value, size = 96, stroke = 9, color = '#FF00FF', tra
         <defs>
           <linearGradient id={gid} x1="0" y1="0" x2="1" y2="1">
             <stop offset="0%" stopColor={color} />
-            <stop offset="100%" stopColor="#FF66CC" />
+            <stop offset="100%" stopColor={color2} />
           </linearGradient>
         </defs>
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={track} strokeWidth={stroke} />

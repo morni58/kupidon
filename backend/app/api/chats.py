@@ -155,9 +155,18 @@ async def chat_info(
 
     from app.core.media import to_public_url
     blind = bool(getattr(match, "is_blind", False))
+    # When did the partner last read? Used to render ✓/✓✓ read receipts.
+    partner_read_at = None
+    try:
+        from app.core.redis import get_redis
+        _r = await get_redis()
+        partner_read_at = await _r.get(f"lastread:{match.id}:{partner_id}")
+    except Exception:
+        partner_read_at = None
     return {
         "id": str(match.id),
         "partner_id": str(partner_id),
+        "partner_read_at": partner_read_at,
         "name": ("Незнакомец 🎭" if blind else partner.name),
         "verified": (False if blind else partner.is_verified),
         "photo": (None if blind else to_public_url(photo)),
@@ -443,13 +452,16 @@ async def mark_read(
     from datetime import datetime, timezone
     from app.core.redis import get_redis
     redis = await get_redis()
-    await redis.set(f"lastread:{match_id}:{me.id}", datetime.now(timezone.utc).isoformat())
+    now_iso = datetime.now(timezone.utc).isoformat()
+    await redis.set(f"lastread:{match_id}:{me.id}", now_iso)
     from app.ws.manager import ws_manager
     import asyncio
     asyncio.create_task(ws_manager.broadcast(str(match_id), {
         "type": "message_read",
         "reader_id": str(me.id),
+        "at": now_iso,
     }))
+    return {"ok": True}
     return {"ok": True}
 
 

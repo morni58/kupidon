@@ -340,26 +340,33 @@ export function Profile({ theme, palette: paletteProp, accent: accentProp, dark:
             </div>
           )}
 
-          {/* данные и приватность */}
-          <Glass dark={dark} className="p-4">
-            <div className="text-[14px] font-black mb-3" style={{ color: txt }}>Данные и приватность</div>
-            <button onClick={exportData} disabled={exporting} className="w-full flex items-center gap-2.5 py-2.5 text-[14px] font-semibold" style={{ color: txt, opacity: exporting ? 0.6 : 1 }}>
-              <i className={'ph-bold ' + (exporting ? 'ph-spinner animate-spin' : 'ph-file-pdf')} style={{ color: accent }} /> {exporting ? 'Собираем PDF…' : 'Мой профиль в PDF (в чат с ботом)'}
-            </button>
+          {/* Export PDF — its own card */}
+          <button onClick={exportData} disabled={exporting} className="w-full rounded-3xl p-3.5 flex items-center gap-3 active:scale-[0.99] transition" style={{ background: dark ? 'rgba(255,255,255,0.06)' : '#fff', border: `1px solid ${dark ? 'rgba(255,255,255,0.08)' : '#f0f1f5'}`, opacity: exporting ? 0.6 : 1 }}>
+            <div className="w-9 h-9 rounded-2xl flex items-center justify-center" style={{ background: hexA(accent, 0.14) }}><i className={'ph-fill ' + (exporting ? 'ph-spinner animate-spin' : 'ph-file-pdf')} style={{ color: accent }} /></div>
+            <div className="flex-1 text-left">
+              <div className="text-[14px] font-bold" style={{ color: txt }}>{exporting ? 'Собираем PDF…' : 'Скачать профиль в PDF'}</div>
+              <div className="text-[11.5px] font-medium" style={{ color: sub }}>Красивая карточка — придёт файлом в чат с ботом</div>
+            </div>
+            <i className="ph-bold ph-caret-right" style={{ color: sub }} />
+          </button>
+
+          {/* Danger zone — delete account, clearly separated */}
+          <div className="rounded-3xl p-1.5 mt-1" style={{ background: dark ? 'rgba(239,68,68,0.06)' : 'rgba(239,68,68,0.04)', border: '1px solid rgba(239,68,68,0.22)' }}>
             {!confirmDel ? (
-              <button onClick={() => setConfirmDel(true)} className="w-full flex items-center gap-2.5 py-2.5 text-[14px] font-semibold text-[#EF4444]">
-                <i className="ph-bold ph-trash" /> Удалить аккаунт
+              <button onClick={() => setConfirmDel(true)} className="w-full flex items-center gap-3 p-2.5 rounded-2xl active:scale-[0.99] transition">
+                <div className="w-9 h-9 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(239,68,68,0.14)' }}><i className="ph-fill ph-trash text-[#EF4444] text-[17px]" /></div>
+                <span className="text-[14px] font-bold text-[#EF4444]">Удалить аккаунт</span>
               </button>
             ) : (
-              <div className="mt-1 rounded-2xl p-3" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)' }}>
-                <div className="text-[13px] font-semibold text-[#EF4444] mb-2">Точно удалить? Анкета и фото исчезнут, это необратимо.</div>
+              <div className="p-3">
+                <div className="text-[13px] font-semibold text-[#EF4444] mb-2.5">Точно удалить? Анкета и фото исчезнут безвозвратно.</div>
                 <div className="flex gap-2">
-                  <button onClick={() => setConfirmDel(false)} className="flex-1 h-10 rounded-xl bg-white border border-[#e5e7eb] text-[13px] font-bold text-[#6b7280]">Отмена</button>
-                  <button onClick={deleteAccount} className="flex-1 h-10 rounded-xl text-[13px] font-bold text-white" style={{ background: '#EF4444' }}>Удалить</button>
+                  <button onClick={() => setConfirmDel(false)} className="flex-1 h-10 rounded-xl text-[13px] font-bold" style={{ background: dark ? 'rgba(255,255,255,0.08)' : '#fff', border: `1px solid ${dark ? 'rgba(255,255,255,0.12)' : '#e5e7eb'}`, color: txt }}>Отмена</button>
+                  <button onClick={deleteAccount} className="flex-1 h-10 rounded-xl text-[13px] font-bold text-white" style={{ background: '#EF4444' }}>Удалить навсегда</button>
                 </div>
               </div>
             )}
-          </Glass>
+          </div>
         </div>
       </div>
       <TabBar active={active} onTab={onTab} accent={accent} dark={dark} dots={dots} />
@@ -655,8 +662,8 @@ export function Verification({ onBack, onSuccess, setToast }) {
 /* ---------------- PRICING ---------------- */
 const TIERS = [
   { id: 'free', name: 'Free', emoji: '', accent: '#9ca3af', badge: null, product: null, rows: ['50 свайпов/день', '0 суперлайков', 'Врыв за ⭐', '15 смс до TG', 'Без отката', 'Кто смотрел — силуэт'] },
-  { id: 'premium', name: 'Premium', emoji: '💎', accent: '#FF00FF', badge: 'Выбор 80%', product: 'premium_month', rows: ['200 свайпов/день', '5 суперлайков/день', '3 врыва/день', '5 смс до TG', 'Откат свайпа ✓', 'Кто смотрел — открыто'] },
-  { id: 'kupidon', name: 'Kupidon', emoji: '👑', accent: '#FFD700', badge: 'VIP', product: 'kupidon_month', rows: ['500 свайпов/день', '5+ суперлайков', '15 врывов/день', 'TG сразу', 'Откат свайпа ✓', 'Режим Олигарх ✓'] },
+  { id: 'premium', name: 'Premium', emoji: '💎', accent: '#FF00FF', badge: 'Выбор 80%', product: 'premium_month', rows: ['200 свайпов/день', '5 суперлайков/день', '3 врыва/день', '5 смс до TG', 'Откат свайпа', 'Кто смотрел — открыто'] },
+  { id: 'kupidon', name: 'Kupidon', emoji: '👑', accent: '#FFD700', badge: 'VIP', product: 'kupidon_month', rows: ['500 свайпов/день', '5+ суперлайков', '15 врывов/день', 'TG сразу', 'Откат свайпа', 'Режим Олигарх'] },
 ]
 const STARS = [
   { label: 'Написать без мэтча', price: 50, emoji: '💌', product: 'force_chat' },
