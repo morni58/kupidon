@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { MeshBG, THEME_MESH, VIBES, hexA, Grain } from '../design/fx'
 import { Photo, Pill, Badge, Button, Sheet, TabBar, Avatar, Confetti } from '../design/ui'
 import { apiCardToPerson, gradPhoto, interestById } from '../design/data'
@@ -53,7 +53,7 @@ function ProfileCard({ person, theme, front, drag = { x: 0, y: 0 }, photoIdx = 0
         <div className="absolute inset-0 pointer-events-none z-10" style={{ background: 'radial-gradient(120% 80% at -10% 50%, rgba(239,68,68,0.55), transparent 55%)', opacity: nopeOn }} />
         <div className="absolute inset-0 pointer-events-none z-10" style={{ background: 'radial-gradient(100% 90% at 50% -10%, rgba(168,85,247,0.6), transparent 55%)', opacity: supOn }} />
       </>)}
-      {person.role === 'god' && <div className="absolute inset-0 pointer-events-none z-5 god-card-frame" style={{ borderRadius: '2rem' }} />}
+      {person.role === 'god' && <div className="absolute inset-0 pointer-events-none god-card-frame" style={{ borderRadius: '2rem', zIndex: 5 }} />}
       <div className="absolute inset-x-3 bottom-3 z-20 rounded-[1.6rem] px-4 pt-3.5 pb-4 overflow-hidden"
         style={{ background: person.role === 'god' ? 'rgba(20,10,0,0.5)' : adult ? 'rgba(30,4,6,0.4)' : 'rgba(18,14,26,0.34)', backdropFilter: 'blur(18px) saturate(1.2)', border: person.role === 'god' ? '1px solid rgba(255,180,0,0.35)' : '1px solid rgba(255,255,255,0.18)', boxShadow: '0 12px 30px -12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.22)' }}>
         <div className="flex items-end justify-between gap-2 min-w-0">
@@ -351,7 +351,8 @@ export function Feed({ theme, palette, accent: accentProp, dark, plan, me, refre
   useEffect(() => { setSuperLeft(me?.superlikes_left || 0); setSwipesLeft(me?.swipes_left ?? 50) }, [me?.superlikes_left, me?.swipes_left])
 
   const person = deck[idx]
-  const ended = !loading && idx >= deck.length
+  // In swipe mode cards advance by idx; in list mode cards are removed from deck via listDecide
+  const ended = !loading && (viewMode === 'swipe' ? idx >= deck.length : deck.length === 0)
 
   // Record a profile view when a new card comes to the front (UX14 / "кто смотрел").
   useEffect(() => { if (person?.id) api.recordView(person.id).catch(() => {}) }, [person?.id])
@@ -492,7 +493,7 @@ export function Feed({ theme, palette, accent: accentProp, dark, plan, me, refre
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 screen-pad relative" style={{ paddingBottom: 8 }}>
+        <div className="flex-1 min-h-0 screen-pad relative" style={{ paddingBottom: viewMode === 'list' ? 0 : 8 }}>
           {loading ? (
             <SkeletonFeed dark={dark} />
           ) : ended ? (
@@ -502,19 +503,21 @@ export function Feed({ theme, palette, accent: accentProp, dark, plan, me, refre
               <p className="mt-2 text-[15px] font-medium" style={{ color: !dark ? '#6b7280' : 'rgba(255,255,255,0.7)' }}>Новые анкеты появятся скоро. Загляни позже или расширь радиус поиска.</p>
               <div className="mt-6 w-full"><Button onClick={loadFeed} style={adult ? { background: 'linear-gradient(135deg,#FF3333,#FF00FF)' } : theme === 'oligarch' ? { background: 'linear-gradient(135deg,#FFE259,#FFA751)', color: '#0F0F13' } : {}}>Обновить ленту</Button></div>
             </div>
+          ) : viewMode === 'list' ? (
+            /* List mode: scrollable multi-card feed with per-card action buttons */
+            <div className="absolute inset-0" style={{ filter: paywall ? 'blur(8px)' : 'none', transition: 'filter .3s' }}>
+              <FeedList deck={deck} accent={accent} dark={dark} onDecide={listDecide} onOpenProfile={onOpenProfile} />
+            </div>
           ) : (
+            /* Swipe mode: single draggable card */
             <div className="relative w-full h-full" style={{ filter: paywall ? 'blur(8px)' : 'none', transition: 'filter .3s' }}>
-              {/* faint peek of the next card for depth (both modes) */}
               {deck[idx + 1] && <div className="absolute inset-0" style={{ transform: 'scale(0.93) translateY(14px)', opacity: 0.55 }}><div className="absolute inset-0 rounded-[2rem] overflow-hidden"><Photo data={deck[idx + 1].photos[0]} rounded="2rem" className="w-full h-full" emojiSize={120} /><div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.25)' }} /></div></div>}
-              {person && (viewMode === 'swipe'
-                ? <SwipeCard key={person.id + '-' + bump} person={person} theme={theme} onDecide={decide} photoIdx={photoIdx} onTapPhoto={tapPhoto} fling={fling} onOpenProfile={onOpenProfile} />
-                : <div key={person.id} className="absolute inset-0 anim-cardin"><ProfileCard person={person} theme={theme} front noOverlay photoIdx={photoIdx} onTapPhoto={tapPhoto} onOpenProfile={onOpenProfile} /></div>
-              )}
+              {person && <SwipeCard key={person.id + '-' + bump} person={person} theme={theme} onDecide={decide} photoIdx={photoIdx} onTapPhoto={tapPhoto} fling={fling} onOpenProfile={onOpenProfile} />}
             </div>
           )}
         </div>
 
-        {!ended && !loading && (
+        {!ended && !loading && viewMode === 'swipe' && (
           <div className="shrink-0 screen-pad" style={{ paddingBottom: 'calc(64px + env(safe-area-inset-bottom) + 12px)', paddingTop: 4 }}>
             <ActionBar theme={theme} plan={plan} superLeft={superLeft} canRewind={plan.rewind} onAction={onAction} />
           </div>
